@@ -62,8 +62,11 @@ namespace ROMManager
             {
                 InManualCellCommit = true;
                 var grid = (DataGrid)sender;
-                System.Diagnostics.Debug.Print($"!! {e.EditingElement.Name}");
-                //grid.CommitEdit(DataGridEditingUnit.Cell, true);
+                // HACK!!!!
+                if (e.Column.Header.ToString() == "Emulator")
+                {
+                    grid.CommitEdit(DataGridEditingUnit.Row, true);
+                }
                 //rowBeingEdited = e.Row.Item as ROMInstallerSettings.ROMInstallerEmulatorMapping;
                 InManualCellCommit = false;
             }
