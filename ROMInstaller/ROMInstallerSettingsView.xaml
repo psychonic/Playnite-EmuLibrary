@@ -64,7 +64,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <Button Name="Browse" Click="Click_BrowseSource" ></Button>
+                            <Button Name="Browse" Click="Click_BrowseSource">Browse...</Button>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
