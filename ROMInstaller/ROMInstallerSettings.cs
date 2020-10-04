@@ -163,6 +163,12 @@ namespace ROMManager
                 LoadValues(settings);
             }
 
+            // Need to initialize this if missing, else we don't have a valid list for UI to add to
+            if (Mappings == null)
+            {
+                Mappings = new ObservableCollection<ROMInstallerEmulatorMapping>();
+            }
+
             Instance = this;
         }
 
