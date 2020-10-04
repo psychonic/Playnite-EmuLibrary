@@ -1,0 +1,93 @@
+﻿<UserControl
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:ROMManager" x:Class="ROMManager.ROMInstallerSettingsView"
+             mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="600">
+    <UserControl.Resources>
+        <local:EmulatorGuidConverter x:Key="emulatorGuidConverter"/>
+        <local:EmulatorProfileListConverter x:Key="emulatorProfileListConverter"/>
+        <local:EmulatorProfileGuidConverter x:Key="emulatorProfileGuidConverter"/>
+    </UserControl.Resources>
+    <StackPanel>
+        <TextBlock Text="Emulator Path Mappings:"/>
+        <DataGrid ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
+                  CanUserAddRows="True" CanUserDeleteRows="True">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Emulator" Width="180"  >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Emulator" Text="{Binding Path=EmulatorId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorGuidConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
+                                  ItemsSource="{Binding Path=DataContext.Emulators, RelativeSource={RelativeSource AncestorType={x:Type local:ROMInstallerSettingsView}}}"
+                                       DisplayMemberPath="Name"
+                                       SelectedItem="{Binding EmulatorId, Mode=TwoWay, Converter={StaticResource emulatorGuidConverter}}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding EmulatorId}"
+                                       >
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Profile" Width="180"  >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfileId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorProfileGuidConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate x:Name="Name2">
+                            <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
+                                  ItemsSource="{Binding Converter={StaticResource emulatorProfileListConverter}}"
+                                       DisplayMemberPath="Name"
+                                       SelectedItem="{Binding EmulatorProfileId, Mode=TwoWay, Converter={StaticResource emulatorProfileGuidConverter}}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding EmulatorProfileId}"
+                                       >
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Source Path" Width="180"  >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Path"  Text="{Binding Path=SourcePath,UpdateSourceTrigger=PropertyChanged}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <Button Name="Browse" Click="Click_BrowseSource" ></Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Destination Path" Width="180"  >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Path"  Text="{Binding Path=DestinationPath,UpdateSourceTrigger=PropertyChanged}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <Button Name="Browse" Click="Click_BrowseDestination" ></Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <!--
+        <TextBlock Text="Description for Option1:"/>
+        <TextBox Text="{Binding Option1}"/>
+        <TextBlock Text="Description for Option2:"/>
+        <CheckBox IsChecked="{Binding Option2}"/>
+        -->
+    </StackPanel>
+</UserControl>
