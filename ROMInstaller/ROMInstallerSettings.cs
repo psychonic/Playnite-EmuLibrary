@@ -114,15 +114,6 @@ namespace ROMManager
 
         public static ROMInstallerSettings Instance { get; private set; }
 
-        public string Option1 { get; set; } = string.Empty;
-
-        public bool Option2 { get; set; } = false;
-
-        // Playnite serializes settings object to a JSON object and saves it as text file.
-        // If you want to exclude some property from being saved then use `JsonIgnore` ignore attribute.
-        [JsonIgnore]
-        public bool OptionThatWontBeSaved { get; set; } = false;
-
         [JsonIgnore]
         public IItemCollection<Emulator> Emulators {
             get
