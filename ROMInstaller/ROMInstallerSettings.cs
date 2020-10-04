@@ -23,7 +23,8 @@ namespace ROMManager
             if (value is Guid)
             {
                 Debug.Print("Value is Guid");
-                return ROMInstallerSettings.Instance.Emulators.FirstOrDefault(e => e.Id == ((Guid)value));
+                var emu = ROMInstallerSettings.Instance.Emulators.FirstOrDefault(e => e.Id == ((Guid)value));
+                return emu ?? new Emulator() { };
             }
             Debug.Print("Value IS NOT Emulator");
             return null;
@@ -40,7 +41,7 @@ namespace ROMManager
             }
 
             Debug.Print("Value IS NOT Emulator");
-            return null;
+            return Guid.Empty;
         }
     }
 
@@ -54,7 +55,7 @@ namespace ROMManager
             if (value is Guid)
             {
                 Debug.Print("Value is Guid");
-                return ROMInstallerSettings.Instance.Emulators.SelectMany(e => e.Profiles).Where(ep => ep.Id == (Guid)value).First().Name;
+                return ROMInstallerSettings.Instance.Emulators.SelectMany(e => e.Profiles).Where(ep => ep.Id == (Guid)value).FirstOrDefault()?.Name;
             }
             Debug.Print("Value IS NOT Emulator");
             return null;
@@ -80,13 +81,15 @@ namespace ROMManager
         public object Convert(object value, Type targetType,
             object parameter, CultureInfo culture)
         {
+            Debug.Print($"In Convert EPL {targetType}");
             var emuId = ((ROMInstallerSettings.ROMInstallerEmulatorMapping)value).EmulatorId;
-            return ROMInstallerSettings.Instance.Emulators.First(e => e.Id == emuId).Profiles;
+            return ROMInstallerSettings.Instance.Emulators.FirstOrDefault(e => e.Id == emuId)?.Profiles;
         }
 
         public object ConvertBack(object value, Type targetType,
             object parameter, CultureInfo culture)
         {
+            Debug.Print($"In ConvertBack EPL {targetType}");
             return null;
         }
     }
