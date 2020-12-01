@@ -91,7 +91,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y $(TargetDir)*.dll G:\misc-source\Playnite\build\Release\Extensions\ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
-copy /y $(TargetDir)*.pdb G:\misc-source\Playnite\build\Release\Extensions\ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9</PostBuildEvent>
+    <PostBuildEvent>REM copy /y $(TargetDir)*.dll G:\misc-source\Playnite\build\Release\Extensions\ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
+REM copy /y $(TargetDir)*.pdb G:\misc-source\Playnite\build\Release\Extensions\ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
+G:\pnportable\toolbox.exe pack $(TargetDir) G:\pnportable\_extbuild</PostBuildEvent>
   </PropertyGroup>
 </Project>
