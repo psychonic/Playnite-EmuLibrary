@@ -33,9 +33,24 @@ namespace ROMManager
         public Game Game { get; private set; }
         private ROMInstallerSettings Settings;
 
-        public event EventHandler<GameControllerEventArgs> Starting;
-        public event EventHandler<GameControllerEventArgs> Started;
-        public event EventHandler<GameControllerEventArgs> Stopped;
+        #region Unused events
+        public event EventHandler<GameControllerEventArgs> Starting
+        {
+            add { }
+            remove { }
+        }
+        public event EventHandler<GameControllerEventArgs> Started
+        {
+            add { }
+            remove { }
+        }
+        public event EventHandler<GameControllerEventArgs> Stopped
+        {
+            add { }
+            remove { }
+        }
+        #endregion
+
         public event EventHandler<GameControllerEventArgs> Uninstalled;
         public event EventHandler<GameInstalledEventArgs> Installed;
 
