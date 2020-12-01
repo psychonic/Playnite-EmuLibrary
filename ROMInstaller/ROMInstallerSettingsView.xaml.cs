@@ -29,31 +29,35 @@ namespace ROMManager
         private void Click_BrowseSource(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;
-
-            var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
-            dlg.SelectedPath = mapping.SourcePath;
-
-            Nullable<bool> result = dlg.ShowDialog();
-            if (result == true)
+            string path;
+            if ((path = GetSelectedFolderPath(mapping.SourcePath)) != null)
             {
-                string filename = dlg.SelectedPath;
-                mapping.SourcePath = filename;
+                mapping.SourcePath = path;
             }
         }
 
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;
+            string path;
+            if ((path = GetSelectedFolderPath(mapping.DestinationPath)) != null)
+            {
+                mapping.DestinationPath = path;
+            }
+        }
 
+        private string GetSelectedFolderPath(string startingFolder)
+        {
             var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
-            dlg.SelectedPath = mapping.SourcePath;
+            dlg.SelectedPath = startingFolder;
 
             bool? result = dlg.ShowDialog();
             if (result == true)
             {
-                string filename = dlg.SelectedPath;
-                mapping.SourcePath = filename;
+                return dlg.SelectedPath;
             }
+
+            return null;
         }
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
