@@ -48,10 +48,12 @@ namespace ROMManager
             {
                 var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
                 var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
+                var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
                 var imageExtensions = emuProfile.ImageExtensions;
                 var srcPath = mapping.SourcePath;
                 var dstPath = mapping.DestinationPath;
 
+                #region Import "installed" games
                 var fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly /*SearchOption.AllDirectories*/);
 
                 foreach (var file in fileEnumerator)
@@ -77,6 +79,7 @@ namespace ROMManager
                                 InstallDirectory = dstPath,
                                 IsInstalled = true,
                                 GameId = Path.Combine(srcPath, file.Name),
+                                Platform = platform.Name,
                                 PlayAction = new GameAction()
                                 {
                                     Type = GameActionType.Emulator,
@@ -89,7 +92,9 @@ namespace ROMManager
                         }
                     }
                 }
+                #endregion
 
+                #region Import "uninstalled" games
                 fileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly /*SearchOption.AllDirectories*/);
 
                 foreach (var file in fileEnumerator)
@@ -119,6 +124,7 @@ namespace ROMManager
                                 Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                 IsInstalled = false,
                                 GameId = file.FullName,
+                                Platform = platform.Name,
                                 PlayAction = new GameAction()
                                 {
                                     Type = GameActionType.Emulator,
@@ -132,6 +138,7 @@ namespace ROMManager
                     }
                 }
             });
+            #endregion
 
             return games;
         }
