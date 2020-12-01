@@ -23,9 +23,6 @@ namespace ROMManager
         // Change to something more appropriate
         public override string Name => "ROM Manager";
 
-        // Implementing Client adds ability to open it via special menu in playnite.
-        public override LibraryClient Client { get; } = new ROMManagerClient();
-
         public ROMManager(IPlayniteAPI api) : base(api)
         {
             PlayniteAPI = api;
