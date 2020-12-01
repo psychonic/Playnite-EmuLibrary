@@ -171,6 +171,7 @@ namespace ROMManager
     {
         private readonly ROMManager plugin;
         private ROMInstallerSettings editingClone;
+        public readonly IPlayniteAPI PlayniteAPI;
 
         public static ROMInstallerSettings Instance { get; private set; }
 
@@ -200,6 +201,21 @@ namespace ROMManager
             public Guid PlatformId { get; set; }
             public string SourcePath { get; set; }
             public string DestinationPath { get; set; }
+
+            // Not using ToString as this will end up longer than appropriate for that
+            public string GetDescription()
+            {
+                var sb = new System.Text.StringBuilder();
+                var emulator = Instance?.Emulators.FirstOrDefault(e => e.Id == EmulatorId);
+                sb.Append("Emulator: ");
+                sb.AppendLine(emulator?.Name ?? "<Unknown>");
+                sb.Append("Profile: ");
+                sb.AppendLine(emulator?.Profiles.FirstOrDefault(p => p.Id == EmulatorProfileId)?.Name ?? "<Unknown>");
+                sb.Append("Platform: ");
+                sb.AppendLine(Instance?.Platforms.FirstOrDefault(p => p.Id == PlatformId)?.Name ?? "<Unknown>");
+
+                return sb.ToString();
+            }
         }
 
         public ObservableCollection<ROMInstallerEmulatorMapping> Mappings { get; set; }
@@ -209,8 +225,9 @@ namespace ROMManager
         {
         }
 
-        public ROMInstallerSettings(ROMManager plugin)
+        public ROMInstallerSettings(ROMManager plugin, IPlayniteAPI api)
         {
+            this.PlayniteAPI = api;
             this.plugin = plugin;
 
             var settings = plugin.LoadPluginSettings<ROMInstallerSettings>();

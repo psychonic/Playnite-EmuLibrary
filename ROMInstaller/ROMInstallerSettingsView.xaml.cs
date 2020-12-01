@@ -13,6 +13,20 @@ namespace ROMManager
             InitializeComponent();
         }
 
+        private void Click_Delete(object sender, RoutedEventArgs e)
+        {
+            // TODO Refactor
+            var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;
+            if (mapping != null)
+            {
+                var res = ROMInstallerSettings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescription()), "Confirm delete", MessageBoxButton.YesNo);
+                if (res == MessageBoxResult.Yes)
+                {
+                    ROMInstallerSettings.Instance.Mappings.Remove(mapping);
+                }
+            }
+        }
+
         private void Click_BrowseSource(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;

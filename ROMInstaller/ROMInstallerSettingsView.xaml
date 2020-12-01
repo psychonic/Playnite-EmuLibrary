@@ -16,9 +16,19 @@
     <StackPanel>
         <TextBlock Text="Emulator Path Mappings:"/>
         <DataGrid ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
-                  CanUserAddRows="True" CanUserDeleteRows="True">
+                  CanUserAddRows="True">
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Emulator" Width="180"  >
+                <DataGridTemplateColumn Header="Delete" Width="75">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="❌" Tag="{Binding}" Click="Click_Delete" Foreground="Red" Width="26" Margin="0" Padding="0" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate><TextBlock Text=""></TextBlock></DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Emulator" Width="180">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock x:Name="Emulator" Text="{Binding Path=EmulatorId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorGuidConverter}}" />

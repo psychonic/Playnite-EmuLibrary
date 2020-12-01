@@ -26,7 +26,7 @@ namespace ROMManager
         public ROMManager(IPlayniteAPI api) : base(api)
         {
             PlayniteAPI = api;
-            settings = new ROMInstallerSettings(this);
+            settings = new ROMInstallerSettings(this, PlayniteAPI);
         }
 
         internal readonly IPlayniteAPI PlayniteAPI;
