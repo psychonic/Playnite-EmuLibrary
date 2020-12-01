@@ -76,6 +76,38 @@ namespace ROMManager
         }
     }
 
+    [ValueConversion(typeof(Guid), typeof(Platform))]
+    public class PlatformGuidConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType,
+            object parameter, CultureInfo culture)
+        {
+            Debug.Print($"In Convert {targetType}");
+            if (value is Guid)
+            {
+                Debug.Print("Value is Guid");
+                var platform = ROMInstallerSettings.Instance.Platforms.FirstOrDefault(e => e.Id == ((Guid)value));
+                return platform ?? new Platform() { };
+            }
+            Debug.Print("Value IS NOT Platform");
+            return null;
+        }
+
+        public object ConvertBack(object value, Type targetType,
+            object parameter, CultureInfo culture)
+        {
+            Debug.Print($"In ConvertBack {targetType}");
+            if (value is Platform)
+            {
+                Debug.Print("Value is Platform");
+                return (value as Platform).Id;
+            }
+
+            Debug.Print("Value IS NOT Platform");
+            return Guid.Empty;
+        }
+    }
+
     public class EmulatorProfileListConverter : IValueConverter
     {
         public object Convert(object value, Type targetType,
@@ -90,6 +122,31 @@ namespace ROMManager
             object parameter, CultureInfo culture)
         {
             Debug.Print($"In ConvertBack EPL {targetType}");
+            return null;
+        }
+    }
+
+    public class PlatformListConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType,
+            object parameter, CultureInfo culture)
+        {
+            Debug.Print($"In Convert EL {targetType}");
+            var emuId = ((ROMInstallerSettings.ROMInstallerEmulatorMapping)value).EmulatorId;
+            var profileId = ((ROMInstallerSettings.ROMInstallerEmulatorMapping)value).EmulatorProfileId;
+            var validPlatforms = ROMInstallerSettings.Instance.Emulators.FirstOrDefault(e => e.Id == emuId)?.Profiles.FirstOrDefault(p => p.Id == profileId)?.Platforms;
+            if (validPlatforms != null)
+            {
+                return ROMInstallerSettings.Instance.Platforms.Where(p => validPlatforms.Contains(p.Id));
+            }
+
+            return new Platform() { };
+        }
+
+        public object ConvertBack(object value, Type targetType,
+            object parameter, CultureInfo culture)
+        {
+            Debug.Print($"In ConvertBack EL {targetType}");
             return null;
         }
     }
@@ -118,16 +175,20 @@ namespace ROMManager
         public static ROMInstallerSettings Instance { get; private set; }
 
         [JsonIgnore]
-        public IItemCollection<Emulator> Emulators {
+        public IEnumerable<Emulator> Emulators {
             get
             {
-                return plugin.PlayniteApi.Database.Emulators;
+                return plugin.PlayniteApi.Database.Emulators.OrderBy(x => x.Name);
             }
         }
 
-        public IItemCollection<EmulatorProfile> GetProfilesForEmulator(Guid emulatorId)
+        [JsonIgnore]
+        public IEnumerable<Platform> Platforms
         {
-            return (IItemCollection<EmulatorProfile>)plugin.PlayniteApi.Database.Emulators.Select(e => e.Profiles);
+            get
+            {
+                return plugin.PlayniteApi.Database.Platforms.OrderBy(x => x.Name);
+            }
         }
 
         public class ROMInstallerEmulatorMapping : ObservableObject
@@ -136,6 +197,7 @@ namespace ROMManager
 
             public Guid EmulatorId { get; set; }
             public Guid EmulatorProfileId { get; set; }
+            public Guid PlatformId { get; set; }
             public string SourcePath { get; set; }
             public string DestinationPath { get; set; }
         }

@@ -10,6 +10,8 @@
         <local:EmulatorGuidConverter x:Key="emulatorGuidConverter"/>
         <local:EmulatorProfileListConverter x:Key="emulatorProfileListConverter"/>
         <local:EmulatorProfileGuidConverter x:Key="emulatorProfileGuidConverter"/>
+        <local:PlatformListConverter x:Key="platformListConverter"/>
+        <local:PlatformGuidConverter x:Key="platformGuidConverter"/>
     </UserControl.Resources>
     <StackPanel>
         <TextBlock Text="Emulator Path Mappings:"/>
@@ -50,6 +52,26 @@
                                        SelectedItem="{Binding EmulatorProfileId, Mode=TwoWay, Converter={StaticResource emulatorProfileGuidConverter}}"
                                   SelectedValuePath="Id"
                                   SelectedValue="{Binding EmulatorProfileId}"
+                                       >
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Platform" Width="180"  >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Platform" Text="{Binding Path=PlatformId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource platformGuidConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
+                                  ItemsSource="{Binding Converter={StaticResource platformListConverter}}"
+                                       DisplayMemberPath="Name"
+                                       SelectedItem="{Binding PlatformId, Mode=TwoWay, Converter={StaticResource platformGuidConverter}}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding PlatformId}"
                                        >
                             </ComboBox>
                         </DataTemplate>

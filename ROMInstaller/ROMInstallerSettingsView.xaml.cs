@@ -54,7 +54,9 @@ namespace ROMManager
                 InManualCellCommit = true;
                 var grid = (DataGrid)sender;
                 // HACK!!!!
-                if (e.Column.Header.ToString() == "Emulator")
+                // Alternate approach 1: try to find new value here and store that somewhere as the currently selected emu
+                // Alternate approach 2: the "right" way(?) https://stackoverflow.com/a/34332709
+                if (e.Column.Header.ToString() == "Emulator" || e.Column.Header.ToString() == "Profile")
                 {
                     grid.CommitEdit(DataGridEditingUnit.Row, true);
                 }
