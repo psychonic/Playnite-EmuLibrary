@@ -159,5 +159,46 @@ namespace ROMManager
         {
             return new ROMManagerController(game, settings, PlayniteAPI);
         }
+
+        public override List<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
+        {
+            return new List<MainMenuItem>()
+            {
+                new MainMenuItem()
+                {
+                    Action = (arags) => RemoveSuperUninstalledGames(),
+                    Description = "Remove Entries With Missing Source ROM...",
+                    MenuSection = "ROM Manager"
+                }
+            };
+        }
+
+        private void RemoveSuperUninstalledGames()
+        {
+            var onDiskFiles = new HashSet<string>(settings.Mappings?.SelectMany(mapping =>
+            {
+                var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
+                var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
+                var imageExtensionsLower = emuProfile.ImageExtensions.Where(e => !e.IsNullOrEmpty() ).Select(e => e.Trim().ToLower());
+
+                var srcPath = mapping.SourcePath;
+                var dstPath = mapping.DestinationPath;
+
+                return new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly /*SearchOption.AllDirectories*/)
+                    .Where(f => {
+                        return (!f.Attributes.HasFlag(FileAttributes.Directory))
+                            && imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower())
+                            && !File.Exists(Path.Combine(dstPath, f.Name));
+                        })
+                    .Select(f => f.FullName);
+            }));
+
+            var toRemove = PlayniteApi.Database.Games.Where(g => g.PluginId == this.Id && !g.IsInstalled && !onDiskFiles.Contains(g.GameId)).ToList();
+            var res = PlayniteApi.Dialogs.ShowMessage(string.Format("Delete {0} library entries?", toRemove.Count), "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+            if (res == System.Windows.MessageBoxResult.Yes)
+            {
+                PlayniteApi.Database.Games.Remove(toRemove);
+            }
+        }
     }
 }
