@@ -49,6 +49,9 @@ namespace ROMManager
 
         private string GetSelectedFolderPath(string startingFolder)
         {
+#if true
+            return ROMInstallerSettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
+#else
             var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
             dlg.SelectedPath = startingFolder;
 
@@ -59,6 +62,7 @@ namespace ROMManager
             }
 
             return null;
+#endif
         }
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
