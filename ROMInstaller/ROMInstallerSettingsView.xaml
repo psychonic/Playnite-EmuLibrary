@@ -18,7 +18,7 @@
         <DataGrid ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
                   CanUserAddRows="True">
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Delete" Width="75">
+                <DataGridTemplateColumn Header="Delete" Width="50">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="❌" Tag="{Binding}" Click="Click_Delete" Foreground="Red" Width="26" Margin="0" Padding="0" />
