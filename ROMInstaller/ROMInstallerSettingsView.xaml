@@ -113,6 +113,8 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
+
+                <DataGridCheckBoxColumn Header="Games Use Folders" Binding="{Binding GamesUseFolders}" />
             </DataGrid.Columns>
         </DataGrid>
     </StackPanel>

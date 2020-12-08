@@ -46,96 +46,149 @@ namespace ROMManager
 
             settings.Mappings?.ToList().ForEach(mapping =>
             {
-                var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
-                var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
-                var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
-                var imageExtensions = emuProfile.ImageExtensions;
-                var srcPath = mapping.SourcePath;
-                var dstPath = mapping.DestinationPath;
+            var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
+            var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
+            var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
+            var imageExtensionsLower = emuProfile.ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+            var srcPath = mapping.SourcePath;
+            var dstPath = mapping.DestinationPath;
+            SafeFileEnumerator fileEnumerator;
 
+            if (Directory.Exists(dstPath))
+            {
                 #region Import "installed" games
-                var fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly /*SearchOption.AllDirectories*/);
+                fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
 
                 foreach (var file in fileEnumerator)
                 {
-                    if (file.Attributes.HasFlag(FileAttributes.Directory))
+                    if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory))
                     {
-                        continue;
-                    }
-
-                    foreach (var extension in imageExtensions)
-                    {
-                        if (extension.IsNullOrEmpty())
-                        {
-                            continue;
-                        }
-
-                        if (string.Equals(file.Extension.TrimStart('.'), extension.Trim(), StringComparison.OrdinalIgnoreCase))
+                        var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
+                        if (rom != null)
                         {
                             var newGame = new GameInfo()
                             {
+                                Source = "ROM Manager",
                                 Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
-                                GameImagePath = file.FullName,
-                                InstallDirectory = dstPath,
+                                GameImagePath = rom.FullName,
+                                InstallDirectory = file.FullName,
                                 IsInstalled = true,
-                                GameId = Path.Combine(srcPath, file.Name),
+                                GameId = new RMPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
                                 Platform = platform.Name,
                                 PlayAction = new GameAction()
                                 {
                                     Type = GameActionType.Emulator,
                                     EmulatorId = emulator.Id,
                                     EmulatorProfileId = emuProfile.Id,
-                                    IsHandledByPlugin = true,
+                                    IsHandledByPlugin = false, // don't change this. PN will using emulator action
                                 }
                             };
 
                             games.Add(newGame);
+                        }
+                    }
+                    else if (!mapping.GamesUseFolders)
+                    {
+                        foreach (var extension in imageExtensionsLower)
+                        {
+                            if (file.Extension.TrimStart('.') == extension)
+                            {
+                                var newGame = new GameInfo()
+                                {
+                                    Source = "ROM Manager",
+                                    Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
+                                    GameImagePath = file.FullName,
+                                    InstallDirectory = dstPath,
+                                    IsInstalled = true,
+                                    GameId = new RMPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
+                                    Platform = platform.Name,
+                                    PlayAction = new GameAction()
+                                    {
+                                        Type = GameActionType.Emulator,
+                                        EmulatorId = emulator.Id,
+                                        EmulatorProfileId = emuProfile.Id,
+                                        IsHandledByPlugin = false, // don't change this. PN will using emulator action
+                                    }
+                                };
+
+                                games.Add(newGame);
+                            }
                         }
                     }
                 }
+            }
                 #endregion
 
                 #region Import "uninstalled" games
-                fileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly /*SearchOption.AllDirectories*/);
-
-                foreach (var file in fileEnumerator)
+                if (Directory.Exists(srcPath))
                 {
-                    if (file.Attributes.HasFlag(FileAttributes.Directory))
+                    fileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
+
+                    foreach (var file in fileEnumerator)
                     {
-                        continue;
-                    }
-
-                    foreach (var extension in imageExtensions)
-                    {
-                        if (extension.IsNullOrEmpty())
+                        if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory))
                         {
-                            continue;
-                        }
-
-                        if (string.Equals(file.Extension.TrimStart('.'), extension.Trim(), StringComparison.OrdinalIgnoreCase))
-                        {
-                            var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
-                            if (File.Exists(equivalentInstalledPath))
+                            var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
+                            if (rom != null)
                             {
-                                continue;
-                            }
-
-                            var newGame = new GameInfo()
-                            {
-                                Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
-                                IsInstalled = false,
-                                GameId = file.FullName,
-                                Platform = platform.Name,
-                                PlayAction = new GameAction()
+                                var pathInfo = new RMPathInfo(new FileInfo(rom.FullName), true);
+                                var equivalentInstalledPath = Path.Combine(dstPath, pathInfo.RelativeRomPath);
+                                if (File.Exists(equivalentInstalledPath))
                                 {
-                                    Type = GameActionType.Emulator,
-                                    EmulatorId = emulator.Id,
-                                    EmulatorProfileId = emuProfile.Id,
-                                    IsHandledByPlugin = true,
+                                    continue;
                                 }
-                            };
 
-                            games.Add(newGame);
+                                var newGame = new GameInfo()
+                                {
+                                    Source = "ROM Manager",
+                                    Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
+                                    IsInstalled = false,
+                                    GameId = pathInfo.ToGameId(),
+                                    Platform = platform.Name,
+                                    PlayAction = new GameAction()
+                                    {
+                                        Type = GameActionType.Emulator,
+                                        EmulatorId = emulator.Id,
+                                        EmulatorProfileId = emuProfile.Id,
+                                        IsHandledByPlugin = false, // don't change this. PN will using emulator action
+                                    }
+                                };
+
+                                games.Add(newGame);
+                            }
+                        }
+                        else if (!mapping.GamesUseFolders)
+                        {
+
+                            foreach (var extension in imageExtensionsLower)
+                            {
+                                if (file.Extension.TrimStart('.') == extension)
+                                {
+                                    var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
+                                    if (File.Exists(equivalentInstalledPath))
+                                    {
+                                        continue;
+                                    }
+
+                                    var newGame = new GameInfo()
+                                    {
+                                        Source = "ROM Manager",
+                                        Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
+                                        IsInstalled = false,
+                                        GameId = new RMPathInfo(new FileInfo(file.FullName), false).ToGameId(),
+                                        Platform = platform.Name,
+                                        PlayAction = new GameAction()
+                                        {
+                                            Type = GameActionType.Emulator,
+                                            EmulatorId = emulator.Id,
+                                            EmulatorProfileId = emuProfile.Id,
+                                            IsHandledByPlugin = false, // don't change this. PN will using emulator action
+                                        }
+                                    };
+
+                                    games.Add(newGame);
+                                }
+                            }
                         }
                     }
                 }
@@ -184,7 +237,7 @@ namespace ROMManager
                 var srcPath = mapping.SourcePath;
                 var dstPath = mapping.DestinationPath;
 
-                return new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly /*SearchOption.AllDirectories*/)
+                return new SafeFileEnumerator(srcPath, "*.*", SearchOption.AllDirectories)
                     .Where(f => {
                         return (!f.Attributes.HasFlag(FileAttributes.Directory))
                             && imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower())
@@ -193,11 +246,18 @@ namespace ROMManager
                     .Select(f => f.FullName);
             }));
 
-            var toRemove = PlayniteApi.Database.Games.Where(g => g.PluginId == this.Id && !g.IsInstalled && !onDiskFiles.Contains(g.GameId)).ToList();
-            var res = PlayniteApi.Dialogs.ShowMessage(string.Format("Delete {0} library entries?", toRemove.Count), "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
-            if (res == System.Windows.MessageBoxResult.Yes)
+            var toRemove = PlayniteApi.Database.Games.Where(g => g.PluginId == this.Id && !g.IsInstalled && !onDiskFiles.Contains(new RMPathInfo(g).SourceRomFile.FullName)).ToList();
+            if (toRemove.Count > 0)
             {
-                PlayniteApi.Database.Games.Remove(toRemove);
+                var res = PlayniteApi.Dialogs.ShowMessage(string.Format("Delete {0} library entries?", toRemove.Count), "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+                if (res == System.Windows.MessageBoxResult.Yes)
+                {
+                    PlayniteApi.Database.Games.Remove(toRemove);
+                }
+            }
+            else
+            {
+                PlayniteApi.Dialogs.ShowMessage("Nothing to do.");
             }
         }
     }

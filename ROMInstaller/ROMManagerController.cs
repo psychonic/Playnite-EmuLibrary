@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using Playnite.SDK;
+﻿using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
-using System.Runtime.CompilerServices;
-using System.Threading;
+using System;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ROMManager
 {
@@ -60,34 +57,32 @@ namespace ROMManager
 
         public void Install()
         {
-            //throw new NotImplementedException();
-            var srcInfo = new FileInfo(Game.GameId);
             var dstPath = Settings.Mappings.First(m => m.EmulatorId == Game.PlayAction.EmulatorId && m.EmulatorProfileId == Game.PlayAction.EmulatorProfileId).DestinationPath;
-            AwaitInstall(srcInfo.FullName, Path.Combine(dstPath, srcInfo.Name));
+            var progressOptions = new GlobalProgressOptions($"Installing {Game.Name}...", false) { IsIndeterminate = true };
+            PlayniteAPI.Dialogs.ActivateGlobalProgress((progressAction) =>
+            {
+                AwaitInstall(Game, dstPath);
+            }, progressOptions);
         }
 
-        public async void AwaitInstall(string source, string destination)
+        public async void AwaitInstall(Game game, string destination)
         {
+            var source = new RMPathInfo(Game);
             var stopWatch = Stopwatch.StartNew();
-            //File.Copy(source, destination);
-            using (FileStream SourceStream = File.Open(source, FileMode.Open))
-            {
-                using (FileStream DestinationStream = File.Create(destination))
-                {
-                    await SourceStream.CopyToAsync(DestinationStream);
-                }
-            }
+
+            await source.CopyTo(destination);
+
             var gameInfo = new GameInfo() {
-                InstallDirectory = (new FileInfo(destination)).Directory.FullName,
-                GameImagePath = destination
+                InstallDirectory = Path.Combine(destination, source.RelativeInstallPath),
+                GameImagePath = Path.Combine(destination, source.RelativeRomPath),
             };
             stopWatch.Stop();
             execContext.Post((a) => Installed?.Invoke(this, new GameInstalledEventArgs(gameInfo, this, stopWatch.Elapsed.TotalSeconds)), null);
 
-            // This is actually ignored in the GameInfo above...
-            var game = PlayniteAPI.Database.Games[Game.Id];
-            game.GameImagePath = destination;
-            PlayniteAPI.Database.Games.Update(game);
+            // This is actually ignored in the GameInfo above... Maybe fixed now in latest version. TODO: recheck
+            var g = PlayniteAPI.Database.Games[Game.Id];
+            g.GameImagePath = gameInfo.GameImagePath;
+            PlayniteAPI.Database.Games.Update(g);
             //
         }
 
@@ -97,9 +92,18 @@ namespace ROMManager
 
         public void Uninstall()
         {
-            if (File.Exists(Game.GameImagePath))
+            var info = new FileInfo(Game.GameImagePath);
+            if (info.Exists)
             {
-                File.Delete(Game.GameImagePath);
+                var pathInfo = new RMPathInfo(Game);
+                if (pathInfo.IsMultiFile)
+                {
+                    Directory.Delete(info.Directory.FullName, true);
+                }
+                else
+                {
+                    File.Delete(Game.GameImagePath);
+                }
                 execContext.Post((a) => Uninstalled?.Invoke(this, new GameControllerEventArgs(this, 0)), null);
             }
             else

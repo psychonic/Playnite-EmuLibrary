@@ -44,6 +44,7 @@ namespace ROMManager
             public Guid PlatformId { get; set; }
             public string SourcePath { get; set; }
             public string DestinationPath { get; set; }
+            public bool GamesUseFolders { get; set; }
 
             // Not using ToString as this will end up longer than appropriate for that
             public string GetDescription()
