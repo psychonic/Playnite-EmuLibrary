@@ -12,6 +12,8 @@ namespace ROMManager
     {
         private readonly ROMManager plugin;
         private ROMInstallerSettings editingClone;
+
+        [JsonIgnore]
         public readonly IPlayniteAPI PlayniteAPI;
 
         public static ROMInstallerSettings Instance { get; private set; }
