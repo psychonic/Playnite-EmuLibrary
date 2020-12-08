@@ -56,7 +56,6 @@ namespace ROMManager
 
         public void Dispose()
         {
-            throw new NotImplementedException();
         }
 
         public void Install()
@@ -94,7 +93,6 @@ namespace ROMManager
 
         public void Play()
         {
-            //throw new NotImplementedException();
         }
 
         public void Uninstall()
@@ -106,7 +104,7 @@ namespace ROMManager
             }
             else
             {
-                throw new ArgumentException();
+                throw new ArgumentException($"\"{info.FullName}\" does not exist");
             }
         }
     }
