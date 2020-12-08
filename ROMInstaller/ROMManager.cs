@@ -84,8 +84,7 @@ namespace ROMManager
                                 {
                                     Type = GameActionType.Emulator,
                                     EmulatorId = emulator.Id,
-                                    EmulatorProfileId = emuProfile.Id,
-                                    IsHandledByPlugin = true,
+                                    EmulatorProfileId = emuProfile.Id
                                 }
                             };
 
@@ -130,8 +129,7 @@ namespace ROMManager
                                 {
                                     Type = GameActionType.Emulator,
                                     EmulatorId = emulator.Id,
-                                    EmulatorProfileId = emuProfile.Id,
-                                    IsHandledByPlugin = true,
+                                    EmulatorProfileId = emuProfile.Id
                                 }
                             };
 
