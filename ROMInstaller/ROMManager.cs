@@ -43,61 +43,34 @@ namespace ROMManager
 
             settings.Mappings?.ToList().ForEach(mapping =>
             {
-            var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
-            var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
-            var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
-            var imageExtensionsLower = emuProfile.ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
-            var srcPath = mapping.SourcePath;
-            var dstPath = mapping.DestinationPath;
-            SafeFileEnumerator fileEnumerator;
+                var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
+                var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
+                var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
+                var imageExtensionsLower = emuProfile.ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                var srcPath = mapping.SourcePath;
+                var dstPath = mapping.DestinationPath;
+                SafeFileEnumerator fileEnumerator;
 
-            if (Directory.Exists(dstPath))
-            {
-                #region Import "installed" games
-                fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
-
-                foreach (var file in fileEnumerator)
+                if (Directory.Exists(dstPath))
                 {
-                    if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory))
-                    {
-                        var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
-                        if (rom != null)
-                        {
-                            var newGame = new GameInfo()
-                            {
-                                Source = "ROM Manager",
-                                Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
-                                GameImagePath = rom.FullName,
-                                InstallDirectory = file.FullName,
-                                IsInstalled = true,
-                                GameId = new RMPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
-                                Platform = platform.Name,
-                                PlayAction = new GameAction()
-                                {
-                                    Type = GameActionType.Emulator,
-                                    EmulatorId = emulator.Id,
-                                    EmulatorProfileId = emuProfile.Id,
-                                    IsHandledByPlugin = false, // don't change this. PN will using emulator action
-                                }
-                            };
+                    #region Import "installed" games
+                    fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
 
-                            games.Add(newGame);
-                        }
-                    }
-                    else if (!mapping.GamesUseFolders)
+                    foreach (var file in fileEnumerator)
                     {
-                        foreach (var extension in imageExtensionsLower)
+                        if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory))
                         {
-                            if (file.Extension.TrimStart('.') == extension)
+                            var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
+                            if (rom != null)
                             {
                                 var newGame = new GameInfo()
                                 {
                                     Source = "ROM Manager",
                                     Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
-                                    GameImagePath = file.FullName,
-                                    InstallDirectory = dstPath,
+                                    GameImagePath = rom.FullName,
+                                    InstallDirectory = file.FullName,
                                     IsInstalled = true,
-                                    GameId = new RMPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
+                                    GameId = new RMPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
                                     Platform = platform.Name,
                                     PlayAction = new GameAction()
                                     {
@@ -111,9 +84,36 @@ namespace ROMManager
                                 games.Add(newGame);
                             }
                         }
+                        else if (!mapping.GamesUseFolders)
+                        {
+                            foreach (var extension in imageExtensionsLower)
+                            {
+                                if (file.Extension.TrimStart('.') == extension)
+                                {
+                                    var newGame = new GameInfo()
+                                    {
+                                        Source = "ROM Manager",
+                                        Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
+                                        GameImagePath = file.FullName,
+                                        InstallDirectory = dstPath,
+                                        IsInstalled = true,
+                                        GameId = new RMPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
+                                        Platform = platform.Name,
+                                        PlayAction = new GameAction()
+                                        {
+                                            Type = GameActionType.Emulator,
+                                            EmulatorId = emulator.Id,
+                                            EmulatorProfileId = emuProfile.Id,
+                                            IsHandledByPlugin = false, // don't change this. PN will using emulator action
+                                        }
+                                    };
+
+                                    games.Add(newGame);
+                                }
+                            }
+                        }
                     }
                 }
-            }
                 #endregion
 
                 #region Import "uninstalled" games
