@@ -57,11 +57,7 @@ namespace ROMManager
         public void Install()
         {
             var dstPath = Settings.Mappings.First(m => m.EmulatorId == Game.PlayAction.EmulatorId && m.EmulatorProfileId == Game.PlayAction.EmulatorProfileId).DestinationPath;
-            var progressOptions = new GlobalProgressOptions($"Installing {Game.Name}...", false) { IsIndeterminate = true };
-            PlayniteAPI.Dialogs.ActivateGlobalProgress((progressAction) =>
-            {
-                AwaitInstall(Game, dstPath);
-            }, progressOptions);
+            AwaitInstall(Game, dstPath);
         }
 
         public async void AwaitInstall(Game game, string destination)
