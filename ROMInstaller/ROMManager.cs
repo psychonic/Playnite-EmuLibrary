@@ -40,7 +40,6 @@ namespace ROMManager
                 throw new Exception("Cannot scan for games, emulator doesn't support any file types.");
             }
 #endif
-            // TODO: nested folder support
 
             var games = new List<GameInfo>();
 
