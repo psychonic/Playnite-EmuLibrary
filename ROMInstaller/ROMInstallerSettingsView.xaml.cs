@@ -2,13 +2,13 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace ROMManager
+namespace EmuLibrary
 {
-    public partial class ROMInstallerSettingsView : UserControl
+    public partial class EmuLibrarySettingsView : UserControl
     {
         private bool InManualCellCommit = false;
 
-        public ROMInstallerSettingsView()
+        public EmuLibrarySettingsView()
         {
             InitializeComponent();
         }
@@ -16,20 +16,20 @@ namespace ROMManager
         private void Click_Delete(object sender, RoutedEventArgs e)
         {
             // TODO Refactor
-            var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;
+            var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
             if (mapping != null)
             {
-                var res = ROMInstallerSettings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescription()), "Confirm delete", MessageBoxButton.YesNo);
+                var res = EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescription()), "Confirm delete", MessageBoxButton.YesNo);
                 if (res == MessageBoxResult.Yes)
                 {
-                    ROMInstallerSettings.Instance.Mappings.Remove(mapping);
+                    EmuLibrarySettings.Instance.Mappings.Remove(mapping);
                 }
             }
         }
 
         private void Click_BrowseSource(object sender, RoutedEventArgs e)
         {
-            var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;
+            var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath(mapping.SourcePath)) != null)
             {
@@ -39,7 +39,7 @@ namespace ROMManager
 
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
         {
-            var mapping = ((FrameworkElement)sender).DataContext as ROMInstallerSettings.ROMInstallerEmulatorMapping;
+            var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath(mapping.DestinationPath)) != null)
             {
@@ -50,7 +50,7 @@ namespace ROMManager
         private string GetSelectedFolderPath(string startingFolder)
         {
 #if true
-            return ROMInstallerSettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
+            return EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
 #else
             var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
             dlg.SelectedPath = startingFolder;

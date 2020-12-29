@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ROMManager.PlayniteCommon
+namespace EmuLibrary.PlayniteCommon
 {
     // Originally from https://stackoverflow.com/questions/9746538/fastest-safest-file-finding-parsing
     public class SafeFileEnumerator : IEnumerable<FileSystemInfoBase>

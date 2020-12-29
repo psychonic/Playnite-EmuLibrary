@@ -1,4 +1,4 @@
-﻿using ROMManager.PlayniteCommon;
+﻿using EmuLibrary.PlayniteCommon;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
@@ -8,23 +8,23 @@ using System.IO;
 using System.Linq;
 using System.Windows.Controls;
 
-namespace ROMManager
+namespace EmuLibrary
 {
-    public class ROMManager : LibraryPlugin
+    public class EmuLibrary : LibraryPlugin
     {
         private static readonly ILogger logger = LogManager.GetLogger();
 
-        private ROMInstallerSettings settings { get; set; }
+        private EmuLibrarySettings settings { get; set; }
 
         public override Guid Id { get; } = Guid.Parse("41e49490-0583-4148-94d2-940c7c74f1d9");
 
         // Change to something more appropriate
         public override string Name => "ROM Manager";
 
-        public ROMManager(IPlayniteAPI api) : base(api)
+        public EmuLibrary(IPlayniteAPI api) : base(api)
         {
             PlayniteAPI = api;
-            settings = new ROMInstallerSettings(this, PlayniteAPI);
+            settings = new EmuLibrarySettings(this, PlayniteAPI);
         }
 
         internal readonly IPlayniteAPI PlayniteAPI;
@@ -70,7 +70,7 @@ namespace ROMManager
                                     GameImagePath = rom.FullName,
                                     InstallDirectory = file.FullName,
                                     IsInstalled = true,
-                                    GameId = new RMPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
+                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
                                     Platform = platform.Name,
                                     PlayAction = new GameAction()
                                     {
@@ -97,7 +97,7 @@ namespace ROMManager
                                         GameImagePath = file.FullName,
                                         InstallDirectory = dstPath,
                                         IsInstalled = true,
-                                        GameId = new RMPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
+                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
                                         Platform = platform.Name,
                                         PlayAction = new GameAction()
                                         {
@@ -128,7 +128,7 @@ namespace ROMManager
                             var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
                             if (rom != null)
                             {
-                                var pathInfo = new RMPathInfo(new FileInfo(rom.FullName), true);
+                                var pathInfo = new ELPathInfo(new FileInfo(rom.FullName), true);
                                 var equivalentInstalledPath = Path.Combine(dstPath, pathInfo.RelativeRomPath);
                                 if (File.Exists(equivalentInstalledPath))
                                 {
@@ -172,7 +172,7 @@ namespace ROMManager
                                         Source = "ROM Manager",
                                         Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                         IsInstalled = false,
-                                        GameId = new RMPathInfo(new FileInfo(file.FullName), false).ToGameId(),
+                                        GameId = new ELPathInfo(new FileInfo(file.FullName), false).ToGameId(),
                                         Platform = platform.Name,
                                         PlayAction = new GameAction()
                                         {
@@ -202,12 +202,12 @@ namespace ROMManager
 
         public override UserControl GetSettingsView(bool firstRunSettings)
         {
-            return new ROMInstallerSettingsView();
+            return new EmuLibrarySettingsView();
         }
 
         public override IGameController GetGameController(Game game)
         {
-            return new ROMManagerController(game, settings, PlayniteAPI);
+            return new EmuLibraryController(game, settings, PlayniteAPI);
         }
 
         public override List<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
@@ -243,7 +243,7 @@ namespace ROMManager
                     .Select(f => f.FullName);
             }));
 
-            var toRemove = PlayniteApi.Database.Games.Where(g => g.PluginId == this.Id && !g.IsInstalled && !onDiskFiles.Contains(new RMPathInfo(g).SourceRomFile.FullName)).ToList();
+            var toRemove = PlayniteApi.Database.Games.Where(g => g.PluginId == this.Id && !g.IsInstalled && !onDiskFiles.Contains(new ELPathInfo(g).SourceRomFile.FullName)).ToList();
             if (toRemove.Count > 0)
             {
                 var res = PlayniteApi.Dialogs.ShowMessage(string.Format("Delete {0} library entries?", toRemove.Count), "Confirm deletion", System.Windows.MessageBoxButton.YesNo);

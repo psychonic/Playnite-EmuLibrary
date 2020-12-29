@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 
-namespace ROMManager
+namespace EmuLibrary
 {
     // From https://stackoverflow.com/questions/41138762/asynchronous-directory-copy-with-progress-bar
     public class FileCopier

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:ROMManager" x:Class="ROMManager.ROMInstallerSettingsView"
+             xmlns:local="clr-namespace:EmuLibrary" x:Class="EmuLibrary.EmuLibrarySettingsView"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
     <UserControl.Resources>
@@ -37,7 +37,7 @@
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
                             <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
-                                  ItemsSource="{Binding Path=DataContext.Emulators, RelativeSource={RelativeSource AncestorType={x:Type local:ROMInstallerSettingsView}}}"
+                                  ItemsSource="{Binding Path=DataContext.Emulators, RelativeSource={RelativeSource AncestorType={x:Type local:EmuLibrarySettingsView}}}"
                                        DisplayMemberPath="Name"
                                        SelectedItem="{Binding EmulatorId, Mode=TwoWay, Converter={StaticResource emulatorGuidConverter}}"
                                   SelectedValuePath="Id"

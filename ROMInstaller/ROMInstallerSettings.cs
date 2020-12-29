@@ -6,17 +6,17 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace ROMManager
+namespace EmuLibrary
 {
-    public class ROMInstallerSettings : ObservableObject, ISettings
+    public class EmuLibrarySettings : ObservableObject, ISettings
     {
-        private readonly ROMManager plugin;
-        private ROMInstallerSettings editingClone;
+        private readonly EmuLibrary plugin;
+        private EmuLibrarySettings editingClone;
 
         [JsonIgnore]
         public readonly IPlayniteAPI PlayniteAPI;
 
-        public static ROMInstallerSettings Instance { get; private set; }
+        public static EmuLibrarySettings Instance { get; private set; }
 
         [JsonIgnore]
         public IEnumerable<Emulator> Emulators {
@@ -65,16 +65,16 @@ namespace ROMManager
         public ObservableCollection<ROMInstallerEmulatorMapping> Mappings { get; set; }
 
         // Parameterless constructor must exist if you want to use LoadPluginSettings method.
-        public ROMInstallerSettings()
+        public EmuLibrarySettings()
         {
         }
 
-        public ROMInstallerSettings(ROMManager plugin, IPlayniteAPI api)
+        public EmuLibrarySettings(EmuLibrary plugin, IPlayniteAPI api)
         {
             this.PlayniteAPI = api;
             this.plugin = plugin;
 
-            var settings = plugin.LoadPluginSettings<ROMInstallerSettings>();
+            var settings = plugin.LoadPluginSettings<EmuLibrarySettings>();
             if (settings != null)
             {
                 LoadValues(settings);
@@ -110,7 +110,7 @@ namespace ROMManager
             return true;
         }
 
-        private void LoadValues(ROMInstallerSettings source)
+        private void LoadValues(EmuLibrarySettings source)
         {
             source.CopyProperties(this, false, null, true);
         }

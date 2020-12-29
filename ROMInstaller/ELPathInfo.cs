@@ -7,25 +7,23 @@ using System.Text;
 using System.Threading.Tasks;
 using Playnite.SDK.Models;
 
-namespace ROMManager
+namespace EmuLibrary
 {
-    class RMPathInfo
+    class ELPathInfo
     {
         private readonly char FlagIsMultiFile = '*';
 
-        // For multigame, we store...
-
-        public RMPathInfo(Game game)
+        public ELPathInfo(Game game)
             : this(game.GameId)
         {
         }
 
-        public RMPathInfo(GameInfo gameInfo)
+        public ELPathInfo(GameInfo gameInfo)
             : this (gameInfo.GameId)
         {
         }
 
-        public RMPathInfo(FileInfo info, bool isMultiFile)
+        public ELPathInfo(FileInfo info, bool isMultiFile)
         {
             IsMultiFile = isMultiFile;
             SourceRomFile = info;
@@ -35,7 +33,7 @@ namespace ROMManager
             }
         }
 
-        private RMPathInfo(string gameId)
+        private ELPathInfo(string gameId)
         {
             var parts = gameId.Split('|');
 

@@ -7,14 +7,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace ROMManager
+namespace EmuLibrary
 {
-    class ROMManagerController : IGameController
+    class EmuLibraryController : IGameController
     {
         protected readonly SynchronizationContext execContext;
         readonly IPlayniteAPI PlayniteAPI;
 
-        internal ROMManagerController(Game game, ROMInstallerSettings settings, IPlayniteAPI playniteAPI)
+        internal EmuLibraryController(Game game, EmuLibrarySettings settings, IPlayniteAPI playniteAPI)
         {
             Game = game;
             Settings = settings;
@@ -27,7 +27,7 @@ namespace ROMManager
         }
 
         public Game Game { get; private set; }
-        private ROMInstallerSettings Settings;
+        private EmuLibrarySettings Settings;
 
         #region Unused events
         public event EventHandler<GameControllerEventArgs> Starting
@@ -62,7 +62,7 @@ namespace ROMManager
 
         public async void AwaitInstall(Game game, string destination)
         {
-            var source = new RMPathInfo(Game);
+            var source = new ELPathInfo(Game);
             var stopWatch = Stopwatch.StartNew();
 
             await source.CopyTo(destination);
@@ -90,7 +90,7 @@ namespace ROMManager
             var info = new FileInfo(Game.GameImagePath);
             if (info.Exists)
             {
-                var pathInfo = new RMPathInfo(Game);
+                var pathInfo = new ELPathInfo(Game);
                 if (pathInfo.IsMultiFile)
                 {
                     Directory.Delete(info.Directory.FullName, true);

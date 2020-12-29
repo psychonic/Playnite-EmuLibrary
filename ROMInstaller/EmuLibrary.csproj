@@ -58,7 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsyncCopy.cs" />
-    <Compile Include="RMPathInfo.cs" />
+    <Compile Include="ELPathInfo.cs" />
     <Compile Include="PlayniteCommon\CloneObject.cs" />
     <Compile Include="ROMManagerClient.cs" />
     <Compile Include="ROMManager.cs" />

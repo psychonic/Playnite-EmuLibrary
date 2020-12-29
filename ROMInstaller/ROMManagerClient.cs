@@ -1,13 +1,8 @@
 ﻿using Playnite.SDK;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ROMManager
+namespace EmuLibrary
 {
-    public class ROMManagerClient : LibraryClient
+    public class EmuLibraryClient : LibraryClient
     {
         public override bool IsInstalled => true;
 
