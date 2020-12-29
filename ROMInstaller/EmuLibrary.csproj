@@ -60,12 +60,12 @@
     <Compile Include="AsyncCopy.cs" />
     <Compile Include="ELPathInfo.cs" />
     <Compile Include="PlayniteCommon\CloneObject.cs" />
-    <Compile Include="ROMManagerClient.cs" />
-    <Compile Include="ROMManager.cs" />
-    <Compile Include="ROMManagerController.cs" />
-    <Compile Include="ROMInstallerSettings.cs" />
-    <Compile Include="ROMInstallerSettingsView.xaml.cs">
-      <DependentUpon>ROMInstallerSettingsView.xaml</DependentUpon>
+    <Compile Include="EmuLibraryClient.cs" />
+    <Compile Include="EmuLibrary.cs" />
+    <Compile Include="EmuLibraryController.cs" />
+    <Compile Include="EmuLibrarySettings.cs" />
+    <Compile Include="EmuLibrarySettingsView.xaml.cs">
+      <DependentUpon>EmuLibrarySettingsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PlayniteCommon\SafeFileEnumerator.cs" />
@@ -84,7 +84,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="ROMInstallerSettingsView.xaml">
+    <Page Include="EmuLibrarySettingsView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
