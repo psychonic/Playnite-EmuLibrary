@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Controls;
 
 namespace EmuLibrary
@@ -41,6 +42,9 @@ namespace EmuLibrary
 
             var games = new List<GameInfo>();
 
+            // Hack to exclude anything past disc one for games we're not treating as multi-file / m3u but have multiple discs :|
+            var discXpattern = new Regex(@"\(Disc \d", RegexOptions.Compiled);
+
             settings.Mappings?.ToList().ForEach(mapping =>
             {
                 var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
@@ -58,7 +62,7 @@ namespace EmuLibrary
 
                     foreach (var file in fileEnumerator)
                     {
-                        if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory))
+                        if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory) && !discXpattern.IsMatch(file.Name))
                         {
                             var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
                             if (rom != null)
@@ -88,7 +92,7 @@ namespace EmuLibrary
                         {
                             foreach (var extension in imageExtensionsLower)
                             {
-                                if (file.Extension.TrimStart('.') == extension)
+                                if (file.Extension.TrimStart('.') == extension && !discXpattern.IsMatch(file.Name))
                                 {
                                     var newGame = new GameInfo()
                                     {
@@ -123,7 +127,7 @@ namespace EmuLibrary
 
                     foreach (var file in fileEnumerator)
                     {
-                        if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory))
+                        if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory) && !discXpattern.IsMatch(file.Name))
                         {
                             var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
                             if (rom != null)
@@ -159,7 +163,7 @@ namespace EmuLibrary
 
                             foreach (var extension in imageExtensionsLower)
                             {
-                                if (file.Extension.TrimStart('.') == extension)
+                                if (file.Extension.TrimStart('.') == extension && !discXpattern.IsMatch(file.Name))
                                 {
                                     var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
                                     if (File.Exists(equivalentInstalledPath))
