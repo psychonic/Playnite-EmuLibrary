@@ -1,6 +1,0 @@
-﻿Solution is not saved. Please save your solution before managing NuGet packages.
-All packages are already installed and there is nothing to restore.
-Time Elapsed: 00:00:00.2637468
-========== Finished ==========
-
-

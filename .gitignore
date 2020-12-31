@@ -1,3 +1,4 @@
 *.pext
-ROMInstaller/bin/*
-ROMInstaller/packages/
+bin/*
+packages/
+.vs/
