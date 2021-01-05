@@ -56,7 +56,7 @@ namespace EmuLibrary
 
         public void Install()
         {
-            var dstPath = Settings.Mappings.First(m => m.EmulatorId == Game.PlayAction.EmulatorId && m.EmulatorProfileId == Game.PlayAction.EmulatorProfileId).DestinationPath;
+            var dstPath = Settings.Mappings.First(m => m.EmulatorId == Game.PlayAction.EmulatorId && m.EmulatorProfileId == Game.PlayAction.EmulatorProfileId && m.PlatformId == Game.PlatformId).DestinationPath;
             AwaitInstall(Game, dstPath);
         }
 
