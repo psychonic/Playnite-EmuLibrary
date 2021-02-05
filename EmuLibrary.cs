@@ -51,7 +51,7 @@ namespace EmuLibrary
                 var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
                 var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
                 var imageExtensionsLower = emuProfile.ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
-                var srcPath = mapping.SourcePathResolved;
+                var srcPath = mapping.SourcePath;
                 var dstPath = mapping.DestinationPathResolved;
                 SafeFileEnumerator fileEnumerator;
 
@@ -235,7 +235,7 @@ namespace EmuLibrary
                 var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
                 var imageExtensionsLower = emuProfile.ImageExtensions.Where(e => !e.IsNullOrEmpty() ).Select(e => e.Trim().ToLower());
 
-                var srcPath = mapping.SourcePathResolved;
+                var srcPath = mapping.SourcePath;
                 var dstPath = mapping.DestinationPathResolved;
 
                 return new SafeFileEnumerator(srcPath, "*.*", SearchOption.AllDirectories)

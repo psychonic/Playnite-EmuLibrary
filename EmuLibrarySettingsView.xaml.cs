@@ -43,20 +43,19 @@ namespace EmuLibrary
             string path;
             if ((path = GetSelectedFolderPath()) != null)
             {
+                var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
+                if (playnite.Paths.IsPortable)
+                {
+                    path = path.Replace(playnite.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
+                }
+
                 mapping.DestinationPath = path;
             }
         }
 
         private string GetSelectedFolderPath()
         {
-            var selectedFolder = EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
-
-            var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
-            if (playnite.Paths.IsPortable)
-            {
-                selectedFolder = selectedFolder.Replace(playnite.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
-            }
-            return selectedFolder;
+            return EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
         }
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)

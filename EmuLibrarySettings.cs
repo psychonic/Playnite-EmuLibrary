@@ -48,13 +48,6 @@ namespace EmuLibrary
             public bool GamesUseFolders { get; set; }
 
             [XmlIgnore]
-            public string SourcePathResolved { get
-                {
-                    var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
-                    return playnite.Paths.IsPortable ? SourcePath.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : SourcePath;
-                } }
-
-            [XmlIgnore]
             public string DestinationPathResolved { get
                 {
                     var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
