@@ -71,10 +71,10 @@ namespace EmuLibrary
                                 {
                                     Source = "ROM Manager",
                                     Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
-                                    GameImagePath = rom.FullName,
-                                    InstallDirectory = file.FullName,
+                                    GameImagePath = PlayniteApi.Paths.IsPortable ? rom.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : rom.FullName,
+                                    InstallDirectory = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
                                     IsInstalled = true,
-                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePathResolved, file.Name), rom.Name)), true).ToGameId(),
+                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
                                     Platform = platform.Name,
                                     PlayAction = new GameAction()
                                     {
@@ -98,10 +98,10 @@ namespace EmuLibrary
                                     {
                                         Source = "ROM Manager",
                                         Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
-                                        GameImagePath = file.FullName,
-                                        InstallDirectory = dstPath,
+                                        GameImagePath = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
+                                        InstallDirectory = PlayniteApi.Paths.IsPortable ? dstPath.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : dstPath,
                                         IsInstalled = true,
-                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePathResolved, file.Name)), false).ToGameId(),
+                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
                                         Platform = platform.Name,
                                         PlayAction = new GameAction()
                                         {

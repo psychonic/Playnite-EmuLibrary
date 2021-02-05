@@ -56,7 +56,7 @@ namespace EmuLibrary
 
         public void Install()
         {
-            var dstPath = Settings.Mappings.First(m => m.EmulatorId == Game.PlayAction.EmulatorId && m.EmulatorProfileId == Game.PlayAction.EmulatorProfileId && m.PlatformId == Game.PlatformId).DestinationPath;
+            var dstPath = Settings.Mappings.First(m => m.EmulatorId == Game.PlayAction.EmulatorId && m.EmulatorProfileId == Game.PlayAction.EmulatorProfileId && m.PlatformId == Game.PlatformId).DestinationPathResolved;
             AwaitInstall(Game, dstPath);
         }
 
@@ -67,9 +67,18 @@ namespace EmuLibrary
 
             await source.CopyTo(destination);
 
+            var installDir = Path.Combine(destination, source.RelativeInstallPath);
+            var gamePath = Path.Combine(destination, source.RelativeRomPath);
+
+            if (PlayniteAPI.ApplicationInfo.IsPortable)
+            {
+                installDir = installDir.Replace(PlayniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
+                gamePath = gamePath.Replace(PlayniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
+            }
+
             var gameInfo = new GameInfo() {
-                InstallDirectory = Path.Combine(destination, source.RelativeInstallPath),
-                GameImagePath = Path.Combine(destination, source.RelativeRomPath),
+                InstallDirectory = installDir,
+                GameImagePath = gamePath,
             };
             stopWatch.Stop();
             execContext.Post((a) => Installed?.Invoke(this, new GameInstalledEventArgs(gameInfo, this, stopWatch.Elapsed.TotalSeconds)), null);
@@ -87,7 +96,7 @@ namespace EmuLibrary
 
         public void Uninstall()
         {
-            var info = new FileInfo(Game.GameImagePath);
+            var info = new FileInfo(Game.GameImagePath.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath));
             if (info.Exists)
             {
                 var pathInfo = new ELPathInfo(Game);
