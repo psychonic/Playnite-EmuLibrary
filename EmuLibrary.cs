@@ -51,8 +51,8 @@ namespace EmuLibrary
                 var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
                 var platform = PlayniteAPI.Database.Platforms.First(p => p.Id == mapping.PlatformId);
                 var imageExtensionsLower = emuProfile.ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
-                var srcPath = mapping.SourcePath;
-                var dstPath = mapping.DestinationPath;
+                var srcPath = mapping.SourcePathResolved;
+                var dstPath = mapping.DestinationPathResolved;
                 SafeFileEnumerator fileEnumerator;
 
                 if (Directory.Exists(dstPath))
@@ -74,7 +74,7 @@ namespace EmuLibrary
                                     GameImagePath = rom.FullName,
                                     InstallDirectory = file.FullName,
                                     IsInstalled = true,
-                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
+                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePathResolved, file.Name), rom.Name)), true).ToGameId(),
                                     Platform = platform.Name,
                                     PlayAction = new GameAction()
                                     {
@@ -101,7 +101,7 @@ namespace EmuLibrary
                                         GameImagePath = file.FullName,
                                         InstallDirectory = dstPath,
                                         IsInstalled = true,
-                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
+                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePathResolved, file.Name)), false).ToGameId(),
                                         Platform = platform.Name,
                                         PlayAction = new GameAction()
                                         {
@@ -235,8 +235,8 @@ namespace EmuLibrary
                 var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
                 var imageExtensionsLower = emuProfile.ImageExtensions.Where(e => !e.IsNullOrEmpty() ).Select(e => e.Trim().ToLower());
 
-                var srcPath = mapping.SourcePath;
-                var dstPath = mapping.DestinationPath;
+                var srcPath = mapping.SourcePathResolved;
+                var dstPath = mapping.DestinationPathResolved;
 
                 return new SafeFileEnumerator(srcPath, "*.*", SearchOption.AllDirectories)
                     .Where(f => {

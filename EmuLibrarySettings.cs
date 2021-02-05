@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Xml.Serialization;
 
 namespace EmuLibrary
 {
@@ -45,6 +46,20 @@ namespace EmuLibrary
             public string SourcePath { get; set; }
             public string DestinationPath { get; set; }
             public bool GamesUseFolders { get; set; }
+
+            [XmlIgnore]
+            public string SourcePathResolved { get
+                {
+                    var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
+                    return playnite.Paths.IsPortable ? SourcePath.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : SourcePath;
+                } }
+
+            [XmlIgnore]
+            public string DestinationPathResolved { get
+                {
+                    var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
+                    return playnite.Paths.IsPortable ? DestinationPath.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
+                } }
 
             // Not using ToString as this will end up longer than appropriate for that
             public string GetDescription()

@@ -31,7 +31,7 @@ namespace EmuLibrary
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
             string path;
-            if ((path = GetSelectedFolderPath(mapping.SourcePath)) != null)
+            if ((path = GetSelectedFolderPath()) != null)
             {
                 mapping.SourcePath = path;
             }
@@ -41,28 +41,22 @@ namespace EmuLibrary
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
             string path;
-            if ((path = GetSelectedFolderPath(mapping.DestinationPath)) != null)
+            if ((path = GetSelectedFolderPath()) != null)
             {
                 mapping.DestinationPath = path;
             }
         }
 
-        private string GetSelectedFolderPath(string startingFolder)
+        private string GetSelectedFolderPath()
         {
-#if true
-            return EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
-#else
-            var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
-            dlg.SelectedPath = startingFolder;
+            var selectedFolder = EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
 
-            bool? result = dlg.ShowDialog();
-            if (result == true)
+            var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
+            if (playnite.Paths.IsPortable)
             {
-                return dlg.SelectedPath;
+                selectedFolder = selectedFolder.Replace(playnite.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
             }
-
-            return null;
-#endif
+            return selectedFolder;
         }
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
