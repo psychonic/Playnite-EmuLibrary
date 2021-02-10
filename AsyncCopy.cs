@@ -50,14 +50,26 @@ namespace EmuLibrary
                 Directory.CreateDirectory(DestinationFolder.FullName);
             }
 
-            foreach (FileInfo sourceFile in SourceFolder.EnumerateFiles())
+            foreach (var sourceFsInfo in SourceFolder.EnumerateFileSystemInfos())
             {
-                var fileCopier = new FileCopier()
+                if (sourceFsInfo is FileInfo)
                 {
-                    SourceFile = sourceFile,
-                    DestinationFolder = this.DestinationFolder,
-                };
-                await fileCopier.CopyAsync();
+                    var fileCopier = new FileCopier()
+                    {
+                        SourceFile = sourceFsInfo as FileInfo,
+                        DestinationFolder = this.DestinationFolder,
+                    };
+                    await fileCopier.CopyAsync();
+                }
+                else if (sourceFsInfo is DirectoryInfo)
+                {
+                    var folderCopier = new FolderCopier()
+                    {
+                        SourceFolder = (sourceFsInfo as DirectoryInfo),
+                        DestinationFolder = new DirectoryInfo(Path.Combine(DestinationFolder.FullName, sourceFsInfo.Name))
+                    };
+                    await folderCopier.CopyAsync();
+                }
             }
         }
     }
