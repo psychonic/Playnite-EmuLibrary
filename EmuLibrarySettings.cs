@@ -4,6 +4,7 @@ using Playnite.SDK.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
 
@@ -40,6 +41,9 @@ namespace EmuLibrary
         {
             public ROMInstallerEmulatorMapping() { }
 
+            [DefaultValue(true)]
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+            public bool Enabled { get; set; }
             public Guid EmulatorId { get; set; }
             public Guid EmulatorProfileId { get; set; }
             public Guid PlatformId { get; set; }

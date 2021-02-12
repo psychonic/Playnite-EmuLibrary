@@ -115,6 +115,7 @@
                 </DataGridTemplateColumn>
 
                 <DataGridCheckBoxColumn Header="Games Use Folders" Binding="{Binding GamesUseFolders}" />
+                <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" />
             </DataGrid.Columns>
         </DataGrid>
     </StackPanel>

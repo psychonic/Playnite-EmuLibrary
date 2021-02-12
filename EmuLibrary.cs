@@ -45,7 +45,7 @@ namespace EmuLibrary
             // Hack to exclude anything past disc one for games we're not treating as multi-file / m3u but have multiple discs :|
             var discXpattern = new Regex(@"\(Disc \d", RegexOptions.Compiled);
 
-            settings.Mappings?.ToList().ForEach(mapping =>
+            settings.Mappings?.Where(m => m.Enabled).ToList().ForEach(mapping =>
             {
                 var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
                 var emuProfile = emulator.Profiles.First(p => p.Id == mapping.EmulatorProfileId);
