@@ -47,6 +47,7 @@ namespace EmuLibrary
             public string DestinationPath { get; set; }
             public bool GamesUseFolders { get; set; }
 
+            [JsonIgnore]
             [XmlIgnore]
             public string DestinationPathResolved { get
                 {
