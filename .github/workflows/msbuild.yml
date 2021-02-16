@@ -30,7 +30,7 @@ jobs:
       with:
         script: |
           $version = '${{steps.get_version.outputs.version-without-v}}'
-          ((Get-Content -LiteralPath extension.yaml -Raw) -replace '\\d+\\.\\d+\\.\\d+', $version) | Out-File -Encoding utf8 -LiteralPath extension.yaml
+          ((Get-Content -LiteralPath extension.yaml -Raw) -replace 'Version\s*:\s*\d+\.\d+\.\d+', "Version: $version") | Out-File -Encoding utf8 -LiteralPath extension.yaml
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
