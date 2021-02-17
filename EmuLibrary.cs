@@ -20,7 +20,7 @@ namespace EmuLibrary
         public override Guid Id { get; } = Guid.Parse("41e49490-0583-4148-94d2-940c7c74f1d9");
 
         // Change to something more appropriate
-        public override string Name => "ROM Manager";
+        public override string Name => "EmuLibrary";
 
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
@@ -222,7 +222,7 @@ namespace EmuLibrary
                 {
                     Action = (arags) => RemoveSuperUninstalledGames(),
                     Description = "Remove Entries With Missing Source ROM...",
-                    MenuSection = "ROM Manager"
+                    MenuSection = "EmuLibrary"
                 }
             };
         }
