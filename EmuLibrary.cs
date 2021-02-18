@@ -74,7 +74,7 @@ namespace EmuLibrary
                                     GameImagePath = PlayniteApi.Paths.IsPortable ? rom.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : rom.FullName,
                                     InstallDirectory = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
                                     IsInstalled = true,
-                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(Path.Combine(mapping.SourcePath, file.Name), rom.Name)), true).ToGameId(),
+                                    GameId = new ELPathInfo(new FileInfo(Path.Combine(new string[] { mapping.SourcePath, file.Name, rom.FullName.Replace(file.FullName, "").TrimStart('\\') })), new DirectoryInfo(Path.Combine(mapping.SourcePath, file.Name))).ToGameId(),
                                     Platform = platform.Name,
                                     PlayAction = new GameAction()
                                     {
@@ -101,7 +101,7 @@ namespace EmuLibrary
                                         GameImagePath = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
                                         InstallDirectory = PlayniteApi.Paths.IsPortable ? dstPath.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : dstPath,
                                         IsInstalled = true,
-                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name)), false).ToGameId(),
+                                        GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name))).ToGameId(),
                                         Platform = platform.Name,
                                         PlayAction = new GameAction()
                                         {
@@ -132,7 +132,7 @@ namespace EmuLibrary
                             var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
                             if (rom != null)
                             {
-                                var pathInfo = new ELPathInfo(new FileInfo(rom.FullName), true);
+                                var pathInfo = new ELPathInfo(new FileInfo(rom.FullName), new DirectoryInfo(file.FullName));
                                 var equivalentInstalledPath = Path.Combine(dstPath, pathInfo.RelativeRomPath);
                                 if (File.Exists(equivalentInstalledPath))
                                 {
@@ -176,7 +176,7 @@ namespace EmuLibrary
                                         Source = "EmuLibrary",
                                         Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                         IsInstalled = false,
-                                        GameId = new ELPathInfo(new FileInfo(file.FullName), false).ToGameId(),
+                                        GameId = new ELPathInfo(new FileInfo(file.FullName)).ToGameId(),
                                         Platform = platform.Name,
                                         PlayAction = new GameAction()
                                         {

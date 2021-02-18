@@ -109,7 +109,7 @@ namespace EmuLibrary
                 var pathInfo = new ELPathInfo(Game);
                 if (pathInfo.IsMultiFile)
                 {
-                    Directory.Delete(info.Directory.FullName, true);
+                    Directory.Delete(Game.InstallDirectory.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath), true);
                 }
                 else
                 {

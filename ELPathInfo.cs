@@ -11,7 +11,10 @@ namespace EmuLibrary
 {
     class ELPathInfo
     {
-        private readonly char FlagIsMultiFile = '*';
+        // GameId format - segments divided by '|'.
+        // 0 - Was flag string, with only flag ever being * for multi-file. Now is base game path if multifile
+        // 1 - Full Rom file source path
+        // If no segments present (no '|'), then entire value is Full Rom file source path (1)
 
         public ELPathInfo(Game game)
             : this(game.GameId)
@@ -23,13 +26,13 @@ namespace EmuLibrary
         {
         }
 
-        public ELPathInfo(FileInfo info, bool isMultiFile)
+        public ELPathInfo(FileInfo fileInfo, DirectoryInfo dirInfo = null)
         {
-            IsMultiFile = isMultiFile;
-            SourceRomFile = info;
+            IsMultiFile = dirInfo != null;
+            SourceRomFile = fileInfo;
             if (IsMultiFile)
             {
-                SourceRomFolder = info.Directory;
+                SourceRomFolder = dirInfo;
             }
         }
 
@@ -39,14 +42,21 @@ namespace EmuLibrary
 
             if (parts.Length > 1)
             {
-                IsMultiFile = parts[0].Contains(FlagIsMultiFile);
+                IsMultiFile = !string.IsNullOrEmpty(parts[0]);
 
                 var fi = new FileInfo(parts[1]);
 
                 SourceRomFile = fi;
                 if (IsMultiFile)
                 {
-                    SourceRomFolder = fi.Directory;
+                    if (parts[0][0] != '*')
+                    {
+                        SourceRomFolder = new DirectoryInfo(parts[0]);
+                    }
+                    else
+                    {
+                        SourceRomFolder = fi.Directory;
+                    }
                 }
             }
             else
@@ -58,6 +68,8 @@ namespace EmuLibrary
         public FileInfo SourceRomFile;
         public DirectoryInfo SourceRomFolder;
         public bool IsMultiFile;
+
+        // Game folder/file relative to source or dest. (Ex. mygame.ext or mygame)
         public string RelativeInstallPath
         {
             get
@@ -66,23 +78,18 @@ namespace EmuLibrary
             }
         }
 
+        // Game file relative to source or dest, for multifile games (Ex. mygame/somedir/blah.rpx)
         public string RelativeRomPath
         {
             get
             {
-                return IsMultiFile ? Path.Combine(RelativeInstallPath, SourceRomFile.Name) : SourceRomFile.Name;
+                return IsMultiFile ? Path.Combine(new string[] {SourceRomFolder.Name, SourceRomFile.Directory.FullName.Replace(SourceRomFolder.FullName, "").TrimStart('\\'), SourceRomFile.Name }) : SourceRomFile.Name;
             }
         }
 
         public string ToGameId()
         {
-            var flags = new System.Text.StringBuilder();
-            if (IsMultiFile)
-            {
-                flags.Append(FlagIsMultiFile);
-            }
-
-            return string.Format("{0}|{1}", flags.ToString(), SourceRomFile.FullName);
+            return string.Format("{0}|{1}", IsMultiFile ? SourceRomFolder.FullName : "", SourceRomFile.FullName);
         }
 
         public
