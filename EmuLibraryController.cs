@@ -60,12 +60,19 @@ namespace EmuLibrary
             AwaitInstall(Game, dstPath);
         }
 
-        public async void AwaitInstall(Game game, string destination)
+        public
+#if !DEBUG
+            async
+#endif
+            void AwaitInstall(Game game, string destination)
         {
             var source = new ELPathInfo(Game);
             var stopWatch = Stopwatch.StartNew();
 
-            await source.CopyTo(destination);
+#if !DEBUG
+            await
+#endif
+            source.CopyTo(destination);
 
             var installDir = Path.Combine(destination, source.RelativeInstallPath);
             var gamePath = Path.Combine(destination, source.RelativeRomPath);
