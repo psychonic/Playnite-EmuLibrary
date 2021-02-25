@@ -115,7 +115,7 @@ namespace EmuLibrary
             }
             else
             {
-                using (FileStream SourceStream = File.Open(SourceRomFile.FullName, FileMode.Open))
+                using (FileStream SourceStream = File.Open(SourceRomFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     using (FileStream DestinationStream = File.Create(Path.Combine(destinationFolder, SourceRomFile.Name)))
                     {

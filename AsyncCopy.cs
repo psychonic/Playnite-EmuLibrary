@@ -23,7 +23,7 @@ namespace EmuLibrary
             // TODO: decide what to do if destinationFile already exists
 
             // open source file for reading
-            using (Stream sourceStream = File.Open(SourceFile.FullName, FileMode.Open))
+            using (Stream sourceStream = File.Open(SourceFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 // create destination file write
                 using (Stream destinationStream = File.Open(destinationFileName, FileMode.CreateNew))
