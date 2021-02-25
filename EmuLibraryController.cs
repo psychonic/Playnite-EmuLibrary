@@ -103,7 +103,8 @@ namespace EmuLibrary
 
         public void Uninstall()
         {
-            var info = new FileInfo(Game.GameImagePath.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath));
+            var gameImagePathResolved = Game.GameImagePath.Replace(Playnite.SDK.ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath);
+            var info = new FileInfo(gameImagePathResolved);
             if (info.Exists)
             {
                 var pathInfo = new ELPathInfo(Game);
@@ -113,7 +114,7 @@ namespace EmuLibrary
                 }
                 else
                 {
-                    File.Delete(Game.GameImagePath);
+                    File.Delete(gameImagePathResolved);
                 }
                 execContext.Post((a) => Uninstalled?.Invoke(this, new GameControllerEventArgs(this, 0)), null);
             }
