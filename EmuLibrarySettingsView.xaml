@@ -13,7 +13,7 @@
         <local:PlatformListConverter x:Key="platformListConverter"/>
         <local:PlatformGuidConverter x:Key="platformGuidConverter"/>
     </UserControl.Resources>
-    <StackPanel>
+    <Grid>
         <TextBlock Text="Emulator Path Mappings:"/>
         <DataGrid ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
                   CanUserAddRows="True">
@@ -118,5 +118,5 @@
                 <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" />
             </DataGrid.Columns>
         </DataGrid>
-    </StackPanel>
+    </Grid>
 </UserControl>
