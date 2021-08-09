@@ -69,7 +69,7 @@ namespace EmuLibrary
                             {
                                 var newGame = new GameInfo()
                                 {
-                                    Source = "EmuLibrary",
+                                    Source = this.Name,
                                     Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                     GameImagePath = PlayniteApi.Paths.IsPortable ? rom.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : rom.FullName,
                                     InstallDirectory = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
@@ -96,7 +96,7 @@ namespace EmuLibrary
                                 {
                                     var newGame = new GameInfo()
                                     {
-                                        Source = "EmuLibrary",
+                                        Source = this.Name,
                                         Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                         GameImagePath = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
                                         InstallDirectory = PlayniteApi.Paths.IsPortable ? dstPath.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : dstPath,
