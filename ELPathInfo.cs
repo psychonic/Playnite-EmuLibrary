@@ -92,13 +92,7 @@ namespace EmuLibrary
             return string.Format("{0}|{1}", IsMultiFile ? SourceRomFolder.FullName : "", SourceRomFile.FullName);
         }
 
-        public
-#if DEBUG
-            void
-#else
-            async Task
-#endif
-            CopyTo(string destinationFolder)
+        public void CopyTo(string destinationFolder)
         {
             if (IsMultiFile)
             {
@@ -108,10 +102,8 @@ namespace EmuLibrary
                     SourceFolder = sourceFolder,
                     DestinationFolder = new DirectoryInfo(Path.Combine(destinationFolder, sourceFolder.Name))
                 };
-#if !DEBUG
-                await
-#endif
-                fc.CopyAsync();
+
+                fc.Copy();
             }
             else
             {
@@ -119,10 +111,7 @@ namespace EmuLibrary
                 {
                     using (FileStream DestinationStream = File.Create(Path.Combine(destinationFolder, SourceRomFile.Name)))
                     {
-#if !DEBUG
-                        await
-#endif
-                        SourceStream.CopyToAsync(DestinationStream);
+                        SourceStream.CopyTo(DestinationStream);
                     }
                 }
             }

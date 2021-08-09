@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace EmuLibrary
 {
@@ -60,19 +61,19 @@ namespace EmuLibrary
             AwaitInstall(Game, dstPath);
         }
 
-        public
-#if !DEBUG
-            async
-#endif
-            void AwaitInstall(Game game, string destination)
+        public async void AwaitInstall(Game game, string destination)
         {
             var source = new ELPathInfo(Game);
             var stopWatch = Stopwatch.StartNew();
 
 #if !DEBUG
-            await
+            await Task.Run(() =>
+            {
 #endif
-            source.CopyTo(destination);
+                source.CopyTo(destination);
+#if !DEBUG
+        });
+#endif
 
             var installDir = Path.Combine(destination, source.RelativeInstallPath);
             var gamePath = Path.Combine(destination, source.RelativeRomPath);
