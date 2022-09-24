@@ -1,4 +1,5 @@
-﻿using Playnite.SDK.Models;
+﻿using Playnite.SDK;
+using Playnite.SDK.Models;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -41,17 +42,17 @@ namespace EmuLibrary
         }
     }
 
-    [ValueConversion(typeof(Guid), typeof(EmulatorProfile))]
-    public class EmulatorProfileGuidConverter : IValueConverter
+    [ValueConversion(typeof(string), typeof(EmulatorProfile))]
+    public class EmulatorProfileIdConverter : IValueConverter
     {
         public object Convert(object value, Type targetType,
             object parameter, CultureInfo culture)
         {
             Debug.Print($"In Convert EP {targetType}");
-            if (value is Guid)
+            if (value is string)
             {
-                Debug.Print("Value is Guid");
-                return EmuLibrarySettings.Instance.Emulators.SelectMany(e => e.Profiles).Where(ep => ep.Id == (Guid)value).FirstOrDefault()?.Name;
+                Debug.Print("Value is string");
+                return EmuLibrarySettings.Instance.Emulators.SelectMany(e => e.SelectableProfiles).Where(ep => ep.Id == (string)value).FirstOrDefault()?.Name;
             }
             Debug.Print("Value IS NOT Emulator");
             return null;
@@ -72,18 +73,18 @@ namespace EmuLibrary
         }
     }
 
-    [ValueConversion(typeof(Guid), typeof(Platform))]
-    public class PlatformGuidConverter : IValueConverter
+    [ValueConversion(typeof(string), typeof(EmulatedPlatform))]
+    public class EmulatedPlatformIdConverter : IValueConverter
     {
         public object Convert(object value, Type targetType,
             object parameter, CultureInfo culture)
         {
             Debug.Print($"In Convert {targetType}");
-            if (value is Guid)
+            if (value is string)
             {
-                Debug.Print("Value is Guid");
-                var platform = EmuLibrarySettings.Instance.Platforms.FirstOrDefault(e => e.Id == ((Guid)value));
-                return platform ?? new Platform() { };
+                Debug.Print("Value is string");
+                var platform = EmuLibrarySettings.Instance.Platforms.FirstOrDefault(e => e.Id == ((string)value));
+                return platform ?? new EmulatedPlatform() { };
             }
             Debug.Print("Value IS NOT Platform");
             return null;
@@ -93,14 +94,14 @@ namespace EmuLibrary
             object parameter, CultureInfo culture)
         {
             Debug.Print($"In ConvertBack {targetType}");
-            if (value is Platform)
+            if (value is EmulatedPlatform)
             {
-                Debug.Print("Value is Platform");
-                return (value as Platform).Id;
+                Debug.Print("Value is EmulatedPlatform");
+                return (value as EmulatedPlatform).Id;
             }
 
-            Debug.Print("Value IS NOT Platform");
-            return Guid.Empty;
+            Debug.Print("Value IS NOT EmulatedPlatform");
+            return null;
         }
     }
 
@@ -111,7 +112,7 @@ namespace EmuLibrary
         {
             Debug.Print($"In Convert EPL {targetType}");
             var emuId = ((EmuLibrarySettings.ROMInstallerEmulatorMapping)value).EmulatorId;
-            return EmuLibrarySettings.Instance.Emulators.FirstOrDefault(e => e.Id == emuId)?.Profiles;
+            return EmuLibrarySettings.Instance.Emulators.FirstOrDefault(e => e.Id == emuId)?.SelectableProfiles;
         }
 
         public object ConvertBack(object value, Type targetType,
@@ -122,7 +123,7 @@ namespace EmuLibrary
         }
     }
 
-    public class PlatformListConverter : IValueConverter
+    public class EmulatedPlatformListConverter : IValueConverter
     {
         public object Convert(object value, Type targetType,
             object parameter, CultureInfo culture)
@@ -130,13 +131,11 @@ namespace EmuLibrary
             Debug.Print($"In Convert EL {targetType}");
             var emuId = ((EmuLibrarySettings.ROMInstallerEmulatorMapping)value).EmulatorId;
             var profileId = ((EmuLibrarySettings.ROMInstallerEmulatorMapping)value).EmulatorProfileId;
-            var validPlatforms = EmuLibrarySettings.Instance.Emulators.FirstOrDefault(e => e.Id == emuId)?.Profiles.FirstOrDefault(p => p.Id == profileId)?.Platforms;
-            if (validPlatforms != null)
-            {
-                return EmuLibrarySettings.Instance.Platforms.Where(p => validPlatforms.Contains(p.Id));
-            }
+            var emulator = EmuLibrarySettings.Instance.PlayniteAPI.Database.Emulators.First(e => e.Id == emuId);
+            var emuProfile = emulator.SelectableProfiles.First(p => p.Id == profileId);
+            var validPlatforms = EmuLibrarySettings.Instance.PlayniteAPI.Emulation.Emulators.First(e => e.Id == emulator.BuiltInConfigId).Profiles.First(p => p.Name == emuProfile.Name).Platforms;
 
-            return new Platform() { };
+            return EmuLibrarySettings.Instance.Platforms.Where(p => validPlatforms.Contains(p.Id));
         }
 
         public object ConvertBack(object value, Type targetType,

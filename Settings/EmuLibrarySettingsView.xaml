@@ -9,13 +9,17 @@
     <UserControl.Resources>
         <local:EmulatorGuidConverter x:Key="emulatorGuidConverter"/>
         <local:EmulatorProfileListConverter x:Key="emulatorProfileListConverter"/>
-        <local:EmulatorProfileGuidConverter x:Key="emulatorProfileGuidConverter"/>
-        <local:PlatformListConverter x:Key="platformListConverter"/>
-        <local:PlatformGuidConverter x:Key="platformGuidConverter"/>
+        <local:EmulatorProfileIdConverter x:Key="emulatorProfileIdConverter"/>
+        <local:EmulatedPlatformListConverter x:Key="emulatedPlatformListConverter"/>
+        <local:EmulatedPlatformIdConverter x:Key="emulatedPlatformIdConverter"/>
     </UserControl.Resources>
     <Grid>
-        <TextBlock Text="Emulator Path Mappings:"/>
-        <DataGrid ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Emulator Path Mappings:"/>
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
                   CanUserAddRows="True">
             <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Delete" Width="50">
@@ -51,7 +55,7 @@
                 <DataGridTemplateColumn Header="Profile" Width="180"  >
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfileId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorProfileGuidConverter}}" />
+                            <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfileId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorProfileIdConverter}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
@@ -59,7 +63,7 @@
                             <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
                                   ItemsSource="{Binding Converter={StaticResource emulatorProfileListConverter}}"
                                        DisplayMemberPath="Name"
-                                       SelectedItem="{Binding EmulatorProfileId, Mode=TwoWay, Converter={StaticResource emulatorProfileGuidConverter}}"
+                                       SelectedItem="{Binding EmulatorProfileId, Mode=TwoWay, Converter={StaticResource emulatorProfileIdConverter}}"
                                   SelectedValuePath="Id"
                                   SelectedValue="{Binding EmulatorProfileId}"
                                        >
@@ -71,15 +75,15 @@
                 <DataGridTemplateColumn Header="Platform" Width="180"  >
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock x:Name="Platform" Text="{Binding Path=PlatformId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource platformGuidConverter}}" />
+                            <TextBlock x:Name="Platform" Text="{Binding Path=PlatformId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatedPlatformIdConverter}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
                             <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
-                                  ItemsSource="{Binding Converter={StaticResource platformListConverter}}"
+                                  ItemsSource="{Binding Converter={StaticResource emulatedPlatformListConverter}}"
                                        DisplayMemberPath="Name"
-                                       SelectedItem="{Binding PlatformId, Mode=TwoWay, Converter={StaticResource platformGuidConverter}}"
+                                       SelectedItem="{Binding PlatformId, Mode=TwoWay, Converter={StaticResource emulatedPlatformIdConverter}}"
                                   SelectedValuePath="Id"
                                   SelectedValue="{Binding PlatformId}"
                                        >

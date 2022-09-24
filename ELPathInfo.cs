@@ -21,7 +21,7 @@ namespace EmuLibrary
         {
         }
 
-        public ELPathInfo(GameInfo gameInfo)
+        public ELPathInfo(GameMetadata gameInfo)
             : this (gameInfo.GameId)
         {
         }

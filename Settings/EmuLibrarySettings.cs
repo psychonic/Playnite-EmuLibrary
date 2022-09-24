@@ -29,11 +29,11 @@ namespace EmuLibrary
         }
 
         [JsonIgnore]
-        public IEnumerable<Platform> Platforms
+        public IEnumerable<EmulatedPlatform> Platforms
         {
             get
             {
-                return plugin.PlayniteApi.Database.Platforms.OrderBy(x => x.Name);
+                return plugin.PlayniteApi.Emulation.Platforms.OrderBy(x => x.Name);
             }
         }
 
@@ -45,8 +45,8 @@ namespace EmuLibrary
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
             public bool Enabled { get; set; }
             public Guid EmulatorId { get; set; }
-            public Guid EmulatorProfileId { get; set; }
-            public Guid PlatformId { get; set; }
+            public string EmulatorProfileId { get; set; }
+            public string PlatformId { get; set; }
             public string SourcePath { get; set; }
             public string DestinationPath { get; set; }
             public bool GamesUseFolders { get; set; }
@@ -67,7 +67,7 @@ namespace EmuLibrary
                 sb.Append("Emulator: ");
                 sb.AppendLine(emulator?.Name ?? "<Unknown>");
                 sb.Append("Profile: ");
-                sb.AppendLine(emulator?.Profiles.FirstOrDefault(p => p.Id == EmulatorProfileId)?.Name ?? "<Unknown>");
+                sb.AppendLine(emulator?.SelectableProfiles.FirstOrDefault(p => p.Id == EmulatorProfileId)?.Name ?? "<Unknown>");
                 sb.Append("Platform: ");
                 sb.AppendLine(Instance?.Platforms.FirstOrDefault(p => p.Id == PlatformId)?.Name ?? "<Unknown>");
 
