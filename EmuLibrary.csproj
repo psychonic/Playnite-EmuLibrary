@@ -71,7 +71,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PlayniteCommon\SafeFileEnumerator.cs" />
     <Compile Include="PlayniteCommon\StringExtensions.cs" />
-    <Compile Include="Settings\UIConverters.cs" />
+    <Compile Include="Settings\PathValidator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="extension.yaml">

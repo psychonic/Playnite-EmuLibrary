@@ -6,13 +6,6 @@
              xmlns:local="clr-namespace:EmuLibrary" x:Class="EmuLibrary.EmuLibrarySettingsView"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
-    <UserControl.Resources>
-        <local:EmulatorGuidConverter x:Key="emulatorGuidConverter"/>
-        <local:EmulatorProfileListConverter x:Key="emulatorProfileListConverter"/>
-        <local:EmulatorProfileIdConverter x:Key="emulatorProfileIdConverter"/>
-        <local:EmulatedPlatformListConverter x:Key="emulatedPlatformListConverter"/>
-        <local:EmulatedPlatformIdConverter x:Key="emulatedPlatformIdConverter"/>
-    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -35,38 +28,34 @@
                 <DataGridTemplateColumn Header="Emulator" Width="180">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock x:Name="Emulator" Text="{Binding Path=EmulatorId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorGuidConverter}}" />
+                            <TextBlock x:Name="Emulator" Text="{Binding Path=Emulator.Name, UpdateSourceTrigger=PropertyChanged}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
-                                  ItemsSource="{Binding Path=DataContext.Emulators, RelativeSource={RelativeSource AncestorType={x:Type local:EmuLibrarySettingsView}}}"
-                                       DisplayMemberPath="Name"
-                                       SelectedItem="{Binding EmulatorId, Mode=TwoWay, Converter={StaticResource emulatorGuidConverter}}"
-                                  SelectedValuePath="Id"
-                                  SelectedValue="{Binding EmulatorId}"
-                                       >
+                            <ComboBox Name="ComboEmulators" DockPanel.Dock="Left"
+                                      ItemsSource="{Binding Path=DataContext.Emulators, RelativeSource={RelativeSource AncestorType={x:Type local:EmuLibrarySettingsView}}}"
+                                      DisplayMemberPath="Name"
+                                      SelectedItem="{Binding Emulator, Mode=TwoWay}"
+                                      >
                             </ComboBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
 
-                <DataGridTemplateColumn Header="Profile" Width="180"  >
+                <DataGridTemplateColumn Header="Profile" Width="180">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfileId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatorProfileIdConverter}}" />
+                            <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfile.Name, UpdateSourceTrigger=PropertyChanged}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate x:Name="Name2">
-                            <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
-                                  ItemsSource="{Binding Converter={StaticResource emulatorProfileListConverter}}"
-                                       DisplayMemberPath="Name"
-                                       SelectedItem="{Binding EmulatorProfileId, Mode=TwoWay, Converter={StaticResource emulatorProfileIdConverter}}"
-                                  SelectedValuePath="Id"
-                                  SelectedValue="{Binding EmulatorProfileId}"
-                                       >
+                        <DataTemplate>
+                            <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
+                                      ItemsSource="{Binding AvailableProfiles}"
+                                      DisplayMemberPath="Name"
+                                      SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"
+                                      >
                             </ComboBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
@@ -75,18 +64,16 @@
                 <DataGridTemplateColumn Header="Platform" Width="180"  >
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock x:Name="Platform" Text="{Binding Path=PlatformId, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource emulatedPlatformIdConverter}}" />
+                            <TextBlock x:Name="Platform" Text="{Binding Path=Platform.Name, UpdateSourceTrigger=PropertyChanged}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <ComboBox  Name="ComboPlatforms" DockPanel.Dock="Left"
-                                  ItemsSource="{Binding Converter={StaticResource emulatedPlatformListConverter}}"
-                                       DisplayMemberPath="Name"
-                                       SelectedItem="{Binding PlatformId, Mode=TwoWay, Converter={StaticResource emulatedPlatformIdConverter}}"
-                                  SelectedValuePath="Id"
-                                  SelectedValue="{Binding PlatformId}"
-                                       >
+                            <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
+                                      ItemsSource="{Binding AvailablePlatforms}"
+                                      DisplayMemberPath="Name"
+                                      SelectedItem="{Binding Platform, Mode=TwoWay}"
+                                      >
                             </ComboBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>

@@ -59,10 +59,25 @@ namespace EmuLibrary
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
                 
-                var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
-                var emuProfile = emulator.AllProfiles.First(p => p.Id == mapping.EmulatorProfileId);
-                var platform = PlayniteAPI.Emulation.Platforms.First(p => p.Id == mapping.PlatformId);
-                var imageExtensionsLower = PlayniteAPI.Emulation.Emulators.First(e => e.Id == emulator.BuiltInConfigId).Profiles.First(p => p.Name == emuProfile.Name).ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                if (mapping.Emulator == null)
+                {
+                    logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
+                    continue;
+                }
+
+                if (mapping.EmulatorProfile == null)
+                {
+                    logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
+                    continue;
+                }
+
+                if (mapping.Platform == null)
+                {
+                    logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
+                    continue;
+                }
+
+                var imageExtensionsLower = mapping.ImageExtensionsLower;
                 var srcPath = mapping.SourcePath;
                 var dstPath = mapping.DestinationPathResolved;
                 SafeFileEnumerator fileEnumerator;
@@ -79,7 +94,9 @@ namespace EmuLibrary
                         
                         if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory) && !discXpattern.IsMatch(file.Name))
                         {
-                            var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
+                            var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
+                            // First matching rom of first valid extension that has any matches. Ex. for "m3u,cue,bin", make sure we don't grab a bin file when there's an m3u or cue handy
+                            var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => f.Extension.TrimStart('.').ToLower() == ext)).FirstOrDefault(f => f != null);
                             if (rom != null)
                             {
                                 var gameName = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name)));
@@ -91,13 +108,13 @@ namespace EmuLibrary
                                     InstallDirectory = PlayniteApi.Paths.IsPortable ? file.FullName.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName,
                                     IsInstalled = true,
                                     GameId = new ELPathInfo(new FileInfo(Path.Combine(new string[] { mapping.SourcePath, file.Name, rom.FullName.Replace(file.FullName, "").TrimStart('\\') })), new DirectoryInfo(Path.Combine(mapping.SourcePath, file.Name))).ToGameId(),
-                                    Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(platform.Name) },
+                                    Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                                     GameActions = new List<GameAction>() { new GameAction()
                                     {
-                                        Name = $"Play in {emulator.Name}",
+                                        Name = $"Play in {mapping.Emulator.Name}",
                                         Type = GameActionType.Emulator,
-                                        EmulatorId = emulator.Id,
-                                        EmulatorProfileId = emuProfile.Id,
+                                        EmulatorId = mapping.Emulator.Id,
+                                        EmulatorProfileId = mapping.EmulatorProfile.Id,
                                         IsPlayAction = true,
                                     } }
                                 };
@@ -121,13 +138,13 @@ namespace EmuLibrary
                                         InstallDirectory = PlayniteApi.Paths.IsPortable ? dstPath.Replace(PlayniteApi.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : dstPath,
                                         IsInstalled = true,
                                         GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name))).ToGameId(),
-                                        Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(platform.Name) },
+                                        Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                                         GameActions = new List<GameAction>() { new GameAction()
                                         {
-                                            Name = $"Play in {emulator.Name}",
+                                            Name = $"Play in {mapping.Emulator.Name}",
                                             Type = GameActionType.Emulator,
-                                            EmulatorId = emulator.Id,
-                                            EmulatorProfileId = emuProfile.Id,
+                                            EmulatorId = mapping.Emulator.Id,
+                                            EmulatorProfileId = mapping.EmulatorProfile.Id,
                                             IsPlayAction = true,
                                         } }
                                     };
@@ -150,7 +167,9 @@ namespace EmuLibrary
                         
                         if (mapping.GamesUseFolders && file.Attributes.HasFlag(FileAttributes.Directory) && !discXpattern.IsMatch(file.Name))
                         {
-                            var rom = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => imageExtensionsLower.Contains(f.Extension.TrimStart('.').ToLower()));
+                            var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
+                            // First matching rom of first valid extension that has any matches. Ex. for "m3u,cue,bin", make sure we don't grab a bin file when there's an m3u or cue handy
+                            var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => f.Extension.TrimStart('.').ToLower() == ext)).FirstOrDefault(f => f != null);
                             if (rom != null)
                             {
                                 var pathInfo = new ELPathInfo(new FileInfo(rom.FullName), new DirectoryInfo(file.FullName));
@@ -166,13 +185,13 @@ namespace EmuLibrary
                                     Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                     IsInstalled = false,
                                     GameId = pathInfo.ToGameId(),
-                                    Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(platform.Name) },
+                                    Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                                     GameActions = new List<GameAction>() { new GameAction()
                                     {
-                                        Name = $"Play in {emulator.Name}",
+                                        Name = $"Play in {mapping.Emulator.Name}",
                                         Type = GameActionType.Emulator,
-                                        EmulatorId = emulator.Id,
-                                        EmulatorProfileId = emuProfile.Id,
+                                        EmulatorId = mapping.Emulator.Id,
+                                        EmulatorProfileId = mapping.EmulatorProfile.Id,
                                         IsPlayAction = true,
                                     } }
                                 };
@@ -200,13 +219,13 @@ namespace EmuLibrary
                                         Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
                                         IsInstalled = false,
                                         GameId = new ELPathInfo(new FileInfo(file.FullName)).ToGameId(),
-                                        Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(platform.Name) },
+                                        Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                                         GameActions = new List<GameAction>() { new GameAction()
                                         {
-                                            Name = $"Play in {emulator.Name}",
+                                            Name = $"Play in {mapping.Emulator.Name}",
                                             Type = GameActionType.Emulator,
-                                            EmulatorId = emulator.Id,
-                                            EmulatorProfileId = emuProfile.Id,
+                                            EmulatorId = mapping.Emulator.Id,
+                                            EmulatorProfileId = mapping.EmulatorProfile.Id,
                                             IsPlayAction = true,
                                         } }
                                     };
@@ -259,9 +278,7 @@ namespace EmuLibrary
         {
             var onDiskFiles = new HashSet<string>(settings.Mappings?.SelectMany(mapping =>
             {
-                var emulator = PlayniteAPI.Database.Emulators.First(e => e.Id == mapping.EmulatorId);
-                var emuProfile = emulator.SelectableProfiles.First(p => p.Id == mapping.EmulatorProfileId);
-                var imageExtensionsLower = PlayniteAPI.Emulation.Emulators.First(e => e.Id == emulator.BuiltInConfigId).Profiles.First(p => p.Name == emuProfile.Name).ImageExtensions.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                var imageExtensionsLower = mapping.ImageExtensionsLower;
 
                 var srcPath = mapping.SourcePath;
                 var dstPath = mapping.DestinationPathResolved;
