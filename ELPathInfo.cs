@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Playnite.SDK.Models;
 
@@ -92,7 +93,7 @@ namespace EmuLibrary
             return string.Format("{0}|{1}", IsMultiFile ? SourceRomFolder.FullName : "", SourceRomFile.FullName);
         }
 
-        public void CopyTo(string destinationFolder)
+        public async Task CopyTo(string destinationFolder, CancellationToken cancellationToken)
         {
             if (IsMultiFile)
             {
@@ -103,7 +104,7 @@ namespace EmuLibrary
                     DestinationFolder = new DirectoryInfo(Path.Combine(destinationFolder, sourceFolder.Name))
                 };
 
-                fc.Copy();
+                await fc.CopyAsync(cancellationToken);
             }
             else
             {
@@ -111,7 +112,7 @@ namespace EmuLibrary
                 {
                     using (FileStream DestinationStream = File.Create(Path.Combine(destinationFolder, SourceRomFile.Name)))
                     {
-                        SourceStream.CopyTo(DestinationStream);
+                        await SourceStream.CopyToAsync(DestinationStream, 81920 /* default */, cancellationToken);
                     }
                 }
             }

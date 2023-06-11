@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EmuLibrary
@@ -9,7 +10,7 @@ namespace EmuLibrary
         public FileInfo SourceFile { get; set; }
         public DirectoryInfo DestinationFolder { get; set; }
 
-        public void Copy()
+        public async Task CopyAsync(CancellationToken cancellationToken)
         {
             // TODO: throw exceptions if SourceFile / DestinationFile null
             // TODO: throw exception if SourceFile does not exist
@@ -22,12 +23,12 @@ namespace EmuLibrary
                 // create destination file write
                 using (Stream destinationStream = File.Open(destinationFileName, FileMode.CreateNew))
                 {
-                    Copy(sourceStream, destinationStream);
+                    await CopyAsync(sourceStream, destinationStream, cancellationToken);
                 }
             }
         }
 
-        public void Copy(Stream Source, Stream Destination)
+        public async Task CopyAsync(Stream Source, Stream Destination, CancellationToken cancellationToken)
         {
             byte[] buffer = new byte[0x1000];
             int numRead;
@@ -35,6 +36,8 @@ namespace EmuLibrary
             {
                 Destination.Write(buffer, 0, numRead);
             }
+
+            await Source.CopyToAsync(Destination, 81920 /* default */, cancellationToken);
         }
     }
 
@@ -43,7 +46,7 @@ namespace EmuLibrary
         public DirectoryInfo SourceFolder { get; set; }
         public DirectoryInfo DestinationFolder { get; set; }
 
-        public void Copy()
+        public async Task CopyAsync(CancellationToken cancellationToken)
         {
             if (!DestinationFolder.Exists)
             {
@@ -60,7 +63,7 @@ namespace EmuLibrary
                         DestinationFolder = this.DestinationFolder,
                     };
 
-                    fileCopier.Copy();
+                    await fileCopier.CopyAsync(cancellationToken);
                 }
                 else if (sourceFsInfo is DirectoryInfo)
                 {
@@ -70,7 +73,7 @@ namespace EmuLibrary
                         DestinationFolder = new DirectoryInfo(Path.Combine(DestinationFolder.FullName, sourceFsInfo.Name))
                     };
 
-                    folderCopier.Copy();
+                    await folderCopier.CopyAsync(cancellationToken);
                 }
             }
         }
