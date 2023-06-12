@@ -109,6 +109,7 @@ namespace EmuLibrary
                                     IsInstalled = true,
                                     GameId = new ELPathInfo(new FileInfo(Path.Combine(new string[] { mapping.SourcePath, file.Name, rom.FullName.Replace(file.FullName, "").TrimStart('\\') })), new DirectoryInfo(Path.Combine(mapping.SourcePath, file.Name))).ToGameId(),
                                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                                    InstallSize = (ulong)dirEnumerator.Where(f => !f.Attributes.HasFlag(FileAttributes.Directory)).Select(f => new FileInfo(f.FullName)).Sum(f => f.Length),
                                     GameActions = new List<GameAction>() { new GameAction()
                                     {
                                         Name = $"Play in {mapping.Emulator.Name}",
@@ -139,6 +140,7 @@ namespace EmuLibrary
                                         IsInstalled = true,
                                         GameId = new ELPathInfo(new FileInfo(Path.Combine(mapping.SourcePath, file.Name))).ToGameId(),
                                         Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                                        InstallSize = (ulong)new FileInfo(file.FullName).Length,
                                         GameActions = new List<GameAction>() { new GameAction()
                                         {
                                             Name = $"Play in {mapping.Emulator.Name}",
@@ -186,6 +188,7 @@ namespace EmuLibrary
                                     IsInstalled = false,
                                     GameId = pathInfo.ToGameId(),
                                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                                    InstallSize = (ulong)dirEnumerator.Where(f => !f.Attributes.HasFlag(FileAttributes.Directory)).Select(f => new FileInfo(f.FullName)).Sum(f => f.Length),
                                     GameActions = new List<GameAction>() { new GameAction()
                                     {
                                         Name = $"Play in {mapping.Emulator.Name}",
@@ -220,6 +223,7 @@ namespace EmuLibrary
                                         IsInstalled = false,
                                         GameId = new ELPathInfo(new FileInfo(file.FullName)).ToGameId(),
                                         Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                                        InstallSize = (ulong)new FileInfo(file.FullName).Length,
                                         GameActions = new List<GameAction>() { new GameAction()
                                         {
                                             Name = $"Play in {mapping.Emulator.Name}",
