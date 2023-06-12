@@ -1,9 +1,8 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30503.244
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmuLibrary", "EmuLibrary.csproj", "{2351B5C1-6E28-4B79-A1D9-90FDA53B5417}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmuLibrary", "EmuLibrary\EmuLibrary.csproj", "{2351B5C1-6E28-4B79-A1D9-90FDA53B5417}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

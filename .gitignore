@@ -1,5 +1,5 @@
 *.pext
-bin/*
+**/bin/*
 packages/
 .vs/
 toolbox/JITProfiles/toolbox

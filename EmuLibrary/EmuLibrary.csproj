@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWPF>true</UseWPF>
+    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+	<EnableNETAnalyzers>True</EnableNETAnalyzers>
+	<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+	<DefaultItemExcludes>$(DefaultItemExcludes);toolbox\**</DefaultItemExcludes>
+  </PropertyGroup>
+	
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
+    <PackageReference Include="PlayniteSDK" Version="6.4.0" />
+    <PackageReference Include="protobuf-net" Version="3.2.26" />
+    <PackageReference Include="System.IO.Abstractions" Version="2.1.0.227" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <None Update="extension.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <None Update="icon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+	
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)toolbox\toolbox.exe&quot; pack $(TargetDir) $(SolutionDir)" />
+  </Target>
+	
+</Project>
