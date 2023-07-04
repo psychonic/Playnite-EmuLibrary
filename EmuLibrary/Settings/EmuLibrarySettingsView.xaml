@@ -48,7 +48,7 @@
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
                             <ComboBox Name="ComboEmulators" DockPanel.Dock="Left"
-                                      ItemsSource="{Binding Emulators}"
+                                      ItemsSource="{Binding AvailableEmulators}"
                                       DisplayMemberPath="Name"
                                       SelectedItem="{Binding Emulator, Mode=TwoWay}"
                                       >

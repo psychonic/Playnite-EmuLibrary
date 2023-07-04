@@ -23,23 +23,6 @@ namespace EmuLibrary
 
         public static EmuLibrarySettings Instance { get; private set; }
 
-        [JsonIgnore]
-        public IEnumerable<Emulator> Emulators {
-            get
-            {
-                return _plugin.PlayniteApi.Database.Emulators.OrderBy(x => x.Name);
-            }
-        }
-
-        [JsonIgnore]
-        public IEnumerable<EmulatedPlatform> Platforms
-        {
-            get
-            {
-                return _plugin.PlayniteApi.Emulation.Platforms.OrderBy(x => x.Name);
-            }
-        }
-
         public class ROMInstallerEmulatorMapping : ObservableObject
         {
             public ROMInstallerEmulatorMapping() { }
@@ -56,7 +39,7 @@ namespace EmuLibrary
             {
                 get
                 {
-                    return Instance?.Emulators.FirstOrDefault(e => e.Id == EmulatorId);
+                    return AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
                 }
                 set
                 {
@@ -85,7 +68,7 @@ namespace EmuLibrary
             {
                 get
                 {
-                    return Instance?.Platforms.FirstOrDefault(p => p.Id == PlatformId);
+                    return AvailablePlatforms.FirstOrDefault(p => p.Id == PlatformId);
                 }
                 set
                 {
@@ -121,11 +104,20 @@ namespace EmuLibrary
             public RomType RomType { get; set; }
 
             [JsonIgnore]
+            public IEnumerable<Emulator> AvailableEmulators
+            {
+                get
+                {
+                    return Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
+                }
+            }
+
+            [JsonIgnore]
             public IEnumerable<EmulatorProfile> AvailableProfiles
             {
                 get
                 {
-                    var emulator = Instance?.Emulators.FirstOrDefault(e => e.Id == EmulatorId);
+                    var emulator = AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
                     return emulator?.SelectableProfiles;
                 }
             }
@@ -152,7 +144,7 @@ namespace EmuLibrary
                         validPlatforms = new List<string>();
                     }
 
-                    return Instance.Platforms.Where(p => validPlatforms.Contains(p.Id));
+                    return Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatforms.Contains(p.Id));
                 }
             }
 
