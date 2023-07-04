@@ -28,13 +28,13 @@ jobs:
       id: get_version
       uses: battila7/get-version-action@v2
       
-    - name: Patch Extension Manifest Version
-      uses: Amadevus/pwsh-script@v2
-      id: versioner
+    - name: Update values.yaml
+      uses: fjogeleit/yaml-update-action@main
       with:
-        script: |
-          $version = '${{steps.get_version.outputs.version-without-v}}'
-          ((Get-Content -LiteralPath 'EmuLibrary\extension.yaml' -Raw) -replace 'Version\s*:\s*\d+\.\d+\.\d+', "Version: $version") | Out-File -Encoding utf8 -LiteralPath extension.yaml
+        valueFile: 'EmuLibrary/extension.yaml'
+        propertyPath: 'Version'
+        value: ${{steps.get_version.outputs.version-without-v}}
+        commitChange: false
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
@@ -59,11 +59,18 @@ jobs:
             Move-Item -Path $_.FullName -Destination $newFullPath
           }
       
+    - name: Build Changelog
+      id: github_release
+      uses: mikepenz/release-changelog-builder-action@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        name: Release ${{ github.ref }}
+        name: Release ${{steps.get_version.outputs.version}}
+        body: ${{steps.github_release.outputs.changelog}}
         generate_release_notes: true
         files: "*.pext"
         fail_on_unmatched_files: true
