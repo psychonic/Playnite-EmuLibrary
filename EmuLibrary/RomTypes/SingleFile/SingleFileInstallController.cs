@@ -1,5 +1,4 @@
-﻿using EmuLibrary.Controllers;
-using Playnite.SDK;
+﻿using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
