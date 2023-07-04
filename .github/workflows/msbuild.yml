@@ -59,31 +59,12 @@ jobs:
             Move-Item -Path $_.FullName -Destination $newFullPath
           }
       
-    - name: Build Changelog
-      id: github_release
-      uses: mikepenz/release-changelog-builder-action@main
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
       with:
-        body: ${{steps.github_release.outputs.changelog}}
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      id: upload-release-asset 
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: "EmuLibrary_${{steps.get_version.outputs.major}}_${{steps.get_version.outputs.minor}}_${{steps.get_version.outputs.patch}}.pext"
-        asset_name: "EmuLibrary_${{steps.get_version.outputs.major}}_${{steps.get_version.outputs.minor}}_${{steps.get_version.outputs.patch}}.pext"
-        asset_content_type: application/zip
+        name: Release ${{ github.ref }}
+        generate_release_notes: true
+        files: "*.pext"
+        fail_on_unmatched_files: true
+        token: ${{ secrets.GITHUB_TOKEN }}
