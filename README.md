@@ -13,6 +13,12 @@ To set it up, you create mappings to combine one of each of the following:
 * Platform - the ROM platform/console, out of those that the emulator profile supports
 * RomType - See [Rom Types](#rom-types) below
 
+## Paths
+
+For source and destination, only valid Windows file paths are currently supported. The intended use case is for having the source be an SMB file share (either via UNC path or mapped drive), and the destination be a local path. However, any valid file path should work for either. This means that you can get creative with the source if you have a way to mount alternate remote storage at a Windows file path.
+
+Additionally, for destination paths, relativity to the Playnite folder is preserved if you are using a portable installation of Playnite and your destination is below that folder hierarchically. This means that, for example, if your portable installation is at D:\playnite, and you choose `D:\playnite\rominstall` as your destination, it will be saved internally as `{PlayniteDir}\rominstall`.
+
 ## Rom Types
 
 ### SingleFile
