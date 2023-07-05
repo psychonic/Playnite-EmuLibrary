@@ -1,0 +1,8 @@
+AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
+Packages:
+  - Version: 3.0.3
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2023-07-04'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.0.3/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_0_3.pext
+    Changelog:
+      - See full changelog at https://github.com/psychonic/Playnite-EmuLibrary/releases/tag/v3.0.3
