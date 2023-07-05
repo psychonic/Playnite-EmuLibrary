@@ -140,6 +140,13 @@
             </DataGrid.Columns>
         </DataGrid>
         <TextBlock Grid.Row="2" Padding="0,0,0,4" Text="Other Settings" FontWeight="Bold" />
-        <CheckBox Grid.Row="3" Padding="0,0,0,4" IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}">Enable game scanning in Full Screen mode</CheckBox>
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <CheckBox Grid.Row="0" Grid.Column="0" Padding="0,0,0,4" IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}">Enable game scanning in Full Screen mode</CheckBox>
+            <CheckBox Grid.Row="0" Grid.Column="1" Padding="0,0,0,4" IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}">Enable notification upon game install completion</CheckBox>
+        </Grid>
     </Grid>
 </UserControl>

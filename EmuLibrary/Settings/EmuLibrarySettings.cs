@@ -174,6 +174,7 @@ namespace EmuLibrary
         }
 
         public bool ScanGamesInFullScreen { get; set; } = false;
+        public bool NotifyOnInstallComplete { get; set; } = false;
         public ObservableCollection<ROMInstallerEmulatorMapping> Mappings { get; set; }
 
         // Parameterless constructor must exist if you want to use LoadPluginSettings method.

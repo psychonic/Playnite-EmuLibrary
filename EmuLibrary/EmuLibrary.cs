@@ -139,6 +139,16 @@ namespace EmuLibrary
             }
         }
 
+        public override void OnGameInstalled(OnGameInstalledEventArgs args)
+        {
+            base.OnGameInstalled(args);
+
+            if (args.Game.PluginId == PluginId && _settings.NotifyOnInstallComplete)
+            {
+                _playniteAPI.Notifications.Add(args.Game.GameId, $"Installation of \"{args.Game.Name}\" has completed", NotificationType.Info);
+            }
+        }
+
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
         {
             yield return new MainMenuItem()
