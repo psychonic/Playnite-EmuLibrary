@@ -59,20 +59,20 @@ namespace EmuLibrary
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            if (!InManualCellCommit)
+            if (!InManualCellCommit && sender is DataGrid grid)
             {
                 InManualCellCommit = true;
-                var grid = (DataGrid)sender;
+
                 // HACK!!!!
                 // Alternate approach 1: try to find new value here and store that somewhere as the currently selected emu
                 // Alternate approach 2: the "right" way(?) https://stackoverflow.com/a/34332709
-                if (e.Column.Header.ToString() == "Emulator" || e.Column.Header.ToString() == "Profile")
+                if (e.Column.Header?.ToString() == "Emulator" || e.Column.Header?.ToString() == "Profile")
                 {
                     grid.CommitEdit(DataGridEditingUnit.Row, true);
                 }
+
                 InManualCellCommit = false;
             }
-
         }
 
         private void DataGrid_CurrentCellChanged(object sender, EventArgs e)
