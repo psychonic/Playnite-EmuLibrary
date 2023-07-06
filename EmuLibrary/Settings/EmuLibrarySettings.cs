@@ -161,15 +161,15 @@ namespace EmuLibrary
 
             public IEnumerable<string> GetDescriptionLines()
             {
-                yield return $"EmulatorId: {EmulatorId}";
-                yield return $"Emulator*: {Emulator?.Name ?? "<Unknown>"}";
-                yield return $"ProfileId: {EmulatorProfileId}";
-                yield return $"Profile*: {EmulatorProfile?.Name ?? "<Unknown>"}";
-                yield return $"PlatformId: {PlatformId}";
-                yield return $"Platform*: {Platform?.Name ?? "<Unknown>"}";
-                yield return $"SourcePath: {SourcePath}";
-                yield return $"DestinationPath: {DestinationPath}";
-                yield return $"DestinationPathResolved*: {DestinationPathResolved}";
+                yield return $"{nameof(EmulatorId)}: {EmulatorId}";
+                yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
+                yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId}";
+                yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
+                yield return $"{nameof(PlatformId)}: {PlatformId}";
+                yield return $"{nameof(Platform)}*: {Platform?.Name ?? "<Unknown>"}";
+                yield return $"{nameof(SourcePath)}: {SourcePath}";
+                yield return $"{nameof(DestinationPath)}: {DestinationPath}";
+                yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved}";
             }
         }
 
