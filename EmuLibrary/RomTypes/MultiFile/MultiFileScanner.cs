@@ -78,8 +78,8 @@ namespace EmuLibrary.RomTypes.MultiFile
                                     {
                                         Name = $"Play in {mapping.Emulator.Name}",
                                         Type = GameActionType.Emulator,
-                                        EmulatorId = mapping.Emulator.Id,
-                                        EmulatorProfileId = mapping.EmulatorProfile.Id,
+                                        EmulatorId = mapping.EmulatorId,
+                                        EmulatorProfileId = mapping.EmulatorProfileId,
                                         IsPlayAction = true,
                                     } }
                             };
@@ -136,8 +136,8 @@ namespace EmuLibrary.RomTypes.MultiFile
                                     {
                                         Name = $"Play in {mapping.Emulator.Name}",
                                         Type = GameActionType.Emulator,
-                                        EmulatorId = mapping.Emulator.Id,
-                                        EmulatorProfileId = mapping.EmulatorProfile.Id,
+                                        EmulatorId = mapping.EmulatorId,
+                                        EmulatorProfileId = mapping.EmulatorProfileId,
                                         IsPlayAction = true,
                                     } }
                             };
