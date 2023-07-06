@@ -149,13 +149,13 @@
                 <RowDefinition />
                 <RowDefinition />
             </Grid.RowDefinitions>
-            <CheckBox Grid.Row="0" Grid.Column="0" Padding="0,0,0,4" IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}">
+            <CheckBox Grid.Row="0" Grid.Column="0" Padding="4,4,4,4" IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}">
                 <TextBlock TextWrapping="WrapWithOverflow">Enable game scanning in Full Screen mode</TextBlock>
             </CheckBox>
-            <CheckBox Grid.Row="0" Grid.Column="1" Padding="0,0,0,4" IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}">
+            <CheckBox Grid.Row="0" Grid.Column="1" Padding="4,4,4,4" IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}">
                 <TextBlock TextWrapping="WrapWithOverflow">Enable notification upon game install completion</TextBlock>
             </CheckBox>
-            <CheckBox Grid.Row="1" Grid.Column="0" Padding="0,0,0,4" IsChecked="{Binding AutoRemoveUninstalledGamesMissingFromSource, Mode=TwoWay}">
+            <CheckBox Grid.Row="1" Grid.Column="0" Padding="4,4,4,4" IsChecked="{Binding AutoRemoveUninstalledGamesMissingFromSource, Mode=TwoWay}">
                 <TextBlock TextWrapping="WrapWithOverflow">Automatically remove non-installed games from library if missing from source</TextBlock>
             </CheckBox>
         </Grid>
