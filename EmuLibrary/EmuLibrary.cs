@@ -135,6 +135,11 @@ namespace EmuLibrary
                     yield return g;
                 }
             }
+
+            if (Settings.AutoRemoveUninstalledGamesMissingFromSource)
+            {
+                RemoveSuperUninstalledGames(false);
+            }
         }
 
         public override ISettings GetSettings(bool firstRunSettings) => Settings;
@@ -170,7 +175,7 @@ namespace EmuLibrary
         {
             yield return new MainMenuItem()
             {
-                Action = (arags) => RemoveSuperUninstalledGames(),
+                Action = (arags) => RemoveSuperUninstalledGames(true),
                 Description = "Remove uninstalled games with missing source file...",
                 MenuSection = "EmuLibrary"
             };
@@ -198,12 +203,21 @@ namespace EmuLibrary
             }
         }
 
-        private void RemoveSuperUninstalledGames()
+        private void RemoveSuperUninstalledGames(bool promptUser)
         {
             var toRemove = _scanners.Values.SelectMany(s => s.GetUninstalledGamesMissingSourceFiles());
             if (toRemove.Any())
             {
-                var res = PlayniteApi.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+                System.Windows.MessageBoxResult res;
+                if (promptUser)
+                {
+                    res = PlayniteApi.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+                }
+                else
+                {
+                    res = System.Windows.MessageBoxResult.Yes;
+                }
+
                 if (res == System.Windows.MessageBoxResult.Yes)
                 {
                     PlayniteApi.Database.Games.Remove(toRemove);

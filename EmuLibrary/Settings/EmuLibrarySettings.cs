@@ -202,6 +202,7 @@ namespace EmuLibrary
 
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
+        public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; } = false;
         public ObservableCollection<ROMInstallerEmulatorMapping> Mappings { get; set; }
 
         // Parameterless constructor must exist if you want to use LoadPluginSettings method.
@@ -247,6 +248,12 @@ namespace EmuLibrary
             {
                 mappingsWithoutId.ForEach(m => m.MappingId = Guid.NewGuid());
                 forceSave = true;
+            }
+
+            if (Mappings.Count == 0)
+            {
+                // We want this to default to true for new installs, but not enable automatically for existing users
+                AutoRemoveUninstalledGamesMissingFromSource = true;
             }
 
             if (forceSave)
