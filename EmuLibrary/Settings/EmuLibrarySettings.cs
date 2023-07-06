@@ -103,8 +103,7 @@ namespace EmuLibrary
             public string DestinationPath { get; set; }
             public RomType RomType { get; set; }
 
-            [JsonIgnore]
-            public IEnumerable<Emulator> AvailableEmulators
+            public static IEnumerable<Emulator> AvailableEmulators
             {
                 get
                 {
