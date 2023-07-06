@@ -5,7 +5,6 @@ using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,15 +12,13 @@ namespace EmuLibrary.RomTypes.MultiFile
 {
     class MultiFileInstallController : InstallController
     {
-        private readonly IPlayniteAPI _playniteAPI;
-        private readonly EmuLibrarySettings _settings;
+        private readonly IEmuLibrary _emuLibrary;
         private CancellationTokenSource _watcherToken;
 
-        internal MultiFileInstallController(Game game, EmuLibrarySettings settings, IPlayniteAPI playniteAPI) : base(game)
+        internal MultiFileInstallController(Game game, IEmuLibrary emuLibrary) : base(game)
         {
             Name = "Install";
-            _playniteAPI = playniteAPI;
-            _settings = settings;
+            _emuLibrary = emuLibrary;
         }
 
         public override void Install(InstallActionArgs args)
@@ -51,10 +48,10 @@ namespace EmuLibrary.RomTypes.MultiFile
                     var installDir = Path.Combine(dstPathBase, info.SourceBaseDir);
                     var gamePath = Path.Combine(new string[] { dstPathBase, info.SourceFilePath });
 
-                    if (_playniteAPI.ApplicationInfo.IsPortable)
+                    if (_emuLibrary.Playnite.ApplicationInfo.IsPortable)
                     {
-                        installDir = installDir.Replace(_playniteAPI.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
-                        gamePath = gamePath.Replace(_playniteAPI.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
+                        installDir = installDir.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
+                        gamePath = gamePath.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
                     }
 
                     InvokeOnInstalled(new GameInstalledEventArgs(new GameInstallationData()
@@ -65,7 +62,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                 }
                 catch (Exception ex)
                 {
-                    _playniteAPI.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
+                    _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     throw;
                 }
             });

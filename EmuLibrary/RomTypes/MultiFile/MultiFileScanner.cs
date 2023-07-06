@@ -22,9 +22,9 @@ namespace EmuLibrary.RomTypes.MultiFile
         public override RomType RomType => RomType.MultiFile;
         public override Guid LegacyPluginId => EmuLibrary.PluginId;
 
-        public MultiFileScanner(IPlayniteAPI api) : base(api)
+        public MultiFileScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
-            _playniteAPI = api;
+            _playniteAPI = emuLibrary.Playnite;
         }
 
         public override IEnumerable<GameMetadata> GetGames(EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, LibraryGetGamesArgs args)

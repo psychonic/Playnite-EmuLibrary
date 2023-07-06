@@ -13,27 +13,30 @@ using System.Windows.Controls;
 
 namespace EmuLibrary
 {
-    public class EmuLibrary : LibraryPlugin
+    public class EmuLibrary : LibraryPlugin, IEmuLibrary
     {
+        // LibraryPlugin fields
+        public override Guid Id { get; } = PluginId;
+        public override string Name => s_pluginName;
+        public override string LibraryIcon => Icon;
+
+        // IEmuLibrary fields
+        public ILogger Logger => LogManager.GetLogger();
+        public IPlayniteAPI Playnite { get; private set; }
+        public EmuLibrarySettings Settings { get; private set; }
+
         private const string s_pluginName = "EmuLibrary";
-        private static readonly ILogger s_logger = LogManager.GetLogger();
 
         internal static readonly string Icon = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"icon.png");
         internal static readonly Guid PluginId = Guid.Parse("41e49490-0583-4148-94d2-940c7c74f1d9");
         internal static readonly MetadataNameProperty SourceName = new MetadataNameProperty(s_pluginName);
 
-        private readonly IPlayniteAPI _playniteAPI;
-        private readonly EmuLibrarySettings _settings;
         private readonly Dictionary<RomType, RomTypeScanner> _scanners = new Dictionary<RomType, RomTypeScanner>();
-
-        public override Guid Id { get; } = PluginId;
-        public override string Name => s_pluginName;
-        public override string LibraryIcon => Icon;
 
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
-            _playniteAPI = api;
-            _settings = new EmuLibrarySettings(this, _playniteAPI);
+            Playnite = api;
+            Settings = new EmuLibrarySettings(this, Playnite);
 
             var romTypes = Enum.GetValues(typeof(RomType)).Cast<RomType>();
             foreach (var rt in romTypes)
@@ -47,7 +50,7 @@ namespace EmuLibrary
                 // Starts at field number 10 to not conflict with ELGameInfo's fields
                 RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
 
-                var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IPlayniteAPI) })?.Invoke(new object[] { _playniteAPI });
+                var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { Playnite });
                 _scanners.Add(rt, scanner as RomTypeScanner);
             }
         }
@@ -61,8 +64,8 @@ namespace EmuLibrary
                 var oldGameIdFormat = PlayniteApi.Database.Games.Where(g => g.PluginId == h.LegacyPluginId && !g.GameId.StartsWith("!"));
                 if (oldGameIdFormat.Any())
                 {
-                    s_logger.Info($"Updating {oldGameIdFormat.Count()} games to new game id format.");
-                    using (_playniteAPI.Database.BufferedUpdate())
+                    Logger.Info($"Updating {oldGameIdFormat.Count()} games to new game id format.");
+                    using (Playnite.Database.BufferedUpdate())
                     {
                         oldGameIdFormat.ForEach(g =>
                         {
@@ -79,37 +82,37 @@ namespace EmuLibrary
 
         public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
         {
-            if (_playniteAPI.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !_settings.ScanGamesInFullScreen)
+            if (Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !Settings.ScanGamesInFullScreen)
             {
                 yield break;
             }
 
-            foreach (var mapping in _settings.Mappings?.Where(m => m.Enabled))
+            foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled))
             {
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
 
                 if (mapping.Emulator == null)
                 {
-                    s_logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
+                    Logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
                     continue;
                 }
 
                 if (mapping.EmulatorProfile == null)
                 {
-                    s_logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
+                    Logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
                     continue;
                 }
 
                 if (mapping.Platform == null)
                 {
-                    s_logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
+                    Logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
                     continue;
                 }
 
                 if (!_scanners.TryGetValue(mapping.RomType, out RomTypeScanner scanner))
                 {
-                    s_logger.Warn($"Rom type {mapping.RomType} not supported, skipping.");
+                    Logger.Warn($"Rom type {mapping.RomType} not supported, skipping.");
                     continue;
                 }
 
@@ -120,14 +123,14 @@ namespace EmuLibrary
             }
         }
 
-        public override ISettings GetSettings(bool firstRunSettings) => _settings;
+        public override ISettings GetSettings(bool firstRunSettings) => Settings;
         public override UserControl GetSettingsView(bool firstRunSettings) => new EmuLibrarySettingsView();
 
         public override IEnumerable<InstallController> GetInstallActions(GetInstallActionsArgs args)
         {
             if (args.Game.PluginId == Id)
             {
-                yield return args.Game.GetELGameInfo().GetInstallController(args.Game, _settings, _playniteAPI);
+                yield return args.Game.GetELGameInfo().GetInstallController(args.Game, this);
             }
         }
 
@@ -135,7 +138,7 @@ namespace EmuLibrary
         {
             if (args.Game.PluginId == Id)
             {
-                yield return args.Game.GetELGameInfo().GetUninstallController(args.Game, _playniteAPI);
+                yield return args.Game.GetELGameInfo().GetUninstallController(args.Game, this);
             }
         }
 
@@ -143,9 +146,9 @@ namespace EmuLibrary
         {
             base.OnGameInstalled(args);
 
-            if (args.Game.PluginId == PluginId && _settings.NotifyOnInstallComplete)
+            if (args.Game.PluginId == PluginId && Settings.NotifyOnInstallComplete)
             {
-                _playniteAPI.Notifications.Add(args.Game.GameId, $"Installation of \"{args.Game.Name}\" has completed", NotificationType.Info);
+                Playnite.Notifications.Add(args.Game.GameId, $"Installation of \"{args.Game.Name}\" has completed", NotificationType.Info);
             }
         }
 
@@ -169,7 +172,7 @@ namespace EmuLibrary
 
                 yield return new GameMenuItem()
                 {
-                    Action = (arags) => _playniteAPI.Dialogs.ShowSelectableString("Decoded GameId info for each selected game is shown below. This information can be useful for troubleshooting.", "EmuLibrary Game Info", text),
+                    Action = (arags) => Playnite.Dialogs.ShowSelectableString("Decoded GameId info for each selected game is shown below. This information can be useful for troubleshooting.", "EmuLibrary Game Info", text),
                     Description = "Show Debug Info",
                     MenuSection = "EmuLibrary"
                 };

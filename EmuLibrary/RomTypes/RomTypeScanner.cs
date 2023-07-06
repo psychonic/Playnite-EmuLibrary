@@ -8,7 +8,7 @@ namespace EmuLibrary.RomTypes
 {
     internal abstract class RomTypeScanner
     {
-        public RomTypeScanner(IPlayniteAPI api) { }
+        public RomTypeScanner(IEmuLibrary emuLibrary) { }
         public abstract Guid LegacyPluginId { get; }
 
         public abstract RomType RomType { get; }

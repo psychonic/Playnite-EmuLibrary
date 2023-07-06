@@ -22,9 +22,9 @@ namespace EmuLibrary.RomTypes.SingleFile
         public override RomType RomType => RomType.SingleFile;
         public override Guid LegacyPluginId => EmuLibrary.PluginId;
 
-        public SingleFileScanner(IPlayniteAPI api) : base(api)
+        public SingleFileScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
-            _playniteAPI = api;
+            _playniteAPI = emuLibrary.Playnite;
         }
 
         public override IEnumerable<GameMetadata> GetGames(EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, LibraryGetGamesArgs args)

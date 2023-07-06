@@ -25,15 +25,11 @@ namespace EmuLibrary.RomTypes.SingleFile
             }
         }
 
-        public override InstallController GetInstallController(Game game, EmuLibrarySettings settings, IPlayniteAPI playniteAPI)
-        {
-            return new SingleFileInstallController(game, settings, playniteAPI);
-        }
+        public override InstallController GetInstallController(Game game, IEmuLibrary emuLibrary) =>
+            new SingleFileInstallController(game, emuLibrary);
 
-        public override UninstallController GetUninstallController(Game game, IPlayniteAPI playniteAPI)
-        {
-            return new SingleFileUninstallController(game, playniteAPI);
-        }
+        public override UninstallController GetUninstallController(Game game, IEmuLibrary emuLibrary) =>
+            new SingleFileUninstallController(game, emuLibrary);
 
         protected override IEnumerable<string> GetDescriptionLines()
         {

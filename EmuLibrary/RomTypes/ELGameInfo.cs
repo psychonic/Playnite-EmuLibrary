@@ -50,8 +50,8 @@ namespace EmuLibrary.RomTypes
             return Serializer.Deserialize<T>(Convert.FromBase64String(gameId.Substring(2)).AsSpan());
         }
 
-        public abstract InstallController GetInstallController(Game game, EmuLibrarySettings settings, IPlayniteAPI playniteAPI);
-        public abstract UninstallController GetUninstallController(Game game, IPlayniteAPI playniteAPI);
+        public abstract InstallController GetInstallController(Game game, IEmuLibrary emuLibrary);
+        public abstract UninstallController GetUninstallController(Game game, IEmuLibrary emuLibrary);
 
         protected abstract IEnumerable<string> GetDescriptionLines();
 

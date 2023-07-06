@@ -9,17 +9,17 @@ namespace EmuLibrary.RomTypes.SingleFile
 {
     class SingleFileUninstallController : UninstallController
     {
-        private readonly IPlayniteAPI PlayniteAPI;
+        private readonly IEmuLibrary _emuLibrary;
 
-        internal SingleFileUninstallController(Game game, IPlayniteAPI playniteAPI) : base(game)
+        internal SingleFileUninstallController(Game game, IEmuLibrary emuLibrary) : base(game)
         {
             Name = "Uninstall";
-            PlayniteAPI = playniteAPI;
+            _emuLibrary = emuLibrary;
         }
 
         public override void Uninstall(UninstallActionArgs args)
         {
-            var gameImagePathResolved = Game.Roms.First().Path.Replace(ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath);
+            var gameImagePathResolved = Game.Roms.First().Path.Replace(ExpandableVariables.PlayniteDirectory, _emuLibrary.Playnite.Paths.ApplicationPath);
             var info = new FileInfo(gameImagePathResolved);
             if (info.Exists)
             {

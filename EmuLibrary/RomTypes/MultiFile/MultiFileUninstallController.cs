@@ -9,21 +9,21 @@ namespace EmuLibrary.RomTypes.MultiFile
 {
     class MultiFileUninstallController : UninstallController
     {
-        private readonly IPlayniteAPI PlayniteAPI;
+        private readonly IEmuLibrary _emuLibrary;
 
-        internal MultiFileUninstallController(Game game, IPlayniteAPI playniteAPI) : base(game)
+        internal MultiFileUninstallController(Game game, IEmuLibrary emuLibrary) : base(game)
         {
             Name = "Uninstall";
-            PlayniteAPI = playniteAPI;
+            _emuLibrary = emuLibrary;
         }
 
         public override void Uninstall(UninstallActionArgs args)
         {
-            var gameImagePathResolved = Game.Roms.First().Path.Replace(ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath);
+            var gameImagePathResolved = Game.Roms.First().Path.Replace(ExpandableVariables.PlayniteDirectory, _emuLibrary.Playnite.Paths.ApplicationPath);
             var info = new FileInfo(gameImagePathResolved);
             if (info.Exists)
             {
-                Directory.Delete(Game.InstallDirectory.Replace(ExpandableVariables.PlayniteDirectory, PlayniteAPI.Paths.ApplicationPath), true);
+                Directory.Delete(Game.InstallDirectory.Replace(ExpandableVariables.PlayniteDirectory, _emuLibrary.Playnite.Paths.ApplicationPath), true);
                 InvokeOnUninstalled(new GameUninstalledEventArgs());
             }
             else

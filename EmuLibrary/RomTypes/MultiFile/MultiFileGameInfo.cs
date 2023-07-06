@@ -4,7 +4,6 @@ using Playnite.SDK.Plugins;
 using ProtoBuf;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace EmuLibrary.RomTypes.MultiFile
 {
@@ -29,15 +28,11 @@ namespace EmuLibrary.RomTypes.MultiFile
             }
         }
 
-        public override InstallController GetInstallController(Game game, EmuLibrarySettings settings, IPlayniteAPI playniteAPI)
-        {
-            return new MultiFileInstallController(game, settings, playniteAPI);
-        }
+        public override InstallController GetInstallController(Game game, IEmuLibrary emuLibrary) =>
+            new MultiFileInstallController(game, emuLibrary);
 
-        public override UninstallController GetUninstallController(Game game, IPlayniteAPI playniteAPI)
-        {
-            return new MultiFileUninstallController(game, playniteAPI);
-        }
+        public override UninstallController GetUninstallController(Game game, IEmuLibrary emuLibrary) =>
+            new MultiFileUninstallController(game, emuLibrary);
 
         protected override IEnumerable<string> GetDescriptionLines()
         {
