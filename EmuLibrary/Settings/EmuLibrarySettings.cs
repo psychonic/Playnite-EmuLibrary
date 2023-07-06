@@ -159,6 +159,32 @@ namespace EmuLibrary
                 }
             }
 
+            [JsonIgnore]
+            [XmlIgnore]
+            public string EmulatorBasePath
+            {
+                get
+                {
+                    return Emulator.InstallDir;
+                }
+            }
+
+            [JsonIgnore]
+            [XmlIgnore]
+            public string EmulatorBasePathResolved
+            {
+                get
+                {
+                    var playnite = Instance.PlayniteAPI;
+                    var ret = Emulator.InstallDir;
+                    if (playnite.Paths.IsPortable)
+                    {
+                        ret = ret.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
+                    }
+                    return ret;
+                }
+            }
+
             public IEnumerable<string> GetDescriptionLines()
             {
                 yield return $"{nameof(EmulatorId)}: {EmulatorId}";
@@ -170,6 +196,7 @@ namespace EmuLibrary
                 yield return $"{nameof(SourcePath)}: {SourcePath}";
                 yield return $"{nameof(DestinationPath)}: {DestinationPath}";
                 yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved}";
+                yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved}";
             }
         }
 
