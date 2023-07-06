@@ -54,7 +54,7 @@ namespace EmuLibrary
                 // Starts at field number 10 to not conflict with ELGameInfo's fields
                 RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
 
-                var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { Playnite });
+                var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { this });
                 if (scanner == null)
                 {
                     Logger.Error($"Failed to instantiate scanner for RomType {rt} (using {romInfo.ScannerType}).");
