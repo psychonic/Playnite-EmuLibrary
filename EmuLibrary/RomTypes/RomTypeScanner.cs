@@ -13,7 +13,7 @@ namespace EmuLibrary.RomTypes
 
         public abstract RomType RomType { get; }
 
-        public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, out ELGameInfo gameInfo);
+        public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, out ELGameInfo gameInfo);
         public abstract IEnumerable<GameMetadata> GetGames(EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, LibraryGetGamesArgs args);
         public abstract IEnumerable<Game> GetUninstalledGamesMissingSourceFiles();
     }

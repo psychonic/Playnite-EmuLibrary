@@ -148,7 +148,7 @@ namespace EmuLibrary.RomTypes.MultiFile
             #endregion
         }
 
-        public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, out ELGameInfo gameInfo)
+        public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, out ELGameInfo gameInfo)
         {
             // OLD /////////////////////////////////////////////////
             // GameId format - segments divided by '|'.
@@ -163,7 +163,6 @@ namespace EmuLibrary.RomTypes.MultiFile
             }
 
             var playAction = game.GameActions.Where(ga => ga.IsPlayAction).First();
-            var mapping = EmuLibrarySettings.Instance.Mappings.FirstOrDefault(m => m.EmulatorId == playAction.EmulatorId && m.EmulatorProfileId == playAction.EmulatorProfileId);
             if (mapping.RomType != RomType.MultiFile)
             {
                 gameInfo = null;

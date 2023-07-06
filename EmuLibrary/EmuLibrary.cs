@@ -68,24 +68,27 @@ namespace EmuLibrary
         {
             base.OnApplicationStarted(args);
 
-            _scanners.Values.ForEach(h =>
+            Settings.Mappings.ForEach(mapping =>
             {
-                var oldGameIdFormat = PlayniteApi.Database.Games.Where(g => g.PluginId == h.LegacyPluginId && !g.GameId.StartsWith("!"));
-                if (oldGameIdFormat.Any())
+                _scanners.Values.ForEach(scanner =>
                 {
-                    Logger.Info($"Updating {oldGameIdFormat.Count()} games to new game id format.");
-                    using (Playnite.Database.BufferedUpdate())
+                    var oldGameIdFormat = PlayniteApi.Database.Games.Where(game => game.PluginId == scanner.LegacyPluginId && !game.GameId.StartsWith("!"));
+                    if (oldGameIdFormat.Any())
                     {
-                        oldGameIdFormat.ForEach(g =>
+                        Logger.Info($"Updating {oldGameIdFormat.Count()} games to new game id format for mapping {mapping.MappingId} ({mapping.Emulator.Name}/{mapping.EmulatorProfile.Name}/{mapping.SourcePath}).");
+                        using (Playnite.Database.BufferedUpdate())
                         {
-                            if (h.TryGetGameInfoBaseFromLegacyGameId(g, out var gameInfo))
+                            oldGameIdFormat.ForEach(game =>
                             {
-                                g.GameId = gameInfo.AsGameId();
-                                PlayniteApi.Database.Games.Update(g);
-                            }
-                        });
+                                if (scanner.TryGetGameInfoBaseFromLegacyGameId(game, mapping, out var gameInfo))
+                                {
+                                    game.GameId = gameInfo.AsGameId();
+                                    PlayniteApi.Database.Games.Update(game);
+                                }
+                            });
+                        }
                     }
-                }
+                });
             });
         }
 
