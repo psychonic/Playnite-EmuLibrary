@@ -25,8 +25,7 @@ namespace EmuLibrary.RomTypes.MultiFile
         {
             get
             {
-                var mapping = EmuLibrarySettings.Instance.Mappings.First(m => m.MappingId == MappingId);
-                return Path.Combine(mapping.SourcePath, SourceBaseDir);
+                return Path.Combine(Mapping.SourcePath, SourceBaseDir);
             }
         }
 

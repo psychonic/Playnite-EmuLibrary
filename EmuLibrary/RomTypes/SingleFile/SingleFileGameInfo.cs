@@ -21,8 +21,7 @@ namespace EmuLibrary.RomTypes.SingleFile
         {
             get
             {
-                var mapping = EmuLibrarySettings.Instance.Mappings.First(m => m.MappingId == MappingId);
-                return Path.Combine(mapping.SourcePath, SourcePath);
+                return Path.Combine(Mapping.SourcePath, SourcePath);
             }
         }
 

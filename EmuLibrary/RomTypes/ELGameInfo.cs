@@ -18,6 +18,14 @@ namespace EmuLibrary.RomTypes
         [ProtoMember(1)]
         public Guid MappingId { get; set; }
 
+        public EmuLibrarySettings.ROMInstallerEmulatorMapping Mapping
+        {
+            get
+            {
+                return EmuLibrarySettings.Instance.Mappings.FirstOrDefault(m => m.MappingId == MappingId);
+            }
+        }
+
         public string AsGameId()
         {
             using (var ms = new MemoryStream())
@@ -57,7 +65,7 @@ namespace EmuLibrary.RomTypes
 
             GetDescriptionLines().ForEach(l => sb.AppendLine(l));
 
-            var mapping = EmuLibrarySettings.Instance.Mappings.FirstOrDefault(m => m.MappingId == MappingId);
+            var mapping = Mapping;
             if (mapping != null)
             {
                 sb.AppendLine();

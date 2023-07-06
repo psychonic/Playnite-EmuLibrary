@@ -28,7 +28,7 @@ namespace EmuLibrary.RomTypes.MultiFile
         {
             var info = Game.GetMultiFileGameInfo();
 
-            var dstPathBase = _settings.Mappings.FirstOrDefault(m => m.MappingId == info.MappingId)?.DestinationPathResolved ??
+            var dstPathBase = info.Mapping?.DestinationPathResolved ??
                 throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
 
             _watcherToken = new CancellationTokenSource();
