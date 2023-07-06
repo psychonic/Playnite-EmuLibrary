@@ -8,7 +8,9 @@ namespace EmuLibrary.RomTypes
 {
     internal abstract class RomTypeScanner
     {
+#pragma warning disable IDE0060 // Remove unused parameter
         public RomTypeScanner(IEmuLibrary emuLibrary) { }
+#pragma warning restore IDE0060 // Remove unused parameter
         public abstract Guid LegacyPluginId { get; }
 
         public abstract RomType RomType { get; }
