@@ -44,13 +44,22 @@ namespace EmuLibrary
                 var fieldInfo = rt.GetType().GetField(rt.ToString());
                 var romInfo = fieldInfo.GetCustomAttributes(false).OfType<RomTypeInfoAttribute>().FirstOrDefault();
                 if (romInfo == null)
+                {
+                    Logger.Warn($"Failed to find {nameof(RomTypeInfoAttribute)} for RomType {rt}. Skipping...");
                     continue;
+                }
 
                 // Hook up ProtoInclude on ELGameInfo for each RomType
                 // Starts at field number 10 to not conflict with ELGameInfo's fields
                 RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
 
                 var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { Playnite });
+                if (scanner == null)
+                {
+                    Logger.Error($"Failed to instantiate scanner for RomType {rt} (using {romInfo.ScannerType}).");
+                    continue;
+                }
+
                 _scanners.Add(rt, scanner as RomTypeScanner);
             }
         }
