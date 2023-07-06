@@ -83,6 +83,7 @@ namespace EmuLibrary
                                 if (scanner.TryGetGameInfoBaseFromLegacyGameId(game, mapping, out var gameInfo))
                                 {
                                     game.GameId = gameInfo.AsGameId();
+                                    game.PluginId = PluginId;
                                     PlayniteApi.Database.Games.Update(game);
                                 }
                             });
