@@ -40,7 +40,16 @@ namespace EmuLibrary.RomTypes
 
         public static T FromGame<T>(Game game) where T : ELGameInfo
         {
-            var gameId = game.GameId;
+            return FromGameIdString<T>(game.GameId);
+        }
+
+        public static T FromGameMetadata<T>(GameMetadata game) where T : ELGameInfo
+        {
+            return FromGameIdString<T>(game.GameId);
+        }
+
+        private static T FromGameIdString<T>(string gameId) where T : ELGameInfo
+        {
             Debug.Assert(gameId != null, "GameId is null");
             Debug.Assert(gameId.Length > 0, "GameId is empty");
             Debug.Assert(gameId[0] == '!', "GameId is not in expected format. (Legacy game that didn't get converted?)");

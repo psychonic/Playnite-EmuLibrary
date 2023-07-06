@@ -7,4 +7,9 @@ internal static class ELGameInfoBaseExtensions
     {
         return ELGameInfo.FromGame<ELGameInfo>(game);
     }
+
+    static public ELGameInfo GetELGameInfo(this GameMetadata game)
+    {
+        return ELGameInfo.FromGameMetadata<ELGameInfo>(game);
+    }
 }
