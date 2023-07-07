@@ -212,7 +212,7 @@ namespace EmuLibrary
                 System.Windows.MessageBoxResult res;
                 if (promptUser)
                 {
-                    res = PlayniteApi.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+                    res = PlayniteApi.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
                 }
                 else
                 {
@@ -224,7 +224,7 @@ namespace EmuLibrary
                     PlayniteApi.Database.Games.Remove(toRemove);
                 }
             }
-            else
+            else if (!promptUser)
             {
                 PlayniteApi.Dialogs.ShowMessage("Nothing to do.");
             }
