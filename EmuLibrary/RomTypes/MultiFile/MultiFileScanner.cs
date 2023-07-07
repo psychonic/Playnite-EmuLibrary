@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace EmuLibrary.RomTypes.MultiFile
 {
@@ -190,9 +191,10 @@ namespace EmuLibrary.RomTypes.MultiFile
             return true;
         }
 
-        public override IEnumerable<Game> GetUninstalledGamesMissingSourceFiles()
+        public override IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct)
         {
-            return _playniteAPI.Database.Games.Where(g =>
+            return _playniteAPI.Database.Games.TakeWhile(g => !ct.IsCancellationRequested)
+                .Where(g =>
             {
                 if (g.PluginId != EmuLibrary.PluginId || g.IsInstalled)
                     return false;

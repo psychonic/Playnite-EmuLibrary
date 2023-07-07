@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Windows.Controls;
 
 namespace EmuLibrary
@@ -138,7 +139,7 @@ namespace EmuLibrary
 
             if (Settings.AutoRemoveUninstalledGamesMissingFromSource)
             {
-                RemoveSuperUninstalledGames(false);
+                RemoveSuperUninstalledGames(false, args.CancelToken);
             }
         }
 
@@ -175,7 +176,7 @@ namespace EmuLibrary
         {
             yield return new MainMenuItem()
             {
-                Action = (arags) => RemoveSuperUninstalledGames(true),
+                Action = (arags) => RemoveSuperUninstalledGames(true, default),
                 Description = "Remove uninstalled games with missing source file...",
                 MenuSection = "EmuLibrary"
             };
@@ -203,9 +204,9 @@ namespace EmuLibrary
             }
         }
 
-        private void RemoveSuperUninstalledGames(bool promptUser)
+        private void RemoveSuperUninstalledGames(bool promptUser, CancellationToken ct)
         {
-            var toRemove = _scanners.Values.SelectMany(s => s.GetUninstalledGamesMissingSourceFiles());
+            var toRemove = _scanners.Values.SelectMany(s => s.GetUninstalledGamesMissingSourceFiles(ct));
             if (toRemove.Any())
             {
                 System.Windows.MessageBoxResult res;
