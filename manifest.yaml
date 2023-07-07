@@ -1,5 +1,15 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.1.0
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2023-07-06'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.1.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_1_0.pext
+    Changelog:
+      - Updated icon and fixed it not appearing in Update Game Library menu
+      - Added option to trigger notification upon game installation completing
+      - Added option to automatically remove non-installed games that no longer exist in the source folder
+      - Fixed a rare crash in the settings grid
+      - Other under-the-hood changes and refactoring to support future features
   - Version: 3.0.3
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2023-07-04'
