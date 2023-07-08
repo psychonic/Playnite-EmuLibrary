@@ -224,7 +224,7 @@ namespace EmuLibrary
                     PlayniteApi.Database.Games.Remove(toRemove);
                 }
             }
-            else if (!promptUser)
+            else if (promptUser)
             {
                 PlayniteApi.Dialogs.ShowMessage("Nothing to do.");
             }
