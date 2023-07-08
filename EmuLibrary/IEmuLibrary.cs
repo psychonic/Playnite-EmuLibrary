@@ -1,4 +1,5 @@
 ﻿using EmuLibrary.RomTypes;
+using EmuLibrary.Settings;
 using Playnite.SDK;
 
 namespace EmuLibrary
@@ -7,7 +8,7 @@ namespace EmuLibrary
     {
         ILogger Logger { get; }
         IPlayniteAPI Playnite { get; }
-        EmuLibrarySettings Settings { get; }
+        Settings.Settings Settings { get; }
         string GetPluginUserDataPath();
         RomTypeScanner GetScanner(RomType romType);
     }

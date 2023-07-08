@@ -3,32 +3,32 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace EmuLibrary
+namespace EmuLibrary.Settings
 {
-    public partial class EmuLibrarySettingsView : UserControl
+    public partial class SettingsView : UserControl
     {
         private bool InManualCellCommit = false;
 
-        public EmuLibrarySettingsView()
+        public SettingsView()
         {
             InitializeComponent();
         }
 
         private void Click_Delete(object sender, RoutedEventArgs e)
         {
-            if (((FrameworkElement)sender).DataContext is EmuLibrarySettings.ROMInstallerEmulatorMapping mapping)
+            if (((FrameworkElement)sender).DataContext is EmulatorMapping mapping)
             {
-                var res = EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescriptionLines().Aggregate((a, b) => $"{a}{Environment.NewLine}{b}")), "Confirm delete", MessageBoxButton.YesNo);
+                var res = Settings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescriptionLines().Aggregate((a, b) => $"{a}{Environment.NewLine}{b}")), "Confirm delete", MessageBoxButton.YesNo);
                 if (res == MessageBoxResult.Yes)
                 {
-                    EmuLibrarySettings.Instance.Mappings.Remove(mapping);
+                    Settings.Instance.Mappings.Remove(mapping);
                 }
             }
         }
 
         private void Click_BrowseSource(object sender, RoutedEventArgs e)
         {
-            var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath()) != null)
             {
@@ -38,11 +38,11 @@ namespace EmuLibrary
 
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
         {
-            var mapping = ((FrameworkElement)sender).DataContext as EmuLibrarySettings.ROMInstallerEmulatorMapping;
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath()) != null)
             {
-                var playnite = EmuLibrarySettings.Instance.PlayniteAPI;
+                var playnite = Settings.Instance.PlayniteAPI;
                 if (playnite.Paths.IsPortable)
                 {
                     path = path.Replace(playnite.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
@@ -54,7 +54,7 @@ namespace EmuLibrary
 
         private static string GetSelectedFolderPath()
         {
-            return EmuLibrarySettings.Instance.PlayniteAPI.Dialogs.SelectFolder();
+            return Settings.Instance.PlayniteAPI.Dialogs.SelectFolder();
         }
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)

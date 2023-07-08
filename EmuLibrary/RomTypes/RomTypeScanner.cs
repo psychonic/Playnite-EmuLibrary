@@ -1,4 +1,4 @@
-﻿using Playnite.SDK;
+﻿using EmuLibrary.Settings;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
@@ -16,8 +16,8 @@ namespace EmuLibrary.RomTypes
 
         public abstract RomType RomType { get; }
 
-        public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, out ELGameInfo gameInfo);
-        public abstract IEnumerable<GameMetadata> GetGames(EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, LibraryGetGamesArgs args);
+        public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo);
+        public abstract IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args);
         public abstract IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct);
     }
 }

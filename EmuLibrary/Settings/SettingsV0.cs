@@ -1,13 +1,13 @@
 ﻿using EmuLibrary.RomTypes;
+using EmuLibrary.Settings;
 using Playnite.SDK;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using static EmuLibrary.EmuLibrarySettings;
 
 namespace EmuLibrary
 {
-    internal class EmuLibrarySettingsV0 : ObservableObject, ISettings
+    internal class SettingsV0 : ObservableObject, ISettings
     {
         public class ROMInstallerEmulatorMappingV0 : ObservableObject
         {
@@ -43,17 +43,17 @@ namespace EmuLibrary
             throw new NotImplementedException();
         }
 
-        public EmuLibrarySettings ToV1Settings()
+        public Settings.Settings ToV1Settings()
         {
-            var settings = new EmuLibrarySettings()
+            var settings = new Settings.Settings()
             {
-                Mappings = new ObservableCollection<ROMInstallerEmulatorMapping>(),
+                Mappings = new ObservableCollection<EmulatorMapping>(),
                 Version = 1,
             };
 
             Mappings?.ForEach(mapping =>
             {
-                settings.Mappings.Add(new ROMInstallerEmulatorMapping()
+                settings.Mappings.Add(new EmulatorMapping()
                 {
                     Enabled = mapping.Enabled,
                     EmulatorId = mapping.EmulatorId,

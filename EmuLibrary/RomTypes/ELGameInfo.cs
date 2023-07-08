@@ -1,4 +1,5 @@
-﻿using Playnite.SDK;
+﻿using EmuLibrary.Settings;
+using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using ProtoBuf;
@@ -18,11 +19,11 @@ namespace EmuLibrary.RomTypes
         [ProtoMember(1)]
         public Guid MappingId { get; set; }
 
-        public EmuLibrarySettings.ROMInstallerEmulatorMapping Mapping
+        public EmulatorMapping Mapping
         {
             get
             {
-                return EmuLibrarySettings.Instance.Mappings.FirstOrDefault(m => m.MappingId == MappingId);
+                return Settings.Settings.Instance.Mappings.FirstOrDefault(m => m.MappingId == MappingId);
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using EmuLibrary.PlayniteCommon;
+using EmuLibrary.Settings;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
@@ -28,7 +29,7 @@ namespace EmuLibrary.RomTypes.SingleFile
             _playniteAPI = emuLibrary.Playnite;
         }
 
-        public override IEnumerable<GameMetadata> GetGames(EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, LibraryGetGamesArgs args)
+        public override IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args)
         {
             if (args.CancelToken.IsCancellationRequested)
                 yield break;
@@ -140,7 +141,7 @@ namespace EmuLibrary.RomTypes.SingleFile
             #endregion
         }
 
-        public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmuLibrarySettings.ROMInstallerEmulatorMapping mapping, out ELGameInfo gameInfo)
+        public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo)
         {
             // OLD /////////////////////////////////////////////////
             // GameId format - segments divided by '|'.

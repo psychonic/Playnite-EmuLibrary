@@ -1,4 +1,5 @@
 ﻿using EmuLibrary.RomTypes;
+using EmuLibrary.Settings;
 using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
@@ -24,7 +25,7 @@ namespace EmuLibrary
         // IEmuLibrary fields
         public ILogger Logger => LogManager.GetLogger();
         public IPlayniteAPI Playnite { get; private set; }
-        public EmuLibrarySettings Settings { get; private set; }
+        public Settings.Settings Settings { get; private set; }
         RomTypeScanner IEmuLibrary.GetScanner(RomType romType) => _scanners[romType];
 
         private const string s_pluginName = "EmuLibrary";
@@ -38,7 +39,7 @@ namespace EmuLibrary
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
             Playnite = api;
-            Settings = new EmuLibrarySettings(this, Playnite);
+            Settings = new Settings.Settings(this, Playnite);
 
             var romTypes = Enum.GetValues(typeof(RomType)).Cast<RomType>();
             foreach (var rt in romTypes)
@@ -144,7 +145,7 @@ namespace EmuLibrary
         }
 
         public override ISettings GetSettings(bool firstRunSettings) => Settings;
-        public override UserControl GetSettingsView(bool firstRunSettings) => new EmuLibrarySettingsView();
+        public override UserControl GetSettingsView(bool firstRunSettings) => new SettingsView();
 
         public override IEnumerable<InstallController> GetInstallActions(GetInstallActionsArgs args)
         {
