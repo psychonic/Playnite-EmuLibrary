@@ -8,7 +8,7 @@
              xmlns:elrt="clr-namespace:EmuLibrary.RomTypes" 
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
-             Padding="2,0,0,0">
+             Padding="2,0,2,4">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -16,7 +16,18 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Padding="0,0,0,4" Text="Emulator Path Mappings" FontWeight="Bold"/>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Padding="0,0,0,4" Text="Emulator Path Mappings" FontWeight="Bold"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Padding="0,0,4,4" HorizontalAlignment="Right">
+                <Hyperlink NavigateUri="https://github.com/psychonic/Playnite-EmuLibrary/README.md" RequestNavigate="Hyperlink_RequestNavigate">
+                    Help🔗
+                </Hyperlink>
+            </TextBlock>
+        </Grid>
         <DataGrid Grid.Row="1" Padding="0,0,0,4" ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
                   CanUserAddRows="True">
             <DataGrid.Resources>
