@@ -19,47 +19,101 @@ namespace EmuLibrary.Settings
         [DefaultValue(true)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
         public bool Enabled { get; set; }
-        public Guid EmulatorId { get; set; }
 
         [JsonIgnore]
         public Emulator Emulator
         {
-            get
-            {
-                return AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
-            }
-            set
-            {
-                EmulatorId = value.Id;
-            }
+            get => AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
+            set { EmulatorId = value.Id; }
         }
-        public string EmulatorProfileId { get; set; }
+        public Guid EmulatorId { get; set; }
 
         [JsonIgnore]
         public EmulatorProfile EmulatorProfile
         {
-            get
-            {
-                return Emulator?.SelectableProfiles.FirstOrDefault(p => p.Id == EmulatorProfileId);
-            }
-            set
-            {
-                EmulatorProfileId = value.Id;
-            }
+            get => Emulator?.SelectableProfiles.FirstOrDefault(p => p.Id == EmulatorProfileId);
+            set { EmulatorProfileId = value.Id; }
         }
-
-        public string PlatformId { get; set; }
+        public string EmulatorProfileId { get; set; }
 
         [JsonIgnore]
         public EmulatedPlatform Platform
         {
+            get => AvailablePlatforms.FirstOrDefault(p => p.Id == PlatformId);
+            set { PlatformId = value.Id; }
+        }
+        public string PlatformId { get; set; }
+
+        public string SourcePath { get; set; }
+        public string DestinationPath { get; set; }
+        public RomType RomType { get; set; }
+
+        public static IEnumerable<Emulator> AvailableEmulators => Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
+
+        [JsonIgnore]
+        public IEnumerable<EmulatorProfile> AvailableProfiles => Emulator?.SelectableProfiles;
+
+        [JsonIgnore]
+        public IEnumerable<EmulatedPlatform> AvailablePlatforms
+        {
             get
             {
-                return AvailablePlatforms.FirstOrDefault(p => p.Id == PlatformId);
+                var playnite = Settings.Instance.PlayniteAPI;
+                HashSet<string> validPlatforms;
+
+                if (EmulatorProfile is CustomEmulatorProfile)
+                {
+                    var customProfile = EmulatorProfile as CustomEmulatorProfile;
+                    validPlatforms = new HashSet<string>(playnite.Database.Platforms.Where(p => customProfile.Platforms.Contains(p.Id)).Select(p => p.SpecificationId));
+                }
+                else if (EmulatorProfile is BuiltInEmulatorProfile)
+                {
+                    var builtInProfile = (EmulatorProfile as BuiltInEmulatorProfile);
+                    validPlatforms = new HashSet<string>(
+                        playnite.Emulation.Emulators
+                        .FirstOrDefault(e => e.Id == Emulator.BuiltInConfigId)?
+                        .Profiles
+                        .FirstOrDefault(p => p.Name == builtInProfile.Name)?
+                        .Platforms
+                        );
+                }
+                else
+                {
+                    validPlatforms = new HashSet<string>();
+                }
+
+                return Settings.Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatforms.Contains(p.Id));
             }
-            set
+        }
+
+        [JsonIgnore]
+        [XmlIgnore]
+        public string DestinationPathResolved
+        {
+            get
             {
-                PlatformId = value.Id;
+                var playnite = Settings.Instance.PlayniteAPI;
+                return playnite.Paths.IsPortable ? DestinationPath?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
+            }
+        }
+
+        [JsonIgnore]
+        [XmlIgnore]
+        public string EmulatorBasePath => Emulator?.InstallDir;
+
+        [JsonIgnore]
+        [XmlIgnore]
+        public string EmulatorBasePathResolved
+        {
+            get
+            {
+                var playnite = Settings.Instance.PlayniteAPI;
+                var ret = Emulator?.InstallDir;
+                if (playnite.Paths.IsPortable)
+                {
+                    ret = ret?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
+                }
+                return ret;
             }
         }
 
@@ -83,91 +137,6 @@ namespace EmuLibrary.Settings
                 }
 
                 return imageExtensionsLower;
-            }
-        }
-
-        public string SourcePath { get; set; }
-        public string DestinationPath { get; set; }
-        public RomType RomType { get; set; }
-
-        public static IEnumerable<Emulator> AvailableEmulators
-        {
-            get
-            {
-                return Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
-            }
-        }
-
-        [JsonIgnore]
-        public IEnumerable<EmulatorProfile> AvailableProfiles
-        {
-            get
-            {
-                var emulator = AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
-                return emulator?.SelectableProfiles;
-            }
-        }
-
-        [JsonIgnore]
-        public IEnumerable<EmulatedPlatform> AvailablePlatforms
-        {
-            get
-            {
-                IEnumerable<string> validPlatforms;
-
-                if (EmulatorProfile is CustomEmulatorProfile)
-                {
-                    var customProfile = EmulatorProfile as CustomEmulatorProfile;
-                    validPlatforms = Settings.Instance.PlayniteAPI.Database.Platforms.Where(p => customProfile.Platforms.Contains(p.Id)).Select(p => p.SpecificationId);
-                }
-                else if (EmulatorProfile is BuiltInEmulatorProfile)
-                {
-                    var builtInProfile = (EmulatorProfile as BuiltInEmulatorProfile);
-                    validPlatforms = Settings.Instance.PlayniteAPI.Emulation.Emulators.FirstOrDefault(e => e.Id == Emulator.BuiltInConfigId)?.Profiles.FirstOrDefault(p => p.Name == builtInProfile.Name)?.Platforms;
-                }
-                else
-                {
-                    validPlatforms = new List<string>();
-                }
-
-                return Settings.Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatforms.Contains(p.Id));
-            }
-        }
-
-        [JsonIgnore]
-        [XmlIgnore]
-        public string DestinationPathResolved
-        {
-            get
-            {
-                var playnite = Settings.Instance.PlayniteAPI;
-                return playnite.Paths.IsPortable ? DestinationPath?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
-            }
-        }
-
-        [JsonIgnore]
-        [XmlIgnore]
-        public string EmulatorBasePath
-        {
-            get
-            {
-                return Emulator.InstallDir;
-            }
-        }
-
-        [JsonIgnore]
-        [XmlIgnore]
-        public string EmulatorBasePathResolved
-        {
-            get
-            {
-                var playnite = Settings.Instance.PlayniteAPI;
-                var ret = Emulator?.InstallDir;
-                if (playnite.Paths.IsPortable)
-                {
-                    ret = ret?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
-                }
-                return ret;
             }
         }
 
