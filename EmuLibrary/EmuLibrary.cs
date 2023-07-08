@@ -39,8 +39,15 @@ namespace EmuLibrary
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
             Playnite = api;
-            Settings = new Settings.Settings(this, Playnite);
 
+            // This must occur before we instantiate the Settings class
+            InitializeRomTypeScanners();
+
+            Settings = new Settings.Settings(this, this);
+        }
+
+        private void InitializeRomTypeScanners()
+        {
             var romTypes = Enum.GetValues(typeof(RomType)).Cast<RomType>();
             foreach (var rt in romTypes)
             {

@@ -1,5 +1,4 @@
 ﻿using EmuLibrary.RomTypes;
-using EmuLibrary.Settings;
 using Playnite.SDK;
 
 namespace EmuLibrary

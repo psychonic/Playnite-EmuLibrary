@@ -17,6 +17,11 @@ namespace EmuLibrary.RomTypes
         public abstract RomType RomType { get; }
 
         public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo);
+        public virtual LegacySettingsMigrationResult MigrateLegacyPluginSettings(Plugin plugin, out EmulatorMapping mapping)
+        {
+            mapping = null;
+            return LegacySettingsMigrationResult.Unnecessary;
+        }
         public abstract IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args);
         public abstract IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct);
     }

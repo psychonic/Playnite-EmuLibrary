@@ -1,5 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using EmuLibrary.RomTypes;
+using Newtonsoft.Json;
 using Playnite.SDK;
+using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,13 +11,14 @@ namespace EmuLibrary.Settings
 {
     public class Settings : ObservableObject, ISettings
     {
-        private readonly EmuLibrary _plugin;
+        private readonly Plugin _plugin;
         private Settings _editingClone;
 
-        public int Version { get; set; }
+        [JsonIgnore]
+        internal readonly IPlayniteAPI PlayniteAPI;
 
         [JsonIgnore]
-        public readonly IPlayniteAPI PlayniteAPI;
+        internal readonly IEmuLibrary EmuLibrary;
 
         public static Settings Instance { get; private set; }
 
@@ -24,14 +27,20 @@ namespace EmuLibrary.Settings
         public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; } = false;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
+        // Hidden settings
+        public int Version { get; set; }
+        public Dictionary<RomType, bool> MigratedLegacySettings { get; set; }
+
+
         // Parameterless constructor must exist if you want to use LoadPluginSettings method.
         public Settings()
         {
         }
 
-        public Settings(EmuLibrary plugin, IPlayniteAPI api)
+        internal Settings(Plugin plugin, IEmuLibrary emuLibrary)
         {
-            PlayniteAPI = api;
+            EmuLibrary = emuLibrary;
+            PlayniteAPI = emuLibrary.Playnite;
             Instance = this;
             _plugin = plugin;
 
@@ -74,6 +83,37 @@ namespace EmuLibrary.Settings
                 // We want this to default to true for new installs, but not enable automatically for existing users
                 AutoRemoveUninstalledGamesMissingFromSource = true;
             }
+
+            Enum.GetValues(typeof(RomType)).Cast<RomType>().ForEach(rt =>
+            {
+                var scanner = emuLibrary.GetScanner(rt);
+                if (scanner == null)
+                    return;
+
+                var legacyPlugin = PlayniteAPI.Addons.Plugins.FirstOrDefault(p => p.Id == scanner.LegacyPluginId);
+                if (legacyPlugin == null)
+                    return;
+
+                if (!MigratedLegacySettings.TryGetValue(rt, out bool migrated))
+                {
+                    EmulatorMapping newMapping = null;
+                    var res = emuLibrary.GetScanner(rt)?.MigrateLegacyPluginSettings(legacyPlugin, out newMapping);
+
+                    switch (res)
+                    {
+                        case LegacySettingsMigrationResult.Success:
+                            Mappings.Add(newMapping);
+                            MigratedLegacySettings.Add(rt, false);
+                            break;
+                        case LegacySettingsMigrationResult.Failure:
+                            // Nothing to do here. Let it try again next time, maybe after plugin update
+                            break;
+                        case LegacySettingsMigrationResult.Unnecessary:
+                            MigratedLegacySettings.Add(rt, false);
+                            break;
+                    }
+                }
+            });
 
             if (forceSave)
             {
