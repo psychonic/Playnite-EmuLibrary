@@ -141,7 +141,7 @@ namespace EmuLibrary.Settings
             get
             {
                 var playnite = Settings.Instance.PlayniteAPI;
-                return playnite.Paths.IsPortable ? DestinationPath.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
+                return playnite.Paths.IsPortable ? DestinationPath?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
             }
         }
 
@@ -162,10 +162,10 @@ namespace EmuLibrary.Settings
             get
             {
                 var playnite = Settings.Instance.PlayniteAPI;
-                var ret = Emulator.InstallDir;
+                var ret = Emulator?.InstallDir;
                 if (playnite.Paths.IsPortable)
                 {
-                    ret = ret.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
+                    ret = ret?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
                 }
                 return ret;
             }
@@ -175,14 +175,14 @@ namespace EmuLibrary.Settings
         {
             yield return $"{nameof(EmulatorId)}: {EmulatorId}";
             yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId}";
+            yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}";
             yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(PlatformId)}: {PlatformId}";
+            yield return $"{nameof(PlatformId)}: {PlatformId ?? "<Unknown>"}";
             yield return $"{nameof(Platform)}*: {Platform?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(SourcePath)}: {SourcePath}";
-            yield return $"{nameof(DestinationPath)}: {DestinationPath}";
-            yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved}";
-            yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved}";
+            yield return $"{nameof(SourcePath)}: {SourcePath ?? "<Unknown>"}";
+            yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
+            yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
+            yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved ?? "<Unknown>"}";
         }
     }
 }
