@@ -1,5 +1,14 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.2.0
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2023-07-22'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.2.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_2_0.pext
+    Changelog:
+      - Fixed popup dialog opening at end of startup scan if option to automatically remove missing games is enabled
+      - Fixed a crash in settings window that could occur when attempting to delete an invalid or incomplete mapping
+      - Added help link in settings windows (points to README file for now)
+      - Internal changes to support future features
   - Version: 3.1.0
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2023-07-06'
