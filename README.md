@@ -33,4 +33,11 @@ To determine which file is used as the one to tell the emulator to load, all fil
 
 ## Support
 
-For support, check out the #extension-support channel on the Playnite Discord, linked at the top of https://playnite.link/
+To get help, check out the #extension-support channel on the Playnite Discord, linked at the top of https://playnite.link/
+
+The following files are generally useful for troubleshooting, relative to the folder where Playnite data is stored. For a portable installation, this is the same folder that Playnite is installed to. For non-portable installations, it is in AppData.
+
+* playnite.log
+* extensions.log
+* library\emulators.db
+* library\platforms.db
