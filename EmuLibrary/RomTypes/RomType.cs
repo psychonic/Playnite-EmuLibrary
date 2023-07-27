@@ -8,5 +8,8 @@
 
         [RomTypeInfo(typeof(MultiFile.MultiFileGameInfo), typeof(MultiFile.MultiFileScanner))]
         MultiFile = 1,
+
+        [RomTypeInfo(typeof(Yuzu.YuzuGameInfo), typeof(Yuzu.YuzuScanner))]
+        Yuzu = 4,
     }
 }

@@ -31,6 +31,16 @@ With the MultiFile type, each subfolder directly within the source folder is sca
 
 To determine which file is used as the one to tell the emulator to load, all files matching the configured emulator profile's supported extensions are considered. Precedence is by configured image extension list order, and then by alphabetical order. For example, if file names are the same except for `(Disc 1)` versus `(Disc 2)`, the first disc takes precedence. Similarly, if you have `.cue` in the extension list before `.m3u` (as some of the built-in profiles have at the time of writing), `.cue` would be chosen over `.m3u`, which may not be desired for multi-disc games.
 
+### Yuzu (Alpha)
+
+The Yuzu type currently has alpha quality of support. It functions, but it is slow and various portions of it will be reworked. As named, it is very hardcoded to Yuzu specifically, although Ryujinx support reusing most of the same logic will likely come in the future.
+
+To add a functional mapping, make sure that the selected emulator is Yuzu. (It does not need to be the built-in emulator listing for Yuzu. Custom ones, including ones that point to Yuzu EA, etc. will also work). In the source path, loose XCI and NSP files in the root of the path are considered. (Unofficial Switch formats like XCZ and NSZ are currently unsupported).
+
+NSP files can be updates and DLC. Unlike with Tinfoil shares, files are not currently required to include the title id in the filename, but this may become a future requirement for speed. Additionally, while destination path must point to a folder that exists, the setting is ignored. Games install into the NAND directory configured in the selected copy of Yuzu.
+
+When a game is installed, the latest update and any DLC from the source will also be installed to the Yuzu NAND, in that order (Game, Update if available, each available DLC). Games already installed will be imported, whether or not they exist in the source folder, and will display as installed. As expected, uninstalling a game will remove the game from Yuzu's NAND.
+
 ## Support
 
 To get help, check out the #extension-support channel on the Playnite Discord, linked at the top of https://playnite.link/
