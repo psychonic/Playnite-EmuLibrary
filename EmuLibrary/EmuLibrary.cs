@@ -205,11 +205,6 @@ namespace EmuLibrary
                     MenuSection = "EmuLibrary"
                 };
             }
-
-            foreach (var gmi in base.GetGameMenuItems(args))
-            {
-                yield return gmi;
-            }
         }
 
         private void RemoveSuperUninstalledGames(bool promptUser, CancellationToken ct)
