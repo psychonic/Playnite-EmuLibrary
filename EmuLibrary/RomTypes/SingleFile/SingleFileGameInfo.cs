@@ -1,10 +1,8 @@
-﻿using Playnite.SDK;
-using Playnite.SDK.Models;
+﻿using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using ProtoBuf;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace EmuLibrary.RomTypes.SingleFile
 {

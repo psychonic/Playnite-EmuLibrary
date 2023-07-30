@@ -1,6 +1,6 @@
 ﻿using EmuLibrary.PlayniteCommon;
-using IniParser.Parser;
 using IniParser.Model.Configuration;
+using IniParser.Parser;
 using LibHac;
 using LibHac.Common;
 using LibHac.Fs;
@@ -15,8 +15,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using ZstdSharp;
 using System.Threading;
+using ZstdSharp;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
@@ -920,12 +920,12 @@ namespace EmuLibrary.RomTypes.Yuzu
             return info;
         }
 
-        HashSet<string> ValidGameExtensions = new HashSet<string>()
+        private readonly HashSet<string> ValidGameExtensions = new HashSet<string>()
         {
             ".xci",
             ".xcz",
             ".nsp",
-            ".nsz"
+            ".nsz",
         };
 
         public IEnumerable<SourceDirCache.CacheGameUninstalled> GetUninstalledGamesFromDir(string path, CancellationToken tk)

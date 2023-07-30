@@ -1,9 +1,8 @@
-﻿using System;
+﻿using EmuLibrary.Settings;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using EmuLibrary.Settings;
-using Newtonsoft.Json;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
@@ -70,7 +69,6 @@ namespace EmuLibrary.RomTypes.Yuzu
 
         public void Refresh(CancellationToken tk)
         {
-#warning, make use of last refreshed date, at least only reloading (all) if any folders (source, nanddirs) have newer date
             var yuzu = new Yuzu(_mapping.EmulatorBasePathResolved, _emuLibrary.Logger);
 
             var igs = yuzu.GetInstalledGames(tk);
@@ -94,10 +92,6 @@ namespace EmuLibrary.RomTypes.Yuzu
 
         public class Cache
         {
-            DateTime LastRefreshed { get; set; }
-
-            int CacheVersion { get; set; }
-
             public Dictionary<ulong, CacheGameInstalled> InstalledGames { get; private set; }
             public Dictionary<ulong, CacheGameUninstalled> UninstalledGames { get; private set; }
 

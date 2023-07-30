@@ -1,8 +1,5 @@
 ﻿using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
