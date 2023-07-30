@@ -1,5 +1,15 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.3.0
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2023-07-30'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.3.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_3_0.pext
+    Changelog:
+      - Added beta support for new "RomType", Yuzu.
+        
+        This is tailored for XCI/XCZ/NSP/NSZ files container games, updates, and/or DLC, installing directly to Yuzu's NAND. When installing a title, the latest available update and all DLC from the source are also installed.
+        
+        Please read the important notes in the README at https://github.com/psychonic/Playnite-EmuLibrary/blob/master/README.md before creating a mapping that utilizes this. The READEME is also accessible from the Help link in the integration settings.
   - Version: 3.2.0
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2023-07-22'
