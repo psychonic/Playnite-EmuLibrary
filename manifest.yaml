@@ -7,7 +7,7 @@ Packages:
     Changelog:
       - Added beta support for new "RomType", Yuzu.
         
-        This is tailored for XCI/XCZ/NSP/NSZ files container games, updates, and/or DLC, installing directly to Yuzu's NAND. When installing a title, the latest available update and all DLC from the source are also installed.
+        This is tailored for XCI/XCZ/NSP/NSZ files containing games, updates, and/or DLC, installing directly to Yuzu's NAND. When installing a title, the latest available update and all DLC from the source are also installed.
         
         Please read the important notes in the README at https://github.com/psychonic/Playnite-EmuLibrary/blob/master/README.md before creating a mapping that utilizes this. The READEME is also accessible from the Help link in the integration settings.
   - Version: 3.2.0
