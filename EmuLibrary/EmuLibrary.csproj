@@ -19,6 +19,7 @@
     <PackageReference Include="PlayniteSDK" Version="6.4.0" />
     <PackageReference Include="protobuf-net" Version="3.1.25" />
     <PackageReference Include="System.IO.Abstractions" Version="2.1.0.227" />
+    <PackageReference Include="ZstdSharp.Port" Version="0.6.5" />
   </ItemGroup>
 	
   <ItemGroup>

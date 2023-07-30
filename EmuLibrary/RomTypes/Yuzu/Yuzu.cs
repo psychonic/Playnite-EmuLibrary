@@ -15,6 +15,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using ZstdSharp;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
@@ -140,6 +141,31 @@ namespace EmuLibrary.RomTypes.Yuzu
             Hactool,
         }
 
+        class NczSection
+        {
+            public ulong Offset;
+            public ulong Size;
+            public NcaEncryptionType CryptoType;
+            public byte[] CryptoKey;
+            public byte[] CryptoCounter;
+        }
+
+        // From LibHac
+        private static void UpdateCounter(Span<byte> counter, long offset)
+        {
+            ulong off = (ulong)offset >> 4;
+            for (uint j = 0; j < 0x7; j++)
+            {
+                counter[(int)(0x10 - j - 1)] = (byte)(off & 0xFF);
+                off >>= 8;
+            }
+
+            // Because the value stored in the counter is offset >> 4, the top 4 bits 
+            // of byte 8 need to have their original value preserved
+            counter[8] = (byte)((counter[8] & 0xF0) | (int)(off & 0x0F));
+        }
+        //
+
         private void TryLoadKeysFromYuzuOrHactool(KeyFileType fileType, string fileName, KeySource source)
         {
             string keyPath = null;
@@ -250,10 +276,12 @@ namespace EmuLibrary.RomTypes.Yuzu
                 switch (fileInfo.Extension)
                 {
                     case ".xci":
+                    case ".xcz":
                         var xci = new Xci(KeySet, fileStream.AsStorage());
                         pfs = xci.OpenPartition(XciPartitionType.Secure);
                         break;
                     case ".nsp":
+                    case ".nsz":
                         pfs = new PartitionFileSystem(fileStream.AsStorage());
                         break;
                     default:
@@ -300,17 +328,152 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                 ncaFileNamesToInstall.ForEach(ncaFileName =>
                 {
-                    var pfsFile = pfs.Files.First(f => f.Name == ncaFileName);
-                    using (var ncaFile = pfs.OpenFile(pfsFile, OpenMode.Read))
+                    bool isCompressed = false;
+                    var fileEntry = pfs.Files.FirstOrDefault(f => f.Name == ncaFileName);
+                    if (fileEntry == null)
+                    {
+                        fileEntry = pfs.Files.FirstOrDefault(f => f.Name == ncaFileName.Replace(".nca", ".ncz"));
+                        isCompressed = true;
+                    }
+
+                    var outPath = Path.Combine(new string[] { NandPath, "user", "Contents", "registered", GetRelativePathFromNcaId(fileEntry.Name) });
+                    Directory.CreateDirectory(Path.GetDirectoryName(outPath));
+
+                    using (var ncaFile = pfs.OpenFile(fileEntry, OpenMode.Read))
+                    using (var outStream = File.Open(outPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
                     {
                         var nca = new Nca(KeySet, ncaFile.AsStorage());
+                        outStream.SetLength(nca.Header.NcaSize);
 
-                        var outPath = Path.Combine(new string[] { NandPath, "user", "Contents", "registered", GetRelativePathFromNcaId(pfsFile.Name) });
-                        Directory.CreateDirectory(Path.GetDirectoryName(outPath));
-                        using (var outStream = File.Open(outPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+                        if (!isCompressed)
                         {
-                            outStream.SetLength(0);
                             ncaFile.AsStream().CopyTo(outStream, 4 * 1024 * 1024);
+                        }
+                        else
+                        {
+                            ncaFile.GetSize(out long ncaSize).ThrowIfFailure();
+                            if (ncaSize < 0x4000 + 16 + 1)
+                            {
+                                throw new Exception("Invalid NCZ fileEntry");
+                            }
+
+                            using (var inStream = ncaFile.AsStream())
+                            using (var br = new BinaryReader(inStream))
+                            {
+                                br.BaseStream.Seek(0, SeekOrigin.Begin);
+
+                                var ncaHeader = new byte[0x4000];
+                                br.BaseStream.Read(ncaHeader, 0, ncaHeader.Length);
+
+                                outStream.Write(ncaHeader, 0, ncaHeader.Length);
+
+                                br.BaseStream.Seek(0x4000, SeekOrigin.Begin);
+                                string magic = br.ReadAscii(8);
+                                if (magic != "NCZSECTN")
+                                {
+                                    throw new Exception("Invalid NCZ fileEntry");
+                                }
+
+                                var sections = new List<NczSection>();
+
+                                ulong sectionCount = br.ReadUInt64();
+                                for (ulong i = 0; i < sectionCount; ++i)
+                                {
+                                    var s = new NczSection
+                                    {
+                                        Offset = br.ReadUInt64(),
+                                        Size = br.ReadUInt64(),
+                                        CryptoType = (NcaEncryptionType)br.ReadUInt64(),
+                                    };
+
+                                    if (s.CryptoType == NcaEncryptionType.AesCtrEx)
+                                        throw new NotImplementedException("NCZ uses AesCtrEx crypto, which is not yet supported");
+
+                                    br.ReadUInt64(); // Padding
+
+                                    s.CryptoKey = br.ReadBytes(16);
+                                    s.CryptoCounter = br.ReadBytes(16);
+
+                                    sections.Add(s);
+                                }
+
+                                long pos = br.BaseStream.Position;
+                                ulong blockMagic = br.ReadUInt64();
+                                if (blockMagic == 0x44414E414E43465F) // NCZSECTN
+                                {
+                                    br.ReadByte(); // Version
+                                    br.ReadByte(); // Type
+                                    br.ReadByte(); // Unused
+                                    br.ReadByte(); // Block size exponent
+                                    var numBlocks = br.ReadInt32(); // Number of blocks
+                                    br.ReadInt64(); // Decompressed size
+                                    br.ReadBytes(4 * numBlocks); // Blocks
+
+                                    throw new NotImplementedException("NCZ uses block compression, which is not yet supported");
+                                }
+                                else
+                                {
+                                    br.BaseStream.Position = pos;
+                                }
+
+                                long nczDataStartPos = br.BaseStream.Position;
+                                var nczSize = ncaSize - nczDataStartPos;
+
+                                using (var decompressionStream = new DecompressionStream(br.BaseStream))
+                                {
+                                    sections.ForEach(section =>
+                                    {
+                                        Aes128CtrTransform aes = null;
+                                        bool isEncrypted = section.CryptoType == NcaEncryptionType.AesCtr;
+                                        if (isEncrypted)
+                                        {
+                                            aes = new Aes128CtrTransform(section.CryptoKey, section.CryptoCounter);
+                                        }
+
+                                        var i = section.Offset;
+                                        var end = i + section.Size;
+
+                                        if (section == sections.First())
+                                        {
+                                            var uncompressedSize = 0x4000 - section.Offset;
+                                            if (uncompressedSize > 0)
+                                                i += uncompressedSize;
+                                        }
+
+                                        Debug.Assert(outStream.Position == (long)section.Offset);
+                                        var initialCounter = new byte[16];
+                                        Array.Copy(section.CryptoCounter, initialCounter, 8);
+
+                                        var inputChunk = new byte[0x100000];
+
+                                        while (i < end)
+                                        {
+                                            var chunkSz = (int)Math.Min(end - i, 0x100000);
+                                            var readCnt = decompressionStream.Read(inputChunk.AsSpan(0, chunkSz));
+
+                                            Debug.Assert(readCnt == chunkSz);
+
+                                            if (readCnt == 0)
+                                                break;
+
+                                            if (isEncrypted)
+                                            {
+                                                var cl = (byte[])inputChunk.Clone();
+
+                                                using (var ms = new MemoryStream(cl))
+                                                {
+                                                    UpdateCounter(aes.Counter, (long)i);
+                                                    aes.TransformBlock(inputChunk.AsSpan());
+                                                }
+                                            }
+
+                                            outStream.Write(inputChunk, 0, readCnt);
+
+                                            i += (ulong)readCnt;
+                                        }
+                                    });
+                                }
+                            }
                         }
                     }
                 });
@@ -432,10 +595,12 @@ namespace EmuLibrary.RomTypes.Yuzu
                 switch (fileInfo.Extension)
                 {
                     case ".xci":
+                    case ".xcz":
                         var xci = new Xci(KeySet, fileStream.AsStorage());
                         pfs = xci.OpenPartition(XciPartitionType.Secure);
                         break;
                     case ".nsp":
+                    case ".nsz":
                         pfs = new PartitionFileSystem(fileStream.AsStorage());
                         break;
                     default:
@@ -597,7 +762,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (!fileInfo.Exists)
                 throw new ArgumentException($"Path \"{filePath}\" does not exist");
 
-            if (fileInfo.Extension != ".nsp" && fileInfo.Extension != ".xci")
+            if (!ValidGameExtensions.Contains(fileInfo.Extension))
                 throw new ArgumentException($"Unsupported file extension \"{fileInfo.Extension}\"");
 
             info.FilePath = filePath;
@@ -610,11 +775,13 @@ namespace EmuLibrary.RomTypes.Yuzu
                     switch (fileInfo.Extension)
                     {
                         case ".xci":
+                        case ".xcz":
                             var xci = new Xci(KeySet, fileStream.AsStorage());
                             pfs = xci.OpenPartition(XciPartitionType.Secure);
                             info.FileType = FileType.XCI;
                             break;
                         case ".nsp":
+                        case ".nsz":
                             pfs = new PartitionFileSystem(fileStream.AsStorage());
                             info.FileType = FileType.NSP;
                             break;
@@ -673,43 +840,67 @@ namespace EmuLibrary.RomTypes.Yuzu
                                         break;
                                 }
 
-                                foreach (var entry in cnmt.ContentEntries)
+                                foreach (var entry in cnmt.ContentEntries.Where(e => e.Type != LibHac.Ncm.ContentType.DeltaFragment))
                                 {
-                                    if (entry.Type != LibHac.Ncm.ContentType.DeltaFragment)
+                                    bool isNcz = false;
+                                    var ncaOtherFileName = string.Format("{0}.nca", BitConverter.ToString(entry.NcaId).Replace("-", "").ToLower());
+                                    if (!pfs.FileExists(ncaOtherFileName))
                                     {
-                                        var ncaOtherFileName = string.Format("{0}.nca", BitConverter.ToString(entry.NcaId).Replace("-", "").ToLower());
-                                        pfs.OpenFile(out var ncaFileOther, ncaOtherFileName, OpenMode.Read).ThrowIfFailure();
-                                        using (ncaFileOther)
+                                        // If file exists but with ncz, that's not worth logging. The data is there, just not readable directly.
+                                        // However, do log if it's completely missing. (Corrupt PFS?)
+                                        var altName = ncaOtherFileName.Replace(".nca", ".ncz");
+                                        if (pfs.FileExists(altName))
                                         {
-                                            var ncaOther = new Nca(KeySet, ncaFileOther.AsStorage());
-                                            switch (ncaOther.Header.ContentType)
-                                            {
-                                                case NcaContentType.Control:
-                                                    var cfs = ncaOther.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
-                                                    cfs.OpenFile(out IFile controlFile, "/control.nacp", OpenMode.Read);
+                                            ncaOtherFileName = altName;
+                                            isNcz = true;
+                                        }
+                                        else
+                                        {
+                                            _logger.Warn($"Failed to find NCA file \"{ncaOtherFileName}\" in \"{filePath}\". Skipping...");
+                                        }
+                                    }
 
-                                                    var nacp = new BlitStruct<ApplicationControlProperty>(1);
-                                                    controlFile.Read(out _, 0, nacp.ByteSpan, ReadOption.None);
+                                    pfs.OpenFile(out var ncaFileOther, ncaOtherFileName, OpenMode.Read).ThrowIfFailure();
+                                    using (ncaFileOther)
+                                    {
+                                        var ncaOther = new Nca(KeySet, ncaFileOther.AsStorage());
+                                        switch (ncaOther.Header.ContentType)
+                                        {
+                                            case NcaContentType.Control:
+                                                if (isNcz)
+                                                {
+                                                    // This shouldn't happen. XCZ/NSZ files typically don't use NCZ for control NCA
+                                                    _logger.Warn($"Control NCA is inside NCZ for \"{filePath}\". Cannot look up NACP data.");
+                                                    info.TitleName = fileInfo.Extension.Length > 0 ? fileInfo.Name.Remove(fileInfo.Name.Length - fileInfo.Extension.Length) : fileInfo.Name;
+                                                    info.Publisher = "";
+                                                    info.DisplayVersion = "";
+                                                    continue;
+                                                }
 
-                                                    haveNacp = true;
-                                                    // (first is American English, then British English, and then fall back to any)
-                                                    info.TitleName = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Name.ToString().IsNullOrWhiteSpace()).Name.ToString();
-                                                    if (info.TitleName.IsNullOrWhiteSpace())
-                                                    {
-                                                        _logger.Warn("Empty title name");
-                                                    }
-                                                    info.Publisher = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Publisher.ToString().IsNullOrWhiteSpace()).Publisher.ToString();
-                                                    var displayVersion = nacp.Value.DisplayVersion.ToString();
-                                                    if (!displayVersion.IsNullOrWhiteSpace())
-                                                    {
-                                                        info.DisplayVersion = displayVersion;
-                                                    }
-                                                    break;
-                                                case NcaContentType.Program:
-                                                    haveProgram = true;
-                                                    info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
-                                                    break;
-                                            }
+                                                var cfs = ncaOther.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
+                                                cfs.OpenFile(out IFile controlFile, "/control.nacp", OpenMode.Read);
+
+                                                var nacp = new BlitStruct<ApplicationControlProperty>(1);
+                                                controlFile.Read(out _, 0, nacp.ByteSpan, ReadOption.None);
+
+                                                haveNacp = true;
+                                                // (first is American English, then British English, and then fall back to any)
+                                                info.TitleName = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Name.ToString().IsNullOrWhiteSpace()).Name.ToString();
+                                                if (info.TitleName.IsNullOrWhiteSpace())
+                                                {
+                                                    _logger.Warn("Empty title name");
+                                                }
+                                                info.Publisher = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Publisher.ToString().IsNullOrWhiteSpace()).Publisher.ToString();
+                                                var displayVersion = nacp.Value.DisplayVersion.ToString();
+                                                if (!displayVersion.IsNullOrWhiteSpace())
+                                                {
+                                                    info.DisplayVersion = displayVersion;
+                                                }
+                                                break;
+                                            case NcaContentType.Program:
+                                                haveProgram = true;
+                                                info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
+                                                break;
                                         }
                                     }
                                 }
@@ -725,6 +916,14 @@ namespace EmuLibrary.RomTypes.Yuzu
             return info;
         }
 
+        HashSet<string> ValidGameExtensions = new HashSet<string>()
+        {
+            ".xci",
+            ".xcz",
+            ".nsp",
+            ".nsz"
+        };
+
         public IEnumerable<SourceDirCache.CacheGameUninstalled> GetUninstalledGamesFromDir(string path)
         {
             var ret = new List<SourceDirCache.CacheGameUninstalled>();
@@ -732,9 +931,18 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             var fileEnumerator = new SafeFileEnumerator(path, "*.*", SearchOption.AllDirectories);
 
-            foreach (var file in fileEnumerator.Where(f => { return (!f.Attributes.HasFlag(FileAttributes.Directory)) && (f.Extension == ".xci" || f.Extension == ".nsp"); }))
+            foreach (var file in fileEnumerator.Where(f => { return (!f.Attributes.HasFlag(FileAttributes.Directory)) && ValidGameExtensions.Contains(f.Extension); }))
             {
-                var extGameInfo = GetExternalGameFileInfo(file.FullName);
+                ExternalGameFileInfo extGameInfo = null;
+                try
+                {
+                    extGameInfo = GetExternalGameFileInfo(file.FullName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, $"Failed to get external game info for {file.FullName}. Skipping...");
+                }
+
                 if (extGameInfo != null)
                 {
                     if (!intermediate.ContainsKey(extGameInfo.BaseTitleId))
