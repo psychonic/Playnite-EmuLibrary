@@ -42,7 +42,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                 {
                     await Task.Run(() =>
                     {
-                        _cache.Refresh();
+                        _cache.Refresh(_watcherToken.Token);
                     });
                 }
 

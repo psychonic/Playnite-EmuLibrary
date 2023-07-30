@@ -37,7 +37,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             if (mappingCache.IsDirty)
             {
-                mappingCache.Refresh();
+                mappingCache.Refresh(args.CancelToken);
             }
 
             var installedGames = new HashSet<ulong>();

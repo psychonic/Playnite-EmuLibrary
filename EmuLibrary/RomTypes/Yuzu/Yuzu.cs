@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using ZstdSharp;
+using System.Threading;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
@@ -626,7 +627,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             return null;
         }
 
-        public IEnumerable<SourceDirCache.CacheGameInstalled> GetInstalledGames()
+        public IEnumerable<SourceDirCache.CacheGameInstalled> GetInstalledGames(CancellationToken tk)
         {
             var ret = new List<SourceDirCache.CacheGameInstalled>();
             var intermediate = new Dictionary<ulong, List<ExternalGameFileInfo>>();
@@ -640,6 +641,9 @@ namespace EmuLibrary.RomTypes.Yuzu
             var fileEnumerator = new SafeFileEnumerator(installedNcaDir, "*.nca", SearchOption.AllDirectories);
             foreach (var file in fileEnumerator)
             {
+                if (tk.IsCancellationRequested)
+                    break;
+
                 using (var ncaFile = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     var cnmtNca = new Nca(KeySet, ncaFile.AsStorage());
@@ -924,7 +928,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             ".nsz"
         };
 
-        public IEnumerable<SourceDirCache.CacheGameUninstalled> GetUninstalledGamesFromDir(string path)
+        public IEnumerable<SourceDirCache.CacheGameUninstalled> GetUninstalledGamesFromDir(string path, CancellationToken tk)
         {
             var ret = new List<SourceDirCache.CacheGameUninstalled>();
             var intermediate = new Dictionary<ulong, List<ExternalGameFileInfo>>();
@@ -933,6 +937,9 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             foreach (var file in fileEnumerator.Where(f => { return (!f.Attributes.HasFlag(FileAttributes.Directory)) && ValidGameExtensions.Contains(f.Extension); }))
             {
+                if (tk.IsCancellationRequested)
+                    break;
+
                 ExternalGameFileInfo extGameInfo = null;
                 try
                 {

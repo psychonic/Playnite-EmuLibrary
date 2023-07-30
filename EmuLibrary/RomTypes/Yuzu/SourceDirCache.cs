@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using EmuLibrary.Settings;
 using Newtonsoft.Json;
 
@@ -67,12 +68,12 @@ namespace EmuLibrary.RomTypes.Yuzu
             File.WriteAllText(_configPath, JsonConvert.SerializeObject(TheCache, Formatting.Indented));
         }
 
-        public void Refresh()
+        public void Refresh(CancellationToken tk)
         {
 #warning, make use of last refreshed date, at least only reloading (all) if any folders (source, nanddirs) have newer date
             var yuzu = new Yuzu(_mapping.EmulatorBasePathResolved, _emuLibrary.Logger);
 
-            var igs = yuzu.GetInstalledGames();
+            var igs = yuzu.GetInstalledGames(tk);
             foreach (var ig in igs)
             {
                 TheCache.InstalledGames[ig.TitleId] = ig;
@@ -80,7 +81,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             _emuLibrary.Logger.Info("Finished cache refresh of installed games");
 
-            var ugs = yuzu.GetUninstalledGamesFromDir(_mapping.SourcePath);
+            var ugs = yuzu.GetUninstalledGamesFromDir(_mapping.SourcePath, tk);
             foreach (var ug in ugs)
             {
                 TheCache.UninstalledGames[ug.TitleId] = ug;
