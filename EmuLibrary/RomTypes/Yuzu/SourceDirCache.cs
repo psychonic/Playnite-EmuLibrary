@@ -37,6 +37,8 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             IsLoaded = false;
             IsDirty = true;
+
+            Load();
         }
 
         public void Clear()
@@ -45,7 +47,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             MarkDirty();
         }
 
-        public void Load()
+        private void Load()
         {
             if (File.Exists(_configPath))
             {
