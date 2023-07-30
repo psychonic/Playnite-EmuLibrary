@@ -1,5 +1,4 @@
 ﻿using EmuLibrary.PlayniteCommon;
-using EmuLibrary.RomTypes.SingleFile;
 using EmuLibrary.Settings;
 using Playnite.SDK;
 using Playnite.SDK.Models;
