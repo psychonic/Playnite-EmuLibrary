@@ -59,7 +59,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     gameCache.DlcFiles.ForEach(dlc => yuzu.InstallFileToNand(dlc));
                 });
 
-                var subPath = yuzu.GetLaunchPathFromTitleId(Game.GameId);
+                var subPath = yuzu.GetLaunchPathFromTitleId(_gameInfo.TitleId);
                 var gamePath = subPath;
                 var installDir = _gameInfo.Mapping.EmulatorBasePathResolved;
 

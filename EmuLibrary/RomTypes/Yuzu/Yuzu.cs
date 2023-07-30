@@ -525,19 +525,9 @@ namespace EmuLibrary.RomTypes.Yuzu
             });
         }
 
-        public string GetLaunchPathFromTitleId(string titleIdHex)
-        {
-            return Path.Combine(new string[] { Path.Combine(NandPath), "user", "Contents", "registered", GetLaunchSubPathFromTitleId(titleIdHex) });
-        }
-
         public string GetLaunchPathFromTitleId(ulong titleId)
         {
             return Path.Combine(new string[] { Path.Combine(NandPath), "user", "Contents", "registered", GetLaunchSubPathFromTitleId(titleId) });
-        }
-
-        public string GetLaunchSubPathFromTitleId(string titleIdHex)
-        {
-            return GetLaunchSubPathFromTitleId(ulong.Parse(titleIdHex, System.Globalization.NumberStyles.HexNumber));
         }
 
         public string GetLaunchSubPathFromTitleId(ulong titleId)
