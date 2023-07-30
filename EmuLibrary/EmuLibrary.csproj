@@ -9,6 +9,8 @@
 	<EnableNETAnalyzers>True</EnableNETAnalyzers>
 	<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
 	<DefaultItemExcludes>$(DefaultItemExcludes);toolbox\**</DefaultItemExcludes>
+	<AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
+	<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
 	
   <ItemGroup>
