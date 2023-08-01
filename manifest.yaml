@@ -1,5 +1,13 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.3.1
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2023-07-31'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.3.1/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_3_1.pext
+    Changelog:
+      - Added rudimentary support for detecting game region
+      - Fixed "Show Debug Info" game menu item not displaying if corresponding mapping was deleted.
+      - Fixed installation of Yuzu games requiring rescan to show as installed
   - Version: 3.3.0
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2023-07-30'
