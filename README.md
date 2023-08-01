@@ -60,3 +60,4 @@ The following files are generally useful for troubleshooting, relative to the fo
 * extensions.log
 * library\emulators.db
 * library\platforms.db
+* ExtensionsData\41e49490-0583-4148-94d2-940c7c74f1d9\config.json
