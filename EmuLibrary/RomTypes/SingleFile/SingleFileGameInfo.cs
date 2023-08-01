@@ -19,7 +19,7 @@ namespace EmuLibrary.RomTypes.SingleFile
         {
             get
             {
-                return Path.Combine(Mapping.SourcePath, SourcePath);
+                return Path.Combine(Mapping?.SourcePath ?? "", SourcePath);
             }
         }
 

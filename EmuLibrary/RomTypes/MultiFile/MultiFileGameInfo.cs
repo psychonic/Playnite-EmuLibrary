@@ -23,7 +23,7 @@ namespace EmuLibrary.RomTypes.MultiFile
         {
             get
             {
-                return Path.Combine(Mapping.SourcePath, SourceBaseDir);
+                return Path.Combine(Mapping?.SourcePath ?? "", SourceBaseDir);
             }
         }
 
