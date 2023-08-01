@@ -18,6 +18,10 @@ namespace EmuLibrary.RomTypes.Yuzu
 
         private readonly Dictionary<Guid, SourceDirCache> _mappingCaches;
 
+        // While some games are sold under different title ids in different regions and/or with different language support, this is mostly
+        // due to publishing agreements and does not match any technical implementation. All games/console units are all region-free.
+        private readonly HashSet<MetadataProperty> _switchRegions = new HashSet<MetadataProperty>() { new MetadataNameProperty("World") };
+
         public YuzuScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
             _emuLibrary = emuLibrary;
@@ -68,6 +72,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     IsInstalled = true,
                     GameId = gameInfo.AsGameId(),
                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                    Regions = _switchRegions,
                     GameActions = new List<GameAction>()
                     {
                         new GameAction()
@@ -112,6 +117,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     IsInstalled = false,
                     GameId = gameInfo.AsGameId(),
                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                    Regions = _switchRegions,
                     GameActions = new List<GameAction>() {
                         new GameAction()
                         {

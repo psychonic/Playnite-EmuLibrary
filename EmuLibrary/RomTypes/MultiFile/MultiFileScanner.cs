@@ -1,5 +1,6 @@
 ﻿using EmuLibrary.PlayniteCommon;
 using EmuLibrary.Settings;
+using EmuLibrary.Util;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
@@ -55,7 +56,8 @@ namespace EmuLibrary.RomTypes.MultiFile
                         var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => f.Extension.TrimStart('.').ToLower() == ext)).FirstOrDefault(f => f != null);
                         if (rom != null)
                         {
-                            var gameName = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name)));
+                            var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
+                            var gameName = StringExtensions.NormalizeGameName(baseFileName);
                             var info = new MultiFileGameInfo()
                             {
                                 MappingId = mapping.MappingId,
@@ -74,6 +76,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                                 IsInstalled = true,
                                 GameId = info.AsGameId(),
                                 Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                                Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
                                 InstallSize = (ulong)dirEnumerator.Where(f => !f.Attributes.HasFlag(FileAttributes.Directory)).Select(f => new FileInfo(f.FullName)).Sum(f => f.Length),
                                 GameActions = new List<GameAction>() { new GameAction()
                                     {
@@ -125,13 +128,17 @@ namespace EmuLibrary.RomTypes.MultiFile
                                 SourceBaseDir = Path.Combine(file.Name),
                             };
 
+                            var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
+                            var gameName = StringExtensions.NormalizeGameName(baseFileName);
+
                             yield return new GameMetadata()
                             {
                                 Source = EmuLibrary.SourceName,
-                                Name = StringExtensions.NormalizeGameName(StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name))),
+                                Name = gameName,
                                 IsInstalled = false,
                                 GameId = info.AsGameId(),
                                 Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                                Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
                                 InstallSize = (ulong)dirEnumerator.Where(f => !f.Attributes.HasFlag(FileAttributes.Directory)).Select(f => new FileInfo(f.FullName)).Sum(f => f.Length),
                                 GameActions = new List<GameAction>() { new GameAction()
                                     {
