@@ -195,12 +195,14 @@ namespace EmuLibrary
             var ourGames = args.Games.Where(g => g.PluginId == Id);
             if (ourGames.Any())
             {
-                var text = ourGames.Select(g => g.GetELGameInfo().ToDescriptiveString(g))
-                    .Aggregate((a, b) => $"{a}\n--------------------------------------------------------------------\n{b}");
-
                 yield return new GameMenuItem()
                 {
-                    Action = (arags) => Playnite.Dialogs.ShowSelectableString("Decoded GameId info for each selected game is shown below. This information can be useful for troubleshooting.", "EmuLibrary Game Info", text),
+                    Action = (arags) =>
+                    {
+                        var text = ourGames.Select(g => g.GetELGameInfo().ToDescriptiveString(g))
+                            .Aggregate((a, b) => $"{a}\n--------------------------------------------------------------------\n{b}");
+                        Playnite.Dialogs.ShowSelectableString("Decoded GameId info for each selected game is shown below. This information can be useful for troubleshooting.", "EmuLibrary Game Info", text);
+                    },
                     Description = "Show Debug Info",
                     MenuSection = "EmuLibrary"
                 };
