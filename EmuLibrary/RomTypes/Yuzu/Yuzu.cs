@@ -756,9 +756,11 @@ namespace EmuLibrary.RomTypes.Yuzu
                 if (game == null)
                     continue;
 
+                var latestUpdate = intermediate[k].Where(x => x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
+
                 cgu.TitleId = game.TitleId;
                 cgu.Title = game.TitleName;
-                cgu.Version = game.DisplayVersion;
+                cgu.Version = latestUpdate?.DisplayVersion ?? game.DisplayVersion;
                 cgu.Publisher = game.Publisher;
 
                 cgu.ProgramNcaSubPath = game.LaunchSubPath;

@@ -73,6 +73,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     GameId = gameInfo.AsGameId(),
                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                     Regions = _switchRegions,
+                    Version = g.Version,
                     GameActions = new List<GameAction>()
                     {
                         new GameAction()
