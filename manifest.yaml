@@ -1,5 +1,19 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.3.3
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2024-01-01'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.3.3/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_3_3.pext
+    Changelog:
+      - Improved Yuzu RomType scanning speed on collections with many DLC files
+      - Added setting of Version field for Yuzu RomType games
+  - Version: 3.3.2
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2024-01-01'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.3.2/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_3_2.pext
+    Changelog:
+      - Fixed hang when opening game menu for a large number of selected EmuLibrary games
+      - Internal improvements for the Yuzu RomType
   - Version: 3.3.1
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2023-07-31'
