@@ -33,9 +33,9 @@ namespace EmuLibrary.Util
                     // Copy the file, whilst also displaying the Windows copy dialog.
                     try
                     {
-                        FileSystem.CopyFile(SourceFile.FullName, destinationFileName, UIOption.AllDialogs);
+                        FileSystem.CopyFile(SourceFile.FullName, destinationFileName, UIOption.AllDialogs, UICancelOption.ThrowException);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         // Clean up any partial files upon user cancellation.
                         try
@@ -43,7 +43,11 @@ namespace EmuLibrary.Util
                             FileSystem.DeleteFile(destinationFileName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
                         }
                         catch { }
-                        throw new TaskCanceledException("the user cancelled the copy request");
+                        if (ex is TaskCanceledException)
+                        {
+                            throw new TaskCanceledException("the user cancelled the copy request", ex);
+                        }
+                        throw new Exception("Unable to copy file", ex);
                     }
                 },
                 cancellationToken
@@ -76,9 +80,9 @@ namespace EmuLibrary.Util
                     // Copy the directory, whilst also displaying the Windows copy dialog.
                     try
                     {
-                        FileSystem.CopyDirectory(SourceFolder.FullName, DestinationFolder.FullName, UIOption.AllDialogs);
+                        FileSystem.CopyDirectory(SourceFolder.FullName, DestinationFolder.FullName, UIOption.AllDialogs, UICancelOption.ThrowException);
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         // Clean up any partial files upon user cancellation.
                         try
@@ -86,9 +90,12 @@ namespace EmuLibrary.Util
                             FileSystem.DeleteDirectory(DestinationFolder.FullName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
                         }
                         catch { }
-                        throw new TaskCanceledException("the user cancelled the copy request");
+                        if (ex is TaskCanceledException)
+                        {
+                            throw new TaskCanceledException("the user cancelled the copy request", ex);
+                        }
+                        throw new Exception("Unable to copy directory", ex);
                     }
-
                 },
                 cancellationToken
             );
