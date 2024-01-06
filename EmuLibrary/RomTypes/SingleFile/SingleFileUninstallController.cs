@@ -20,14 +20,13 @@ namespace EmuLibrary.RomTypes.SingleFile
         public override void Uninstall(UninstallActionArgs args)
         {
             var gameImagePathResolved = Game.Roms.First().Path.Replace(ExpandableVariables.PlayniteDirectory, _emuLibrary.Playnite.Paths.ApplicationPath);
-            var info = new FileInfo(gameImagePathResolved);
-            if (info.Exists)
+            if (new FileInfo(gameImagePathResolved).Exists)
             {
                 File.Delete(gameImagePathResolved);
             }
             else
             {
-                _emuLibrary.Playnite.Dialogs.ShowMessage($"\"{info.FullName}\" does not appear to be installed. Marking as uninstalled.", "Game not installed", MessageBoxButton.OK);
+                _emuLibrary.Playnite.Dialogs.ShowMessage($"\"{Game.Name}\" does not appear to be installed. Marking as uninstalled.", "Game not installed", MessageBoxButton.OK);
             }
             InvokeOnUninstalled(new GameUninstalledEventArgs());
         }
