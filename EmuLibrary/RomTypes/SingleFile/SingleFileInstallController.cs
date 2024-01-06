@@ -1,4 +1,5 @@
-﻿using Playnite.SDK;
+﻿using EmuLibrary.Util;
+using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
@@ -27,19 +28,19 @@ namespace EmuLibrary.RomTypes.SingleFile
             var dstPath = info.Mapping?.DestinationPathResolved ??
                 throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
 
+            var fc = new FileCopier()
+            {
+                SourceFile = new FileInfo(info.SourceFullPath),
+                DestinationFolder = new DirectoryInfo(dstPath)
+            };
+
             _watcherToken = new CancellationTokenSource();
 
             Task.Run(async () =>
             {
                 try
                 {
-                    using (var src = File.Open(info.SourceFullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    {
-                        using (var dst = File.Create(Path.Combine(dstPath, info.SourcePath)))
-                        {
-                            await src.CopyToAsync(dst, 81920 /* default */, _watcherToken.Token);
-                        }
-                    }
+                    await fc.CopyAsync(_watcherToken.Token);
 
                     var installDir = dstPath;
                     var gamePath = Path.Combine(dstPath, info.SourcePath);
@@ -58,7 +59,15 @@ namespace EmuLibrary.RomTypes.SingleFile
                 }
                 catch (Exception ex)
                 {
-                    _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
+                    if (ex is TaskCanceledException)
+                    {
+                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"{Game.Name} installation cancelled.", NotificationType.Info);
+                    }
+                    else
+                    {
+                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
+                    }
+                    Game.IsInstalling = false;
                     throw;
                 }
             });

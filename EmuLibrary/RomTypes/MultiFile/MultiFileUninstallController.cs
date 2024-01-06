@@ -1,9 +1,9 @@
 ﻿using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using System;
 using System.IO;
 using System.Linq;
+using System.Windows;
 
 namespace EmuLibrary.RomTypes.MultiFile
 {
@@ -24,12 +24,12 @@ namespace EmuLibrary.RomTypes.MultiFile
             if (info.Exists)
             {
                 Directory.Delete(Game.InstallDirectory.Replace(ExpandableVariables.PlayniteDirectory, _emuLibrary.Playnite.Paths.ApplicationPath), true);
-                InvokeOnUninstalled(new GameUninstalledEventArgs());
             }
             else
             {
-                throw new ArgumentException($"\"{info.FullName}\" does not exist");
+                _emuLibrary.Playnite.Dialogs.ShowMessage($"\"{info.FullName}\" does not appear to be installed. Marking as uninstalled.", "Game not installed", MessageBoxButton.OK);
             }
+            InvokeOnUninstalled(new GameUninstalledEventArgs());
         }
     }
 }

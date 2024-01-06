@@ -1,10 +1,11 @@
-﻿using System.IO;
+﻿using Microsoft.VisualBasic.FileIO;
+using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace EmuLibrary.Util
 {
-    // From https://stackoverflow.com/questions/41138762/asynchronous-directory-copy-with-progress-bar
     public class FileCopier
     {
         public FileInfo SourceFile { get; set; }
@@ -12,32 +13,41 @@ namespace EmuLibrary.Util
 
         public async Task CopyAsync(CancellationToken cancellationToken)
         {
-            // TODO: throw exceptions if SourceFile / DestinationFile null
-            // TODO: throw exception if SourceFile does not exist
-            string destinationFileName = Path.Combine(DestinationFolder.FullName, SourceFile.Name);
-            // TODO: decide what to do if destinationFile already exists
-
-            // open source file for reading
-            using (Stream sourceStream = File.Open(SourceFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            if (SourceFile.FullName == null)
             {
-                // create destination file write
-                using (Stream destinationStream = File.Open(destinationFileName, FileMode.CreateNew))
+                throw new NullReferenceException(nameof(SourceFile));
+            }
+            if (DestinationFolder.FullName == null)
+            {
+                throw new NullReferenceException(nameof(DestinationFolder));
+            }
+            if (!SourceFile.Exists)
+            {
+                throw new FileNotFoundException($"the file {SourceFile.FullName} can not be copied");
+            }
+
+            var destinationFileName = Path.Combine(DestinationFolder.FullName, SourceFile.Name);
+
+            await Task.Run(() =>
                 {
-                    await CopyAsync(sourceStream, destinationStream, cancellationToken);
-                }
-            }
-        }
-
-        public async Task CopyAsync(Stream Source, Stream Destination, CancellationToken cancellationToken)
-        {
-            byte[] buffer = new byte[0x1000];
-            int numRead;
-            while ((numRead = Source.Read(buffer, 0, buffer.Length)) != 0)
-            {
-                Destination.Write(buffer, 0, numRead);
-            }
-
-            await Source.CopyToAsync(Destination, 81920 /* default */, cancellationToken);
+                    // Copy the file, whilst also displaying the Windows copy dialog.
+                    try
+                    {
+                        FileSystem.CopyFile(SourceFile.FullName, destinationFileName, UIOption.AllDialogs);
+                    }
+                    catch (Exception)
+                    {
+                        // Clean up any partial files upon user cancellation.
+                        try
+                        {
+                            FileSystem.DeleteFile(destinationFileName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
+                        }
+                        catch { }
+                        throw new TaskCanceledException("the user cancelled the copy request");
+                    }
+                },
+                cancellationToken
+            );
         }
     }
 
@@ -48,34 +58,40 @@ namespace EmuLibrary.Util
 
         public async Task CopyAsync(CancellationToken cancellationToken)
         {
-            if (!DestinationFolder.Exists)
+            if (SourceFolder.FullName == null)
             {
-                Directory.CreateDirectory(DestinationFolder.FullName);
+                throw new NullReferenceException(nameof(SourceFolder));
+            }
+            if (DestinationFolder.FullName == null)
+            {
+                throw new NullReferenceException(nameof(DestinationFolder));
+            }
+            if (!SourceFolder.Exists)
+            {
+                throw new DirectoryNotFoundException($"the directory {SourceFolder.FullName} can not be copied");
             }
 
-            foreach (var sourceFsInfo in SourceFolder.EnumerateFileSystemInfos())
-            {
-                if (sourceFsInfo is FileInfo)
+            await Task.Run(() =>
                 {
-                    var fileCopier = new FileCopier()
+                    // Copy the directory, whilst also displaying the Windows copy dialog.
+                    try
                     {
-                        SourceFile = sourceFsInfo as FileInfo,
-                        DestinationFolder = DestinationFolder,
-                    };
-
-                    await fileCopier.CopyAsync(cancellationToken);
-                }
-                else if (sourceFsInfo is DirectoryInfo)
-                {
-                    var folderCopier = new FolderCopier()
+                        FileSystem.CopyDirectory(SourceFolder.FullName, DestinationFolder.FullName, UIOption.AllDialogs);
+                    }
+                    catch
                     {
-                        SourceFolder = sourceFsInfo as DirectoryInfo,
-                        DestinationFolder = new DirectoryInfo(Path.Combine(DestinationFolder.FullName, sourceFsInfo.Name))
-                    };
+                        // Clean up any partial files upon user cancellation.
+                        try
+                        {
+                            FileSystem.DeleteDirectory(DestinationFolder.FullName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
+                        }
+                        catch { }
+                        throw new TaskCanceledException("the user cancelled the copy request");
+                    }
 
-                    await folderCopier.CopyAsync(cancellationToken);
-                }
-            }
+                },
+                cancellationToken
+            );
         }
     }
 }
