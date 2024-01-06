@@ -61,7 +61,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                 }
                 catch (Exception ex)
                 {
-                    if (!(ex is CopyDialogClosedException))
+                    if (!(ex is DialogClosedException))
                     {
                         _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     }

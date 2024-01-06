@@ -7,9 +7,14 @@ using System.Threading.Tasks;
 
 namespace EmuLibrary.Util
 {
-    public class CopyDialogClosedException : Exception
+    public class DestinationExistsException : Exception
     {
-        public CopyDialogClosedException(string message, Exception ex) : base(message, ex) { }
+        public DestinationExistsException(string message) : base(message) { }
+    }
+
+    public class DialogClosedException : Exception
+    {
+        public DialogClosedException(string message, Exception ex) : base(message, ex) { }
     }
 
     public abstract class BaseCopier
@@ -17,6 +22,7 @@ namespace EmuLibrary.Util
         protected abstract string SourcePath { get; }
         protected abstract string DestinationPath { get; }
         protected abstract bool SourceExists();
+        protected abstract bool DestinationExists();
         protected abstract void CopySourceToDestination();
         protected abstract void OnCopyCancellation();
 
@@ -29,6 +35,10 @@ namespace EmuLibrary.Util
             if (DestinationPath.IsNullOrEmpty())
             {
                 throw new Exception($"destination path \"{DestinationPath}\" is not valid");
+            }
+            if (DestinationExists())
+            {
+                throw new DestinationExistsException($"destination path \"{DestinationPath}\" already exists");
             }
 
             await Task.Run(() =>
@@ -46,7 +56,7 @@ namespace EmuLibrary.Util
                         catch { }
                         if (ex is OperationCanceledException)
                         {
-                            throw new CopyDialogClosedException("the user cancelled the copy request", ex);
+                            throw new DialogClosedException("the user cancelled the copy request", ex);
                         }
                         throw new Exception($"Unable to copy source {SourcePath} to {DestinationPath}", ex);
                     }
@@ -68,6 +78,11 @@ namespace EmuLibrary.Util
         protected override bool SourceExists()
         {
             return SourceFile?.Exists ?? false;
+        }
+
+        protected override bool DestinationExists()
+        {
+            return new FileInfo(DestinationPath)?.Exists ?? false;
         }
 
         protected override void CopySourceToDestination()
@@ -101,6 +116,11 @@ namespace EmuLibrary.Util
         protected override bool SourceExists()
         {
             return SourceFolder?.Exists ?? false;
+        }
+
+        protected override bool DestinationExists()
+        {
+            return DestinationFolder?.Exists ?? false;
         }
 
         protected override void CopySourceToDestination()
