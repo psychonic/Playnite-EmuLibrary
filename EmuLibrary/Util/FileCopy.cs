@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,48 +12,43 @@ namespace EmuLibrary.Util
         public CopyDialogClosedException(string message, Exception ex) : base(message, ex) { }
     }
 
-    public class FileCopier
+    public abstract class BaseCopier
     {
-        public FileInfo SourceFile { get; set; }
-        public DirectoryInfo DestinationFolder { get; set; }
+        protected abstract string SourcePath { get; }
+        protected abstract string DestinationPath { get; }
+        protected abstract bool SourceExists();
+        protected abstract void CopySourceToDestination();
+        protected abstract void OnCopyCancellation();
 
         public async Task CopyAsync(CancellationToken cancellationToken)
         {
-            if (SourceFile.FullName == null)
+            if (SourcePath.IsNullOrEmpty() || !SourceExists())
             {
-                throw new NullReferenceException(nameof(SourceFile));
+                throw new Exception($"source path \"{SourcePath}\" does not exist or is invalid");
             }
-            if (DestinationFolder.FullName == null)
+            if (DestinationPath.IsNullOrEmpty())
             {
-                throw new NullReferenceException(nameof(DestinationFolder));
+                throw new Exception($"destination path \"{DestinationPath}\" is not valid");
             }
-            if (!SourceFile.Exists)
-            {
-                throw new FileNotFoundException($"the file {SourceFile.FullName} can not be copied");
-            }
-
-            var destinationFileName = Path.Combine(DestinationFolder.FullName, SourceFile.Name);
 
             await Task.Run(() =>
                 {
-                    // Copy the file, whilst also displaying the Windows copy dialog.
                     try
                     {
-                        FileSystem.CopyFile(SourceFile.FullName, destinationFileName, UIOption.AllDialogs, UICancelOption.ThrowException);
+                        CopySourceToDestination();
                     }
                     catch (Exception ex)
                     {
-                        // Clean up any partial files upon user cancellation.
                         try
                         {
-                            FileSystem.DeleteFile(destinationFileName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
+                            OnCopyCancellation();
                         }
                         catch { }
                         if (ex is OperationCanceledException)
                         {
                             throw new CopyDialogClosedException("the user cancelled the copy request", ex);
                         }
-                        throw new Exception("Unable to copy file", ex);
+                        throw new Exception($"Unable to copy source {SourcePath} to {DestinationPath}", ex);
                     }
                 },
                 cancellationToken
@@ -60,50 +56,63 @@ namespace EmuLibrary.Util
         }
     }
 
-    public class FolderCopier
+    public class FileCopier : BaseCopier
+    {
+        public FileInfo SourceFile { get; set; }
+        public DirectoryInfo DestinationFolder { get; set; }
+
+        protected override string SourcePath => SourceFile?.FullName;
+
+        protected override string DestinationPath => Path.Combine(DestinationFolder?.FullName, SourceFile?.Name);
+
+        protected override bool SourceExists()
+        {
+            return SourceFile?.Exists ?? false;
+        }
+
+        protected override void CopySourceToDestination()
+        {
+            FileSystem.CopyFile(SourcePath, DestinationPath, UIOption.AllDialogs, UICancelOption.ThrowException);
+        }
+
+        protected override void OnCopyCancellation()
+        {
+            // Remove the file if for some reason it still exists after user cancellation.
+            FileSystem.DeleteFile(DestinationPath, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
+
+            // Now let's also ensure that we clean up any empty directories that were added during copy.
+            var parent = Directory.GetParent(DestinationPath);
+
+            if (parent != null && !Directory.EnumerateFileSystemEntries(parent.FullName).Any())
+            {
+                FileSystem.DeleteDirectory(parent.FullName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
+            }
+        }
+    }
+
+    public class FolderCopier : BaseCopier
     {
         public DirectoryInfo SourceFolder { get; set; }
         public DirectoryInfo DestinationFolder { get; set; }
 
-        public async Task CopyAsync(CancellationToken cancellationToken)
-        {
-            if (SourceFolder.FullName == null)
-            {
-                throw new NullReferenceException(nameof(SourceFolder));
-            }
-            if (DestinationFolder.FullName == null)
-            {
-                throw new NullReferenceException(nameof(DestinationFolder));
-            }
-            if (!SourceFolder.Exists)
-            {
-                throw new DirectoryNotFoundException($"the directory {SourceFolder.FullName} can not be copied");
-            }
+        protected override string SourcePath => SourceFolder?.FullName;
+        protected override string DestinationPath => DestinationFolder?.FullName;
 
-            await Task.Run(() =>
-                {
-                    // Copy the directory, whilst also displaying the Windows copy dialog.
-                    try
-                    {
-                        FileSystem.CopyDirectory(SourceFolder.FullName, DestinationFolder.FullName, UIOption.AllDialogs, UICancelOption.ThrowException);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Clean up any partial files upon user cancellation.
-                        try
-                        {
-                            FileSystem.DeleteDirectory(DestinationFolder.FullName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
-                        }
-                        catch { }
-                        if (ex is OperationCanceledException)
-                        {
-                            throw new CopyDialogClosedException("the user cancelled the copy request", ex);
-                        }
-                        throw new Exception("Unable to copy directory", ex);
-                    }
-                },
-                cancellationToken
-            );
+        protected override bool SourceExists()
+        {
+            return SourceFolder?.Exists ?? false;
+        }
+
+        protected override void CopySourceToDestination()
+        {
+            FileSystem.CopyDirectory(SourcePath, DestinationPath, UIOption.AllDialogs, UICancelOption.ThrowException);
+        }
+
+        protected override void OnCopyCancellation()
+        {
+            // Since this is a directory, some of child nodes may have been copied successfully before cancellation.
+            // Let's remove them.
+            FileSystem.DeleteDirectory(DestinationPath, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
         }
     }
 }
