@@ -59,11 +59,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                 }
                 catch (Exception ex)
                 {
-                    if (ex is TaskCanceledException)
-                    {
-                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"{Game.Name} installation cancelled.", NotificationType.Info);
-                    }
-                    else
+                    if (!(ex is CopyDialogClosedException))
                     {
                         _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     }

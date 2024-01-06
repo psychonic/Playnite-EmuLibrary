@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace EmuLibrary.Util
 {
+    public class CopyDialogClosedException : Exception
+    {
+        public CopyDialogClosedException(string message, Exception ex) : base(message, ex) { }
+    }
+
     public class FileCopier
     {
         public FileInfo SourceFile { get; set; }
@@ -43,9 +48,9 @@ namespace EmuLibrary.Util
                             FileSystem.DeleteFile(destinationFileName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
                         }
                         catch { }
-                        if (ex is TaskCanceledException)
+                        if (ex is OperationCanceledException)
                         {
-                            throw new TaskCanceledException("the user cancelled the copy request", ex);
+                            throw new CopyDialogClosedException("the user cancelled the copy request", ex);
                         }
                         throw new Exception("Unable to copy file", ex);
                     }
@@ -90,9 +95,9 @@ namespace EmuLibrary.Util
                             FileSystem.DeleteDirectory(DestinationFolder.FullName, UIOption.OnlyErrorDialogs, RecycleOption.DeletePermanently);
                         }
                         catch { }
-                        if (ex is TaskCanceledException)
+                        if (ex is OperationCanceledException)
                         {
-                            throw new TaskCanceledException("the user cancelled the copy request", ex);
+                            throw new CopyDialogClosedException("the user cancelled the copy request", ex);
                         }
                         throw new Exception("Unable to copy directory", ex);
                     }
