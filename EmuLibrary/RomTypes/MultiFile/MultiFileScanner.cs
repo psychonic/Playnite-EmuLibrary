@@ -53,7 +53,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                     {
                         var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
                         // First matching rom of first valid extension that has any matches. Ex. for "m3u,cue,bin", make sure we don't grab a bin file when there's an m3u or cue handy
-                        var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => f.Extension.TrimStart('.').ToLower() == ext)).FirstOrDefault(f => f != null);
+                        var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => HasMatchingExtension(f, ext))).FirstOrDefault(f => f != null);
                         if (rom != null)
                         {
                             var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
@@ -107,7 +107,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                     {
                         var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
                         // First matching rom of first valid extension that has any matches. Ex. for "m3u,cue,bin", make sure we don't grab a bin file when there's an m3u or cue handy
-                        var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => f.Extension.TrimStart('.').ToLower() == ext)).FirstOrDefault(f => f != null);
+                        var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => HasMatchingExtension(f, ext))).FirstOrDefault(f => f != null);
                         if (rom != null)
                         {
                             var fileInfo = new FileInfo(rom.FullName);
