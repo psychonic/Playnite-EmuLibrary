@@ -35,7 +35,6 @@ namespace EmuLibrary.RomTypes.MultiFile
                 try
                 {
                     var sourceFolder = new DirectoryInfo(info.SourceFullBaseDir);
-                    var sourceFile = new FileInfo(Path.Combine(sourceFolder.FullName, info.SourceFilePath));
 
                     var fc = new FolderCopier()
                     {
@@ -62,6 +61,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                 }
                 catch (Exception ex)
                 {
+                    Game.IsInstalling = false;
                     _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     throw;
                 }
