@@ -3,6 +3,7 @@ using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
+using System.IO.Abstractions;
 using System.Threading;
 
 namespace EmuLibrary.RomTypes
@@ -24,5 +25,10 @@ namespace EmuLibrary.RomTypes
         }
         public abstract IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args);
         public abstract IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct);
+        
+        protected static bool HasMatchingExtension(FileSystemInfoBase file, string extension)
+        {
+            return file.Extension.TrimStart('.').ToLower() == extension || (file.Extension == "" && extension == "<none>");
+        }
     }
 }

@@ -54,7 +54,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                         if (args.CancelToken.IsCancellationRequested)
                             yield break;
 
-                        if (file.Extension.TrimStart('.') == extension && !s_discXpattern.IsMatch(file.Name))
+                        if (HasMatchingExtension(file, extension) && !s_discXpattern.IsMatch(file.Name))
                         {
                             var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
                             var gameName = StringExtensions.NormalizeGameName(baseFileName);
@@ -105,7 +105,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                         if (args.CancelToken.IsCancellationRequested)
                             yield break;
 
-                        if (file.Extension.TrimStart('.') == extension && !s_discXpattern.IsMatch(file.Name))
+                        if (HasMatchingExtension(file, extension) && !s_discXpattern.IsMatch(file.Name))
                         {
                             var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
                             if (File.Exists(equivalentInstalledPath))
