@@ -1,4 +1,4 @@
-﻿using EmuLibrary.Util;
+﻿using EmuLibrary.Util.FileCopier;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
@@ -10,16 +10,10 @@ using System.Threading.Tasks;
 
 namespace EmuLibrary.RomTypes.SingleFile
 {
-    class SingleFileInstallController : InstallController
+    class SingleFileInstallController : BaseInstallController
     {
-        private readonly IEmuLibrary _emuLibrary;
-        private CancellationTokenSource _watcherToken;
-
-        internal SingleFileInstallController(Game game, IEmuLibrary emuLibrary) : base(game)
-        {
-            Name = "Install";
-            _emuLibrary = emuLibrary;
-        }
+        internal SingleFileInstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
+        { }
 
         public override void Install(InstallActionArgs args)
         {
@@ -28,19 +22,19 @@ namespace EmuLibrary.RomTypes.SingleFile
             var dstPath = info.Mapping?.DestinationPathResolved ??
                 throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
 
-            var fc = new FileCopier()
-            {
-                SourceFile = new FileInfo(info.SourceFullPath),
-                DestinationFolder = new DirectoryInfo(dstPath)
-            };
-
             _watcherToken = new CancellationTokenSource();
 
             Task.Run(async () =>
             {
                 try
                 {
-                    await fc.CopyAsync(_watcherToken.Token);
+                    // e.g. M:\media\games\N64\Mario 64.z64
+                    var source = new FileInfo(info.SourceFullPath);
+
+                    // e.g. C:\Roms\N64
+                    var destination = new DirectoryInfo(dstPath);
+
+                    await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);
 
                     var installDir = dstPath;
                     var gamePath = Path.Combine(dstPath, info.SourcePath);
@@ -59,7 +53,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                 }
                 catch (Exception ex)
                 {
-                    if (!(ex is DialogClosedException))
+                    if (!(ex is WindowsCopyDialogClosedException))
                     {
                         _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     }
@@ -67,12 +61,6 @@ namespace EmuLibrary.RomTypes.SingleFile
                     throw;
                 }
             });
-        }
-
-        public override void Dispose()
-        {
-            _watcherToken?.Cancel();
-            base.Dispose();
         }
     }
 }
