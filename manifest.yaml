@@ -1,5 +1,14 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.3.4
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2024-01-07'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.3.4/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_3_4.pext
+    Changelog:
+      - Fixed a case where some file would not get not be deleted when uninstalling a MultiFile game (Alex Tiley)
+      - Fixed some cases where a game would not be marked as uninstalled after uninstalling it (Alex Tiley)
+      - Fixed game being stuck as "Installing" if install process failed for any reason (Alex Tiley)
+      - Fixed scanning of rom files that lack a file extension (Alex Tiley)
   - Version: 3.3.3
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2024-01-01'
