@@ -10,14 +10,14 @@ namespace EmuLibrary.Util.FileCopier
         {
             if (Source is DirectoryInfo)
             {
-                CopyAll(Source as DirectoryInfo, Destination);
+                CopyDirectoryContents(Source as DirectoryInfo, Destination);
                 return;
             }
 
             File.Copy(Source.FullName, Path.Combine(Destination.FullName, Source.Name), true);
         }
 
-        private static void CopyAll(DirectoryInfo source, DirectoryInfo destination)
+        private static void CopyDirectoryContents(DirectoryInfo source, DirectoryInfo destination)
         {
             Directory.CreateDirectory(destination.FullName);
 
@@ -28,7 +28,7 @@ namespace EmuLibrary.Util.FileCopier
 
             foreach (var subDirectory in source.GetDirectories())
             {
-                CopyAll(subDirectory, destination.CreateSubdirectory(subDirectory.Name));
+                CopyDirectoryContents(subDirectory, destination.CreateSubdirectory(subDirectory.Name));
             }
         }
     }
