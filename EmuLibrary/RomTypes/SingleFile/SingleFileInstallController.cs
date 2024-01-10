@@ -28,10 +28,7 @@ namespace EmuLibrary.RomTypes.SingleFile
             {
                 try
                 {
-                    // e.g. M:\media\games\N64\Mario 64.z64
                     var source = new FileInfo(info.SourceFullPath);
-
-                    // e.g. C:\Roms\N64
                     var destination = new DirectoryInfo(dstPath);
 
                     await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);

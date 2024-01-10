@@ -28,10 +28,7 @@ namespace EmuLibrary.RomTypes.MultiFile
             {
                 try
                 {
-                    // e.g. M:\media\games\Xbox 360\Brutal Legend
                     var source = new DirectoryInfo(info.SourceFullBaseDir);
-
-                    // e.g. C:\Roms\Xbox 360\Brutal Legend
                     var destination = new DirectoryInfo(Path.Combine(dstPathBase, source.Name));
 
                     await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);

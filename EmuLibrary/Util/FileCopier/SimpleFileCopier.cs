@@ -1,15 +1,11 @@
-﻿using System;
-using System.IO;
-using LibHac.Fs;
-using Playnite.SDK;
+﻿using System.IO;
 
 namespace EmuLibrary.Util.FileCopier
 {
     public class SimpleFileCopier : BaseFileCopier, IFileCopier
     {
-        public SimpleFileCopier(FileSystemInfo source, DirectoryInfo destination): base(source, destination) { }
+        public SimpleFileCopier(FileSystemInfo source, DirectoryInfo destination) : base(source, destination) { }
 
-        // replace the manual file copying with calls to File.Copy
         protected override void Copy()
         {
             if (Source is DirectoryInfo)
@@ -30,7 +26,7 @@ namespace EmuLibrary.Util.FileCopier
                 file.CopyTo(Path.Combine(destination.FullName, file.Name), true);
             }
 
-            foreach (DirectoryInfo subDirectory in source.GetDirectories())
+            foreach (var subDirectory in source.GetDirectories())
             {
                 CopyAll(subDirectory, destination.CreateSubdirectory(subDirectory.Name));
             }

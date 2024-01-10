@@ -1,13 +1,13 @@
-﻿using System.Threading;
+﻿using EmuLibrary.Util.FileCopier;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System.IO;
-using EmuLibrary.Util.FileCopier;
+using System.Threading;
 
 namespace EmuLibrary.RomTypes
 {
-    abstract class BaseInstallController: InstallController
+    abstract class BaseInstallController : InstallController
     {
         protected readonly IEmuLibrary _emuLibrary;
         protected CancellationTokenSource _watcherToken;
@@ -29,7 +29,8 @@ namespace EmuLibrary.RomTypes
             if (_emuLibrary.Playnite.ApplicationInfo.Mode == ApplicationMode.Desktop)
             {
                 return _emuLibrary.Settings.UseWindowsCopyDialogInDesktopMode;
-            } else if (_emuLibrary.Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen)
+            }
+            else if (_emuLibrary.Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen)
             {
                 return _emuLibrary.Settings.UseWindowsCopyDialogInFullscreenMode;
             }
