@@ -1,4 +1,4 @@
-﻿using EmuLibrary.Util;
+﻿using EmuLibrary.Util.FileCopier;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
@@ -10,16 +10,10 @@ using System.Threading.Tasks;
 
 namespace EmuLibrary.RomTypes.MultiFile
 {
-    class MultiFileInstallController : InstallController
+    class MultiFileInstallController : BaseInstallController
     {
-        private readonly IEmuLibrary _emuLibrary;
-        private CancellationTokenSource _watcherToken;
-
-        internal MultiFileInstallController(Game game, IEmuLibrary emuLibrary) : base(game)
-        {
-            Name = "Install";
-            _emuLibrary = emuLibrary;
-        }
+        internal MultiFileInstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
+        { }
 
         public override void Install(InstallActionArgs args)
         {
@@ -34,15 +28,10 @@ namespace EmuLibrary.RomTypes.MultiFile
             {
                 try
                 {
-                    var sourceFolder = new DirectoryInfo(info.SourceFullBaseDir);
+                    var source = new DirectoryInfo(info.SourceFullBaseDir);
+                    var destination = new DirectoryInfo(Path.Combine(dstPathBase, source.Name));
 
-                    var fc = new FolderCopier()
-                    {
-                        SourceFolder = sourceFolder,
-                        DestinationFolder = new DirectoryInfo(Path.Combine(dstPathBase, sourceFolder.Name))
-                    };
-
-                    await fc.CopyAsync(_watcherToken.Token);
+                    await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);
 
                     var installDir = Path.Combine(dstPathBase, info.SourceBaseDir);
                     var gamePath = Path.Combine(new string[] { dstPathBase, info.SourceFilePath });
@@ -61,17 +50,14 @@ namespace EmuLibrary.RomTypes.MultiFile
                 }
                 catch (Exception ex)
                 {
+                    if (!(ex is WindowsCopyDialogClosedException))
+                    {
+                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
+                    }
                     Game.IsInstalling = false;
-                    _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     throw;
                 }
             });
-        }
-
-        public override void Dispose()
-        {
-            _watcherToken?.Cancel();
-            base.Dispose();
         }
     }
 }

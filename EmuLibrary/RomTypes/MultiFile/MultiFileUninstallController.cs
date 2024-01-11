@@ -1,9 +1,7 @@
 ﻿using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using System;
 using System.IO;
-using System.Linq;
 using System.Windows;
 
 namespace EmuLibrary.RomTypes.MultiFile
