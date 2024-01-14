@@ -9,167 +9,165 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              Padding="2,0,2,4">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Row="0" Grid.Column="0" Padding="0,0,0,4" Text="Emulator Path Mappings" FontWeight="Bold"/>
-            <TextBlock Grid.Row="0" Grid.Column="1" Padding="0,0,4,4" HorizontalAlignment="Right">
-                <Hyperlink NavigateUri="https://github.com/psychonic/Playnite-EmuLibrary/README.md" RequestNavigate="Hyperlink_RequestNavigate">
-                    Help🔗
-                </Hyperlink>
-            </TextBlock>
-        </Grid>
-        <DataGrid Grid.Row="1" Padding="0,0,0,4" ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell"
-                  CanUserAddRows="True">
-            <DataGrid.Resources>
-                <ObjectDataProvider x:Key="RomTypeValues"
-                                    ObjectType="{x:Type sys:Enum}"
-                                    MethodName="GetValues">
-                    <ObjectDataProvider.MethodParameters>
-                        <x:Type TypeName="elrt:RomType" />
-                    </ObjectDataProvider.MethodParameters>
-                </ObjectDataProvider>
-            </DataGrid.Resources>
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Width="50">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="❌" Tag="{Binding}" Click="Click_Delete" Foreground="Red" Width="26" Margin="0" Padding="0" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate><TextBlock Text=""></TextBlock></DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Emulator" Width="180">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock x:Name="Emulator" Text="{Binding Path=Emulator.Name, UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox Name="ComboEmulators" DockPanel.Dock="Left"
-                                      ItemsSource="{Binding AvailableEmulators}"
-                                      DisplayMemberPath="Name"
-                                      SelectedItem="{Binding Emulator, Mode=TwoWay}"
-                                      >
-                            </ComboBox>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+    <DockPanel Margin="20">
+        <ScrollViewer DockPanel.Dock="Top">
+            <StackPanel x:Name="EmulatorSettingsPanel">
+                <Label Content="Emulator path mappings" FontWeight="Bold" />
+                <TextBlock HorizontalAlignment="Right" Margin="0,-16,0,0">
+                    <Hyperlink NavigateUri="https://github.com/psychonic/Playnite-EmuLibrary/blob/master/README.md#setup" RequestNavigate="Hyperlink_RequestNavigate">
+                        Help🔗
+                    </Hyperlink>
+                </TextBlock>
+                <Separator Margin="0,5,0,10" />
+                <Grid Height="Auto" Margin="0,0,0,10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <DataGrid Grid.Row="0" Padding="0,0,0,4" ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell" CanUserAddRows="True">
+                        <DataGrid.Resources>
+                            <ObjectDataProvider x:Key="RomTypeValues"
+                            ObjectType="{x:Type sys:Enum}"
+                            MethodName="GetValues">
+                                <ObjectDataProvider.MethodParameters>
+                                    <x:Type TypeName="elrt:RomType" />
+                                </ObjectDataProvider.MethodParameters>
+                            </ObjectDataProvider>
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="50">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="❌" Tag="{Binding}" Click="Click_Delete" Foreground="Red" Width="26" Margin="0" Padding="0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text=""></TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Emulator" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock x:Name="Emulator" Text="{Binding Path=Emulator.Name, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Name="ComboEmulators" DockPanel.Dock="Left"
+                                ItemsSource="{Binding AvailableEmulators}"
+                                DisplayMemberPath="Name"
+                                SelectedItem="{Binding Emulator, Mode=TwoWay}"
+                                >
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
 
-                <DataGridTemplateColumn Header="Profile" Width="180">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfile.Name, UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
-                                      ItemsSource="{Binding AvailableProfiles}"
-                                      DisplayMemberPath="Name"
-                                      SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"
-                                      >
-                            </ComboBox>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Profile" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfile.Name, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
+                                ItemsSource="{Binding AvailableProfiles}"
+                                DisplayMemberPath="Name"
+                                SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"
+                                >
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
 
-                <DataGridTemplateColumn Header="Platform" Width="180"  >
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock x:Name="Platform" Text="{Binding Path=Platform.Name, UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
-                                      ItemsSource="{Binding AvailablePlatforms}"
-                                      DisplayMemberPath="Name"
-                                      SelectedItem="{Binding Platform, Mode=TwoWay}"
-                                      >
-                            </ComboBox>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Platform" Width="180"  >
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock x:Name="Platform" Text="{Binding Path=Platform.Name, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
+                                ItemsSource="{Binding AvailablePlatforms}"
+                                DisplayMemberPath="Name"
+                                SelectedItem="{Binding Platform, Mode=TwoWay}"
+                                >
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
 
-                <DataGridTemplateColumn Header="RomType" Width="180">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding RomType, UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox Name="ComboRomTypes" DockPanel.Dock="Left"
-                                      ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
-                                      SelectedItem="{Binding RomType, Mode=TwoWay}"
-                                      >
-                            </ComboBox>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Rom Type" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding RomType, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Name="ComboRomTypes" DockPanel.Dock="Left"
+                                ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
+                                SelectedItem="{Binding RomType, Mode=TwoWay}"
+                                >
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
 
-                <DataGridTemplateColumn Header="Source Path" Width="180"  >
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock x:Name="Path"  Text="{Binding Path=SourcePath, UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <Button Name="Browse" Click="Click_BrowseSource">Browse...</Button>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Source Path" Width="180"  >
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock x:Name="Path"  Text="{Binding Path=SourcePath, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <Button Name="Browse" Click="Click_BrowseSource">Browse...</Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
 
-                <DataGridTemplateColumn Header="Destination Path" Width="180"  >
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock x:Name="Path"  Text="{Binding Path=DestinationPath,UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <Button Name="Browse" Click="Click_BrowseDestination" ></Button>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Destination Path" Width="180"  >
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock x:Name="Path"  Text="{Binding Path=DestinationPath,UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <Button Name="Browse" Click="Click_BrowseDestination" ></Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
 
-                <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" />
-                <DataGridTextColumn Header="Mapping ID" IsReadOnly="True" Binding="{Binding MappingId}" />
-            </DataGrid.Columns>
-        </DataGrid>
-        <TextBlock Grid.Row="2" Padding="0,0,0,4" Text="Other Settings" FontWeight="Bold" />
-        <Grid Grid.Row="3">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition />
-                <RowDefinition />
-            </Grid.RowDefinitions>
-            <CheckBox Grid.Row="0" Grid.Column="0" Padding="4,4,4,4" IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}">
-                <TextBlock TextWrapping="WrapWithOverflow">Enable game scanning in Full Screen mode</TextBlock>
-            </CheckBox>
-            <CheckBox Grid.Row="0" Grid.Column="1" Padding="4,4,4,4" IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}">
-                <TextBlock TextWrapping="WrapWithOverflow">Enable notification upon game install completion</TextBlock>
-            </CheckBox>
-            <CheckBox Grid.Row="1" Grid.Column="0" Padding="4,4,4,4" IsChecked="{Binding AutoRemoveUninstalledGamesMissingFromSource, Mode=TwoWay}">
-                <TextBlock TextWrapping="WrapWithOverflow">Automatically remove non-installed games from library if missing from source</TextBlock>
-            </CheckBox>
-        </Grid>
-    </Grid>
+                            <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" />
+                            <DataGridTextColumn Header="Mapping ID" IsReadOnly="True" Binding="{Binding MappingId}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+                <Label Content="Library scanning" FontWeight="Bold" Margin="0,10,0,0" />
+                <Separator Margin="0,5,0,10" />
+                <CheckBox IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}" Margin="0,0,0,10">
+                    <TextBlock Text="Enable game scanning in fullscreen mode" TextWrapping="Wrap"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding AutoRemoveUninstalledGamesMissingFromSource, Mode=TwoWay}" Margin="0,0,0,10">
+                    <TextBlock Text="Automatically remove non-installed games from library if missing from source" TextWrapping="Wrap"/>
+                </CheckBox>
+                <Label Content="Installation" FontWeight="Bold" Margin="0,10,0,0" />
+                <Separator Margin="0,5,0,10" />
+                <CheckBox IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}" Margin="0,0,0,10" >
+                    <TextBlock Text="Enable notification upon game install completion" TextWrapping="Wrap"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding UseWindowsCopyDialogInDesktopMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.">
+                    <TextBlock Text="Show Windows copy dialog in desktop mode" TextWrapping="Wrap"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding UseWindowsCopyDialogInFullscreenMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.&#x0a;Please note that enabling this option may cause issues with focus&#x0a;in fullscreen mode.">
+                    <TextBlock Text="Show Windows copy dialog in fullscreen mode" TextWrapping="Wrap"/>
+                </CheckBox>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </UserControl>

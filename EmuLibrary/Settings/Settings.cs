@@ -26,6 +26,8 @@ namespace EmuLibrary.Settings
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
         public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; } = false;
+        public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
+        public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         // Hidden settings
