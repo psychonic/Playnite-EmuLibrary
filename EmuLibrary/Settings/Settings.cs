@@ -138,8 +138,18 @@ namespace EmuLibrary.Settings
 
         public bool VerifySettings(out List<string> errors)
         {
-            errors = new List<string>();
-            return true;
+            var mappingErrors = new List<string>();
+
+            Mappings.Where(m => m.Enabled)?.ForEach(m =>
+            {
+                if (m.ImageExtensionsLower == null || !m.ImageExtensionsLower.Any())
+                {
+                    mappingErrors.Add($"{m.MappingId}: No image extensions specified for profile {m.EmulatorProfile.Name} with emulator {m.Emulator.Name}. There is nothing for EmuLibrary to scan.");
+                }
+            });
+
+            errors = mappingErrors;
+            return errors.Count == 0;
         }
 
         private void LoadValues(Settings source)
