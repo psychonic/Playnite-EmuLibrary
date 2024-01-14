@@ -148,6 +148,7 @@
                 </DataGridTemplateColumn>
 
                 <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" />
+                <DataGridTextColumn Header="Mapping ID" IsReadOnly="True" Binding="{Binding MappingId}" />
             </DataGrid.Columns>
         </DataGrid>
         <TextBlock Grid.Row="2" Padding="0,0,0,4" Text="Other Settings" FontWeight="Bold" />
