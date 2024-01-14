@@ -12,7 +12,10 @@ namespace EmuLibrary.Settings
 {
     public class EmulatorMapping : ObservableObject
     {
-        public EmulatorMapping() { }
+        public EmulatorMapping()
+        {
+            MappingId = Guid.NewGuid();
+        }
 
         public Guid MappingId { get; set; }
 
