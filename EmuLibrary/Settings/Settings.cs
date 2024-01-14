@@ -5,6 +5,7 @@ using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 
 namespace EmuLibrary.Settings
@@ -145,6 +146,24 @@ namespace EmuLibrary.Settings
                 if (m.ImageExtensionsLower == null || !m.ImageExtensionsLower.Any())
                 {
                     mappingErrors.Add($"{m.MappingId}: No image extensions specified for profile {m.EmulatorProfile.Name} with emulator {m.Emulator.Name}. There is nothing for EmuLibrary to scan.");
+                }
+
+                if (string.IsNullOrEmpty(m.SourcePath))
+                {
+                    mappingErrors.Add($"{m.MappingId}: No source path specified.");
+                }
+                else if (!Directory.Exists(m.SourcePath))
+                {
+                    mappingErrors.Add($"{m.MappingId}: Source path doesn't exist ({m.SourcePath}).");
+                }
+
+                if (string.IsNullOrEmpty(m.DestinationPathResolved))
+                {
+                    mappingErrors.Add($"{m.MappingId}: No destination path specified.");
+                }
+                else if (!Directory.Exists(m.DestinationPathResolved))
+                {
+                    mappingErrors.Add($"{m.MappingId}: Destination path doesn't exist ({m.DestinationPathResolved}).");
                 }
             });
 
