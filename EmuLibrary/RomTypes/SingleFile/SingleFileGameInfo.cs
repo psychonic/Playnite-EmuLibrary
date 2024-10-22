@@ -34,5 +34,15 @@ namespace EmuLibrary.RomTypes.SingleFile
             yield return $"{nameof(SourcePath)} : {SourcePath}";
             yield return $"{nameof(SourceFullPath)}* : {SourceFullPath}";
         }
+
+        public override void BrowseToSource()
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo()
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/e, /select, \"{Path.GetFullPath(SourceFullPath)}\""
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
     }
 }

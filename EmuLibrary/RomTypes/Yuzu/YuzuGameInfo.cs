@@ -2,6 +2,7 @@
 using Playnite.SDK.Plugins;
 using ProtoBuf;
 using System.Collections.Generic;
+using System.IO;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
@@ -22,6 +23,11 @@ namespace EmuLibrary.RomTypes.Yuzu
         protected override IEnumerable<string> GetDescriptionLines()
         {
             yield return $"{nameof(TitleId)} : {TitleId:x16}";
+        }
+
+        public override void BrowseToSource()
+        {
+            System.Diagnostics.Process.Start("explorer.exe", $"\"{Path.GetFullPath(Mapping?.SourcePath)}\"");
         }
     }
 }

@@ -192,18 +192,44 @@ namespace EmuLibrary
 
         public override IEnumerable<GameMenuItem> GetGameMenuItems(GetGameMenuItemsArgs args)
         {
-            var ourGames = args.Games.Where(g => g.PluginId == Id);
-            if (ourGames.Any())
+            var ourGameInfos = args.Games.Select(game =>
+            {
+                if (game.PluginId != Id)
+                    return (null, null);
+
+                ELGameInfo gameInfo;
+                try
+                {
+                    gameInfo = game.GetELGameInfo();
+                }
+                catch
+                {
+                    return (null, null);
+                }
+
+                return (game, gameInfo);
+            }).Where(ggi => ggi.game != null);
+
+            if (ourGameInfos.Any())
             {
                 yield return new GameMenuItem()
                 {
                     Action = (arags) =>
                     {
-                        var text = ourGames.Select(g => g.GetELGameInfo().ToDescriptiveString(g))
+                        ourGameInfos.ForEach(ggi => ggi.gameInfo.BrowseToSource());
+                    },
+                    Description = "Browse to Source...",
+                    MenuSection = "EmuLibrary"
+                };
+                yield return new GameMenuItem()
+                {
+                    Action = (arags) =>
+                    {
+                        var text = ourGameInfos.Select(ggi => ggi.gameInfo.ToDescriptiveString(ggi.game))
                             .Aggregate((a, b) => $"{a}\n--------------------------------------------------------------------\n{b}");
                         Playnite.Dialogs.ShowSelectableString("Decoded GameId info for each selected game is shown below. This information can be useful for troubleshooting.", "EmuLibrary Game Info", text);
                     },
-                    Description = "Show Debug Info",
+                    Description = "Show Debug Info...",
                     MenuSection = "EmuLibrary"
                 };
             }

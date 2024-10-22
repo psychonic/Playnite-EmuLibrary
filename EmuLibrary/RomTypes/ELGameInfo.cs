@@ -84,5 +84,7 @@ namespace EmuLibrary.RomTypes
 
             return sb.ToString();
         }
+
+        public abstract void BrowseToSource();
     }
 }

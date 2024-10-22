@@ -39,5 +39,10 @@ namespace EmuLibrary.RomTypes.MultiFile
             yield return $"{nameof(SourceBaseDir)}: {SourceBaseDir}";
             yield return $"{nameof(SourceFullBaseDir)}*: {SourceFullBaseDir}";
         }
+
+        public override void BrowseToSource()
+        {
+            System.Diagnostics.Process.Start("explorer.exe", $"\"{Path.GetFullPath(SourceFullBaseDir)}\"");
+        }
     }
 }
