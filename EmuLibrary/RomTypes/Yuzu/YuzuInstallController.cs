@@ -36,7 +36,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             Task.Run(async () =>
             {
-                var yuzu = new Yuzu(_gameInfo.Mapping.EmulatorBasePathResolved, _emuLibrary.Logger);
+                var yuzu = new Yuzu(_gameInfo.Mapping.EmulatorBasePathResolved, _gameInfo.Mapping.SwitchEmulator, _emuLibrary.Logger);
 
                 if (_cache.IsDirty)
                 {

@@ -1,4 +1,5 @@
 ﻿using EmuLibrary.RomTypes;
+using EmuLibrary.RomTypes.Yuzu;
 using EmuLibrary.Util;
 using Newtonsoft.Json;
 using Playnite.SDK.Models;
@@ -51,6 +52,10 @@ namespace EmuLibrary.Settings
         public string SourcePath { get; set; }
         public string DestinationPath { get; set; }
         public RomType RomType { get; set; }
+
+        [DefaultValue(SwitchEmulator.Yuzu)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public SwitchEmulator SwitchEmulator { get; set; }
 
         public static IEnumerable<Emulator> AvailableEmulators => Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
 

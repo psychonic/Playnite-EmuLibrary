@@ -35,15 +35,15 @@ With the MultiFile type, each subfolder directly within the source folder is sca
 
 To determine which file is used as the one to tell the emulator to load, all files matching the configured emulator profile's supported extensions are considered. Precedence is by configured image extension list order, and then by alphabetical order. For example, if file names are the same except for `(Disc 1)` versus `(Disc 2)`, the first disc takes precedence. Similarly, if you have `.cue` in the extension list before `.m3u` (as some of the built-in profiles have at the time of writing), `.cue` would be chosen over `.m3u`, which may not be desired for multi-disc games.
 
-### Yuzu (Beta)
+### Yuzu
 
-The Yuzu type currently has a beta level quality of support. Some of it is still being reworked. As named, it is very hardcoded to Yuzu specifically, although Ryujinx support reusing most of the same logic will likely come in the future.
+The Yuzu type supports Nintendo Switch emulators that share Yuzu's architecture: **Yuzu**, **Eden**, and **Citron-Neo**. Select which emulator to use via the dropdown in the mapping settings — this controls where the plugin looks for keys and the NAND directory.
 
-To add a functional mapping, make sure that the selected emulator is Yuzu. (It does not need to be the built-in emulator listing for Yuzu. Custom ones, including ones that point to Yuzu EA, etc. will also work). In the source path, loose XCI/NSP/XCZ/NSZ files in the root of the path are considered.
+To add a functional mapping, select the appropriate emulator in the dropdown, then set the Playnite emulator entry to match (it does not need to be a built-in listing; custom entries work fine). In the source path, loose XCI/NSP/XCZ/NSZ files in the root of the path are considered.
 
-NSP/NSZ files can also be updates and DLC, rather than just games. Unlike with Tinfoil shares, files are not required to include the title id in the filename. Additionally, while destination path must point to a folder that exists, the setting is ignored. Games install into the NAND directory configured in the selected Yuzu emulator profile.
+NSP/NSZ files can also be updates and DLC, rather than just games. Unlike with Tinfoil shares, files are not required to include the title id in the filename. Additionally, while destination path must point to a folder that exists, the setting is ignored. Games install into the NAND directory configured in the selected emulator profile.
 
-When a game is installed, the latest update and any DLC from the source will also be installed to the Yuzu NAND, in that order (Game, Update if available, each available DLC). Games already installed will be imported, whether or not they exist in the source folder, and will display as installed. As expected, uninstalling a game will remove the game from Yuzu's NAND. (While Yuzu does not support XCZ or NSZ files for launching or installing to NAND, this plugin installs directly to Yuzu's NAND, without relying on the emulator's built-in install functionality)
+When a game is installed, the latest update and any DLC from the source will also be installed to the emulator's NAND, in that order (Game, Update if available, each available DLC). Games already installed will be imported, whether or not they exist in the source folder, and will display as installed. As expected, uninstalling a game will remove the game from the NAND. (While these emulators do not support XCZ or NSZ files for launching or installing to NAND, this plugin installs directly to the NAND, without relying on the emulator's built-in install functionality)
 
 #### Known Issues
 

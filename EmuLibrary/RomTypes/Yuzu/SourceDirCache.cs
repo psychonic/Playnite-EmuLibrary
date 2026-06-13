@@ -69,7 +69,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
         public void Refresh(CancellationToken tk)
         {
-            var yuzu = new Yuzu(_mapping.EmulatorBasePathResolved, _emuLibrary.Logger);
+            var yuzu = new Yuzu(_mapping.EmulatorBasePathResolved, _mapping.SwitchEmulator, _emuLibrary.Logger);
 
             var igs = yuzu.GetInstalledGames(tk);
             foreach (var ig in igs)

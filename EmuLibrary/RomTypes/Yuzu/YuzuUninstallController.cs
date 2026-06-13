@@ -21,8 +21,8 @@ namespace EmuLibrary.RomTypes.Yuzu
 
         public override void Uninstall(UninstallActionArgs args)
         {
-            var yuzu = new Yuzu(_gameInfo.Mapping.EmulatorBasePathResolved, _emuLibrary.Logger);
-            yuzu.UninstallTitleFromNand(Game.GameId);
+            var yuzu = new Yuzu(_gameInfo.Mapping.EmulatorBasePathResolved, _gameInfo.Mapping.SwitchEmulator, _emuLibrary.Logger);
+            yuzu.UninstallTitleFromNand(_gameInfo.TitleId, false);
             _cache.TheCache.InstalledGames.Remove(_gameInfo.TitleId);
 
             InvokeOnUninstalled(new GameUninstalledEventArgs());
