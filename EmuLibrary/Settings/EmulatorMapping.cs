@@ -1,4 +1,5 @@
 ﻿using EmuLibrary.RomTypes;
+using EmuLibrary.Util;
 using Newtonsoft.Json;
 using Playnite.SDK.Models;
 using Playnite.SDK;
@@ -96,7 +97,7 @@ namespace EmuLibrary.Settings
             get
             {
                 var playnite = Settings.Instance.PlayniteAPI;
-                return playnite.Paths.IsPortable ? DestinationPath?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
+                return PortablePathResolver.Resolve(DestinationPath, playnite.Paths.IsPortable, playnite.Paths.ApplicationPath);
             }
         }
 
@@ -111,12 +112,7 @@ namespace EmuLibrary.Settings
             get
             {
                 var playnite = Settings.Instance.PlayniteAPI;
-                var ret = Emulator?.InstallDir;
-                if (playnite.Paths.IsPortable)
-                {
-                    ret = ret?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
-                }
-                return ret;
+                return PortablePathResolver.Resolve(Emulator?.InstallDir, playnite.Paths.IsPortable, playnite.Paths.ApplicationPath);
             }
         }
 

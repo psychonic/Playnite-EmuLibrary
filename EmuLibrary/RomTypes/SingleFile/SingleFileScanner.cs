@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace EmuLibrary.RomTypes.SingleFile
@@ -17,9 +16,6 @@ namespace EmuLibrary.RomTypes.SingleFile
     internal class SingleFileScanner : RomTypeScanner
     {
         private readonly IPlayniteAPI _playniteAPI;
-
-        // Hack to exclude anything past disc one for games we're not treating as multi-file / m3u but have multiple discs :|
-        static private readonly Regex s_discXpattern = new Regex(@"\((?:Disc|Disk) \d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public override RomType RomType => RomType.SingleFile;
         public override Guid LegacyPluginId => EmuLibrary.PluginId;
@@ -54,7 +50,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                         if (args.CancelToken.IsCancellationRequested)
                             yield break;
 
-                        if (HasMatchingExtension(file, extension) && !s_discXpattern.IsMatch(file.Name))
+                        if (HasMatchingExtension(file, extension) && !DiscFilter.IsExcludedDisc(file.Name))
                         {
                             var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
                             var gameName = StringExtensions.NormalizeGameName(baseFileName);
@@ -105,7 +101,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                         if (args.CancelToken.IsCancellationRequested)
                             yield break;
 
-                        if (HasMatchingExtension(file, extension) && !s_discXpattern.IsMatch(file.Name))
+                        if (HasMatchingExtension(file, extension) && !DiscFilter.IsExcludedDisc(file.Name))
                         {
                             var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
                             if (File.Exists(equivalentInstalledPath))

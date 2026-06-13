@@ -1,5 +1,6 @@
 *.pext
 **/bin/*
+**/obj/*
 packages/
 .vs/
 toolbox/JITProfiles/toolbox

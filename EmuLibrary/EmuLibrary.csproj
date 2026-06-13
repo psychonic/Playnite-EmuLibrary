@@ -36,16 +36,20 @@
     </None>
   </ItemGroup>
 	
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <!-- Packs the .pext via the vendored Toolbox. Only runs on solution builds (where $(SolutionDir)
+       resolves and the toolbox exists); skipped for standalone/ProjectReference builds (e.g. the test
+       project) so those don't fail trying to pack. Set -p:RunToolboxPack=false to skip it explicitly
+       (used by PR/push CI, which only needs to compile and test). -->
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(RunToolboxPack)' != 'false' and Exists('$(SolutionDir)toolbox\toolbox.exe')">
     <Exec Command="&quot;$(SolutionDir)toolbox\toolbox.exe&quot; pack $(TargetDir) $(SolutionDir)" />
   </Target>
 	
   <ItemGroup>
-    <None Include="C:\Users\nshastings\source\repos\EmuLibrary\EmuLibrary\PlayniteCommon\.editorconfig" />
+    <None Include="PlayniteCommon\.editorconfig" />
   </ItemGroup>
-	
+
   <ItemGroup>
-    <EditorConfigFiles Remove="C:\Users\nshastings\source\repos\EmuLibrary\EmuLibrary\PlayniteCommon\.editorconfig" />
+    <EditorConfigFiles Remove="PlayniteCommon\.editorconfig" />
   </ItemGroup>
 	
   <ItemGroup>

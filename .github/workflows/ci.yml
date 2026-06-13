@@ -1,0 +1,42 @@
+name: CI
+
+# Build + test gate for everyday work. The release workflow (msbuild.yml) still handles
+# tag-triggered packaging; this runs on branch pushes and PRs so regressions are caught
+# before a release tag is cut.
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore
+      run: dotnet restore EmuLibrary.slnx
+
+    # Build Release without the Toolbox .pext pack step (RunToolboxPack=false) - CI only needs
+    # to verify the code compiles and the tests pass, not to produce a distributable package.
+    - name: Build (Release)
+      run: dotnet build EmuLibrary.slnx -c Release --no-restore -p:RunToolboxPack=false
+
+    - name: Test
+      run: dotnet test EmuLibrary.Tests/EmuLibrary.Tests.csproj -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-results
+        path: EmuLibrary.Tests/TestResults/*.trx
+        if-no-files-found: ignore

@@ -1,5 +1,9 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+// Expose internal types (ELGameInfo and the RomType GameInfo subclasses) to the test project.
+[assembly: InternalsVisibleTo("EmuLibrary.Tests")]
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information

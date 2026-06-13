@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace EmuLibrary.RomTypes.MultiFile
@@ -17,9 +16,6 @@ namespace EmuLibrary.RomTypes.MultiFile
     internal class MultiFileScanner : RomTypeScanner
     {
         private readonly IPlayniteAPI _playniteAPI;
-
-        // Hack to exclude anything past disc one for games we're not treating as multi-file / m3u but have multiple discs :|
-        static private readonly Regex s_discXpattern = new Regex(@"\((?:Disc|Disk) \d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public override RomType RomType => RomType.MultiFile;
         public override Guid LegacyPluginId => EmuLibrary.PluginId;
@@ -49,11 +45,11 @@ namespace EmuLibrary.RomTypes.MultiFile
                     if (args.CancelToken.IsCancellationRequested)
                         yield break;
 
-                    if (file.Attributes.HasFlag(FileAttributes.Directory) && !s_discXpattern.IsMatch(file.Name))
+                    if (file.Attributes.HasFlag(FileAttributes.Directory) && !DiscFilter.IsExcludedDisc(file.Name))
                     {
                         var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
                         // First matching rom of first valid extension that has any matches. Ex. for "m3u,cue,bin", make sure we don't grab a bin file when there's an m3u or cue handy
-                        var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => HasMatchingExtension(f, ext))).FirstOrDefault(f => f != null);
+                        var rom = LoadFileSelector.Select(dirEnumerator, f => f.Extension.TrimStart('.').ToLower(), imageExtensionsLower);
                         if (rom != null)
                         {
                             var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
@@ -103,11 +99,11 @@ namespace EmuLibrary.RomTypes.MultiFile
                     if (args.CancelToken.IsCancellationRequested)
                         yield break;
 
-                    if (file.Attributes.HasFlag(FileAttributes.Directory) && !s_discXpattern.IsMatch(file.Name))
+                    if (file.Attributes.HasFlag(FileAttributes.Directory) && !DiscFilter.IsExcludedDisc(file.Name))
                     {
                         var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
                         // First matching rom of first valid extension that has any matches. Ex. for "m3u,cue,bin", make sure we don't grab a bin file when there's an m3u or cue handy
-                        var rom = imageExtensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => HasMatchingExtension(f, ext))).FirstOrDefault(f => f != null);
+                        var rom = LoadFileSelector.Select(dirEnumerator, f => f.Extension.TrimStart('.').ToLower(), imageExtensionsLower);
                         if (rom != null)
                         {
                             var fileInfo = new FileInfo(rom.FullName);

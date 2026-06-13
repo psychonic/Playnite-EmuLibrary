@@ -4,7 +4,6 @@ using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using ProtoBuf.Meta;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -48,6 +47,9 @@ namespace EmuLibrary
 
         private void InitializeRomTypeScanners()
         {
+            // Hook up ProtoInclude on ELGameInfo for each RomType (offset numbering lives there).
+            ELGameInfo.RegisterProtoSubTypes();
+
             var romTypes = Enum.GetValues(typeof(RomType)).Cast<RomType>();
             foreach (var rt in romTypes)
             {
@@ -58,10 +60,6 @@ namespace EmuLibrary
                     Logger.Warn($"Failed to find {nameof(RomTypeInfoAttribute)} for RomType {rt}. Skipping...");
                     continue;
                 }
-
-                // Hook up ProtoInclude on ELGameInfo for each RomType
-                // Starts at field number 10 to not conflict with ELGameInfo's fields
-                RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
 
                 var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { this });
                 if (scanner == null)

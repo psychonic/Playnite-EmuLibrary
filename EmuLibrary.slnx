@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="EmuLibrary.Tests/EmuLibrary.Tests.csproj" />
+  <Project Path="EmuLibrary/EmuLibrary.csproj" />
+</Solution>
