@@ -1,8 +1,10 @@
 ﻿using EmuLibrary.PlayniteCommon;
+using EmuLibrary.Util.ScanCache;
 using IniParser.Model.Configuration;
 using IniParser.Parser;
 using LibHac;
 using LibHac.Common;
+using Newtonsoft.Json;
 using LibHac.Fs;
 using LibHac.FsSystem;
 using LibHac.FsSystem.NcaUtils;
@@ -41,6 +43,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             public FileType FileType;
 
             // From CNMT
+            [JsonIgnore]
             public string TitleIdHex
             {
                 get
@@ -49,6 +52,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                 }
             }
             public ulong TitleId;
+            [JsonIgnore]
             public string BaseTitleIdHex
             {
                 get
@@ -257,12 +261,14 @@ namespace EmuLibrary.RomTypes.Yuzu
         }
 
         private readonly ILogger _logger;
+        private readonly IScanCache _scanCache;
 
-        public Yuzu(string basePath, SwitchEmulator emulator, ILogger logger)
+        public Yuzu(string basePath, SwitchEmulator emulator, ILogger logger, IScanCache scanCache = null)
         {
             BasePath = basePath;
             (_processName, _appDataFolder) = GetEmulatorConfig(emulator);
             _logger = logger;
+            _scanCache = scanCache;
 
             InitKeySet();
         }
@@ -725,10 +731,13 @@ namespace EmuLibrary.RomTypes.Yuzu
             }
 
             var fileEnumerator = new SafeFileEnumerator(installedNcaDir, "*.nca", SearchOption.AllDirectories);
+            var visitedNcaPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var file in fileEnumerator)
             {
                 if (tk.IsCancellationRequested)
                     break;
+
+                visitedNcaPaths.Add(file.FullName);
 
                 using (var ncaFile = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
@@ -737,13 +746,17 @@ namespace EmuLibrary.RomTypes.Yuzu
                         continue;
 
                     ExternalGameFileInfo info = null;
-                    try
+                    var stamp = FileStamp.FromFileSystemInfo(file);
+                    if (_scanCache != null && _scanCache.TryGet<ExternalGameFileInfo>(file.FullName, stamp, out var cachedInstalled))
                     {
-                        info = ProcessInstalledGameFromCmntNca(cnmtNca);
+                        info = cachedInstalled;
                     }
-                    catch
+                    else
                     {
-                        _logger.Warn($"Failed to process installed game from {file.FullName}");
+                        try { info = ProcessInstalledGameFromCmntNca(cnmtNca); }
+                        catch { _logger.Warn($"Failed to process installed game from {file.FullName}"); }
+                        if (info != null && _scanCache != null)
+                            _scanCache.Set(file.FullName, stamp, info);
                     }
 
                     if (info != null)
@@ -755,6 +768,9 @@ namespace EmuLibrary.RomTypes.Yuzu
                     }
                 }
             }
+
+            if (!tk.IsCancellationRequested)
+                _scanCache?.RemoveKeysUnder(installedNcaDir, visitedNcaPaths);
 
             foreach (var k in intermediate.Keys)
             {
@@ -988,20 +1004,33 @@ namespace EmuLibrary.RomTypes.Yuzu
             var intermediate = new Dictionary<ulong, List<ExternalGameFileInfo>>();
 
             var fileEnumerator = new SafeFileEnumerator(path, "*.*", SearchOption.AllDirectories);
+            var visitedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var file in fileEnumerator.Where(f => { return (!f.Attributes.HasFlag(FileAttributes.Directory)) && ValidGameExtensions.Contains(f.Extension); }))
             {
                 if (tk.IsCancellationRequested)
                     break;
 
+                visitedPaths.Add(file.FullName);
+
                 ExternalGameFileInfo extGameInfo = null;
-                try
+                var stamp = FileStamp.FromFileSystemInfo(file);
+                if (_scanCache != null && _scanCache.TryGet<ExternalGameFileInfo>(file.FullName, stamp, out var cached))
                 {
-                    extGameInfo = GetExternalGameFileInfo(file.FullName);
+                    extGameInfo = cached;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.Error(ex, $"Failed to get external game info for {file.FullName}. Skipping...");
+                    try
+                    {
+                        extGameInfo = GetExternalGameFileInfo(file.FullName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, $"Failed to get external game info for {file.FullName}. Skipping...");
+                    }
+                    if (extGameInfo != null && _scanCache != null)
+                        _scanCache.Set(file.FullName, stamp, extGameInfo);
                 }
 
                 if (extGameInfo != null)
@@ -1015,6 +1044,9 @@ namespace EmuLibrary.RomTypes.Yuzu
                     value.Add(extGameInfo);
                 }
             }
+
+            if (!tk.IsCancellationRequested)
+                _scanCache?.RemoveKeysUnder(path, visitedPaths);
 
             foreach (var k in intermediate.Keys)
             {

@@ -1,31 +1,16 @@
-﻿using EmuLibrary.Settings;
-using Newtonsoft.Json;
+using EmuLibrary.Settings;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
-    // TODO: this whole class is crusty and busted, and barely even caches during runtime, let alone persistently. It also caches
-    // some information about installed games, making it not only relevant to the "SourceDir". Leaving as-is for now since it was
-    // functional enough in the separate YuzuLibrary extension before folding into here
-    //
-    // Full rewrite is necessary, keeping in mind caching needs for this RomType as well as others that benefit from a cache
-    //
-    // For this RomType and some others, we source some of our necessary data from the file content, rather than just the file name.
-    // Combined with them being large files, often at a remote location (best case local network over SMB, worst case on future
-    // supported alternative storage type), perf can get bad
-    //
-    // If all of the necessary data is static, consider showing into YuzuGameInfo
     internal class SourceDirCache
     {
         private readonly IEmuLibrary _emuLibrary;
         private readonly EmulatorMapping _mapping;
-        private readonly string _configPath;
+
         public bool IsLoaded { get; private set; }
-
         public Cache TheCache { get; private set; }
-
         public bool IsDirty { get; private set; }
         public void MarkDirty() => IsDirty = true;
 
@@ -33,12 +18,10 @@ namespace EmuLibrary.RomTypes.Yuzu
         {
             _emuLibrary = emuLibrary;
             _mapping = mapping;
-            _configPath = Path.Combine(_emuLibrary.GetPluginUserDataPath(), "sourceCache.json");
 
             IsLoaded = false;
             IsDirty = true;
-
-            Load();
+            TheCache = new Cache();
         }
 
         public void Clear()
@@ -47,29 +30,9 @@ namespace EmuLibrary.RomTypes.Yuzu
             MarkDirty();
         }
 
-        private void Load()
-        {
-            if (File.Exists(_configPath))
-            {
-                TheCache = JsonConvert.DeserializeObject<Cache>(File.ReadAllText(_configPath));
-            }
-            else
-            {
-                TheCache = new Cache();
-                _emuLibrary.Logger.Warn("[CACHE] _cache file not found");
-            }
-
-            IsLoaded = true;
-        }
-
-        public void Save()
-        {
-            File.WriteAllText(_configPath, JsonConvert.SerializeObject(TheCache, Formatting.Indented));
-        }
-
         public void Refresh(CancellationToken tk)
         {
-            var yuzu = new Yuzu(_mapping.EmulatorBasePathResolved, _mapping.SwitchEmulator, _emuLibrary.Logger);
+            var yuzu = new Yuzu(_mapping.EmulatorBasePathResolved, _mapping.SwitchEmulator, _emuLibrary.Logger, _emuLibrary.ScanCache);
 
             var igs = yuzu.GetInstalledGames(tk);
             foreach (var ig in igs)
@@ -116,16 +79,8 @@ namespace EmuLibrary.RomTypes.Yuzu
             // Can be XCI or NSP
             public string ProgramFile { get; set; }
 
-            // What was this for? Just sorting to take best before saving to cache?
-            //[JsonIgnore]
-            //List<string> AllProgramFiles { get; set; }
-
             // Zero or one
             public string UpdateFile { get; set; }
-
-            // What was this for? Just sorting to take best before saving to cache?
-            //[JsonIgnore]
-            //List<string> AllUpdateFiles { get; set; }
 
             // Zero or many
             public List<string> DlcFiles { get; set; }

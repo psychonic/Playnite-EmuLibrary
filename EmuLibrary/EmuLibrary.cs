@@ -1,5 +1,6 @@
 ﻿using EmuLibrary.RomTypes;
 using EmuLibrary.Settings;
+using EmuLibrary.Util.ScanCache;
 using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
@@ -25,6 +26,8 @@ namespace EmuLibrary
         public ILogger Logger => LogManager.GetLogger();
         public IPlayniteAPI Playnite { get; private set; }
         public Settings.Settings Settings { get; private set; }
+        private IScanCache _scanCache;
+        IScanCache IEmuLibrary.ScanCache => _scanCache;
         RomTypeScanner IEmuLibrary.GetScanner(RomType romType) => _scanners[romType];
 
         private const string s_pluginName = "EmuLibrary";
@@ -38,6 +41,10 @@ namespace EmuLibrary
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
             Playnite = api;
+
+            _scanCache = new JsonScanCache(
+                Path.Combine(GetPluginUserDataPath(), "scancache.json"),
+                Logger);
 
             // This must occur before we instantiate the Settings class
             InitializeRomTypeScanners();
@@ -108,44 +115,51 @@ namespace EmuLibrary
                 yield break;
             }
 
-            foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled))
+            try
             {
-                if (args.CancelToken.IsCancellationRequested)
-                    yield break;
-
-                if (mapping.Emulator == null)
+                foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled))
                 {
-                    Logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
-                    continue;
+                    if (args.CancelToken.IsCancellationRequested)
+                        yield break;
+
+                    if (mapping.Emulator == null)
+                    {
+                        Logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
+                        continue;
+                    }
+
+                    if (mapping.EmulatorProfile == null)
+                    {
+                        Logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
+                        continue;
+                    }
+
+                    if (mapping.Platform == null)
+                    {
+                        Logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
+                        continue;
+                    }
+
+                    if (!_scanners.TryGetValue(mapping.RomType, out RomTypeScanner scanner))
+                    {
+                        Logger.Warn($"Rom type {mapping.RomType} not supported, skipping.");
+                        continue;
+                    }
+
+                    foreach (var g in scanner.GetGames(mapping, args))
+                    {
+                        yield return g;
+                    }
                 }
 
-                if (mapping.EmulatorProfile == null)
+                if (Settings.AutoRemoveUninstalledGamesMissingFromSource)
                 {
-                    Logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
-                    continue;
-                }
-
-                if (mapping.Platform == null)
-                {
-                    Logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
-                    continue;
-                }
-
-                if (!_scanners.TryGetValue(mapping.RomType, out RomTypeScanner scanner))
-                {
-                    Logger.Warn($"Rom type {mapping.RomType} not supported, skipping.");
-                    continue;
-                }
-
-                foreach (var g in scanner.GetGames(mapping, args))
-                {
-                    yield return g;
+                    RemoveSuperUninstalledGames(false, args.CancelToken);
                 }
             }
-
-            if (Settings.AutoRemoveUninstalledGamesMissingFromSource)
+            finally
             {
-                RemoveSuperUninstalledGames(false, args.CancelToken);
+                _scanCache.Flush();
             }
         }
 
