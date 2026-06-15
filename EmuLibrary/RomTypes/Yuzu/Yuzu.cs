@@ -66,6 +66,11 @@ namespace EmuLibrary.RomTypes.Yuzu
             // Override with displayversion from NACP if present
             public string DisplayVersion;
 
+            // Uncompressed on-disk footprint of this content unit once installed to NAND: the meta (cnmt) NCA
+            // plus every non-delta content NCA, summed from cnmt entry sizes. NCA sizes are the decompressed
+            // sizes, so NSZ/XCZ compression in the source file does not affect this value.
+            public ulong InstallSize;
+
             // From NACP
             public string TitleName;
             public string Publisher;
@@ -630,6 +635,63 @@ namespace EmuLibrary.RomTypes.Yuzu
             return null;
         }
 
+        // Uncompressed NAND footprint of the content described by a cnmt: the meta NCA itself plus every
+        // non-delta content NCA. The install writes exactly these (see InstallFileToNand), each at its full
+        // decompressed NcaSize, so this matches the on-disk size regardless of NSZ/XCZ source compression.
+        private static ulong ComputeInstallSize(Nca cnmtNca, Cnmt cnmt)
+        {
+            ulong size = (ulong)cnmtNca.Header.NcaSize;
+            foreach (var entry in cnmt.ContentEntries)
+            {
+                if (entry.Type != LibHac.Ncm.ContentType.DeltaFragment)
+                    size += (ulong)entry.Size;
+            }
+            return size;
+        }
+
+        // Total footprint reported for a title: base game + the single latest update + one entry per DLC
+        // title id. Mirrors what the install actually writes (game + latest update + each DLC), so installed
+        // and uninstalled games report the same size.
+        private static ulong SumInstallSize(ExternalGameFileInfo game, ExternalGameFileInfo latestUpdate, IEnumerable<ExternalGameFileInfo> all)
+        {
+            ulong size = game?.InstallSize ?? 0;
+            if (latestUpdate != null)
+                size += latestUpdate.InstallSize;
+            foreach (var dlc in all.Where(x => x.Type == ExternalGameFileType.DLC).GroupBy(x => x.TitleId).Select(g => g.First()))
+                size += dlc.InstallSize;
+            return size;
+        }
+
+        // Reads just the content-meta type and install footprint of one cnmt NCA in a partition, without the
+        // full Control/Program/NACP extraction. Used to size every content unit in a multi-cnmt file.
+        private bool TryReadCnmtSummary(PartitionFileSystem pfs, DirectoryEntryEx fileEntry, out LibHac.Ncm.ContentMetaType type, out ulong installSize)
+        {
+            type = default;
+            installSize = 0;
+
+            pfs.OpenFile(out IFile ncaFile, fileEntry.FullPath, OpenMode.Read).ThrowIfFailure();
+            using (ncaFile)
+            {
+                var cnmtNca = new Nca(KeySet, ncaFile.AsStorage());
+                using (var fs = cnmtNca.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.IgnoreOnInvalid))
+                {
+                    string cnmtPath = fs.EnumerateEntries("/", "*.cnmt").Single().FullPath;
+                    if (fs.OpenFile(out var metaFile, cnmtPath, OpenMode.Read).IsSuccess())
+                    {
+                        using (metaFile)
+                        {
+                            var cnmt = new Cnmt(metaFile.AsStream());
+                            type = cnmt.Type;
+                            installSize = ComputeInstallSize(cnmtNca, cnmt);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private ExternalGameFileInfo ProcessInstalledGameFromCmntNca(Nca cnmtNca)
         {
             var info = new ExternalGameFileInfo();
@@ -650,6 +712,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                         info.TitleId = cnmt.TitleId;
                         info.DisplayVersion = cnmt.TitleVersion.ToString();
                         info.Version = cnmt.TitleVersion.Version;
+                        info.InstallSize = ComputeInstallSize(cnmtNca, cnmt);
                         switch (cnmt.Type)
                         {
                             case LibHac.Ncm.ContentMetaType.Application:
@@ -782,6 +845,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                 cgu.Title = game.TitleName;
                 cgu.Version = latestUpdate?.DisplayVersion ?? game.DisplayVersion;
                 cgu.Publisher = game.Publisher;
+                cgu.InstallSize = SumInstallSize(game, latestUpdate, intermediate[k]);
 
                 cgu.ProgramNcaSubPath = game.LaunchSubPath;
 
@@ -797,6 +861,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             bool haveCnmt = false;
             bool haveNacp = false;
             bool haveProgram = false;
+            ulong totalInstallSize = 0;
 
             var fileInfo = new FileInfo(filePath);
             if (!fileInfo.Exists)
@@ -839,18 +904,46 @@ namespace EmuLibrary.RomTypes.Yuzu
                 {
                     ImportTickets(pfs);
 
-                    var fileEntries = pfs.EnumerateEntries("/", "*").Where(f => { return f.FullPath.ToLower().Contains("cnmt") && Path.GetExtension(f.FullPath).ToLower() == ".nca"; });
-                    if (!fileEntries.Any())
+                    var fileEntries = pfs.EnumerateEntries("/", "*").Where(f => { return f.FullPath.ToLower().Contains("cnmt") && Path.GetExtension(f.FullPath).ToLower() == ".nca"; }).ToList();
+                    if (fileEntries.Count == 0)
                     {
                         _logger.Warn($"Failed to find any cnmt entry. Skipping file \"{filePath}\".");
                         return null;
                     }
-                    else if (fileEntries.Count() > 1)
+
+                    // A file can bundle multiple content units (an "all-in-one" XCI with base + update + DLC,
+                    // each its own cnmt). The install writes all of them, so the install size is the sum of
+                    // every cnmt's footprint. The displayed metadata, however, comes from the base game's
+                    // cnmt, so pick the Application one (falling back to the first) as the primary.
+                    DirectoryEntryEx primaryEntry = null;
+                    bool primaryIsApp = false;
+                    foreach (var ce in fileEntries)
                     {
-                        _logger.Warn($"Found more than one cnmt entry. Using first one found in \"{filePath}\".");
+                        try
+                        {
+                            if (!TryReadCnmtSummary(pfs, ce, out var ceType, out var ceSize))
+                                continue;
+                            totalInstallSize += ceSize;
+                            bool isApp = ceType == LibHac.Ncm.ContentMetaType.Application;
+                            if (primaryEntry == null || (isApp && !primaryIsApp))
+                            {
+                                primaryEntry = ce;
+                                primaryIsApp = isApp;
+                            }
+                        }
+                        catch
+                        {
+                            _logger.Warn($"Failed to read cnmt \"{ce.FullPath}\" in \"{filePath}\". Skipping that content unit.");
+                        }
                     }
 
-                    var fileEntry = fileEntries.First();
+                    if (primaryEntry == null)
+                    {
+                        _logger.Warn($"Failed to read any cnmt entry. Skipping file \"{filePath}\".");
+                        return null;
+                    }
+
+                    var fileEntry = primaryEntry;
 
                     pfs.OpenFile(out IFile ncaFile, fileEntry.FullPath, OpenMode.Read).ThrowIfFailure();
                     using (ncaFile)
@@ -984,6 +1077,10 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (!haveCnmt || (info.Type != ExternalGameFileType.DLC && (!haveNacp || !haveProgram)))
                 return null;
 
+            // Footprint of every content unit bundled in the file (base + any in-file update/DLC), not just
+            // the primary cnmt's.
+            info.InstallSize = totalInstallSize;
+
             return info;
         }
 
@@ -1053,14 +1150,15 @@ namespace EmuLibrary.RomTypes.Yuzu
                 if (game == null)
                     continue;
 
+                var update = intermediate[k].Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
+
                 cgu.TitleId = game.TitleId;
                 cgu.Title = game.TitleName;
                 cgu.Version = game.DisplayVersion;
                 cgu.Publisher = game.Publisher;
+                cgu.InstallSize = SumInstallSize(game, update, intermediate[k]);
 
                 cgu.ProgramFile = game.FilePath;
-
-                var update = intermediate[k].Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
                 if (update != null)
                 {
                     cgu.UpdateFile = update.FilePath;

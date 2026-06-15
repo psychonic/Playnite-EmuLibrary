@@ -78,6 +78,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                     Regions = _switchRegions,
                     Version = g.Version,
+                    InstallSize = g.InstallSize,
                     GameActions = new List<GameAction>()
                     {
                         new GameAction()
@@ -123,6 +124,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     GameId = gameInfo.AsGameId(),
                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
                     Regions = _switchRegions,
+                    InstallSize = g.InstallSize,
                     GameActions = new List<GameAction>() {
                         new GameAction()
                         {

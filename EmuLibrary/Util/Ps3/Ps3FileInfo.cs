@@ -3,6 +3,15 @@ using System;
 
 namespace EmuLibrary.Util.Ps3
 {
+    // A computed per-title install footprint (bytes), cached in IScanCache keyed by a composite stamp over
+    // the title's PKGs. Lets the exact dev_hdd0 union be reused across scans without persisting — or even
+    // re-reading — each PKG's full file manifest; the manifests are held only transiently while one title
+    // is being measured. Serializable for Newtonsoft (public prop, parameterless ctor).
+    internal sealed class Ps3InstallSize
+    {
+        public long Bytes { get; set; }
+    }
+
     // What a single source file represents within a PS3 title.
     internal enum Ps3ContentType
     {

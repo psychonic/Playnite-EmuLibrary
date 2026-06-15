@@ -72,6 +72,9 @@ namespace EmuLibrary.RomTypes.Yuzu
             public string Title { get; set; }
             public string Publisher { get; set; }
             public string Version { get; set; }
+
+            // Uncompressed NAND footprint of base game + latest update + all DLC.
+            public ulong InstallSize { get; set; }
         }
 
         public class CacheGameUninstalled : CacheGameBase

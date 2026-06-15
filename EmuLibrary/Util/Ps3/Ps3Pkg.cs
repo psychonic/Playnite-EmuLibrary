@@ -209,6 +209,22 @@ namespace EmuLibrary.Util.Ps3
             catch (UnauthorizedAccessException) { return false; }
         }
 
+        // Relative install path + extracted size for every non-directory file this package writes into
+        // dev_hdd0. PS3 PKGs are encrypted but not compressed, so DataSize is the exact on-disk size. Paths
+        // are normalized the same way ExtractTo writes them, so a caller can union them across a title's
+        // packages (updates/DLC overwrite same-path files, last writer wins) for an exact combined footprint.
+        // The caller is expected to consume this transiently (per title) and persist only the summed result.
+        public IEnumerable<KeyValuePair<string, long>> GetFileEntries()
+        {
+            foreach (var e in ReadFileTable())
+            {
+                if (e.IsDirectory)
+                    continue;
+                var name = e.Name.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                yield return new KeyValuePair<string, long>(name, e.DataSize);
+            }
+        }
+
         private List<PkgEntry> ReadFileTable()
         {
             if (ItemCount > 0x100000)
