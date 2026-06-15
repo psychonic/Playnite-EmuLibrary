@@ -6,7 +6,6 @@
              x:Class="EmuLibrary.Settings.SettingsView"
              xmlns:sys="clr-namespace:System;assembly=mscorlib" 
              xmlns:elrt="clr-namespace:EmuLibrary.RomTypes"
-             xmlns:elyuzu="clr-namespace:EmuLibrary.RomTypes.Yuzu"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              Padding="2,0,2,4">
@@ -31,13 +30,6 @@
                             MethodName="GetValues">
                                 <ObjectDataProvider.MethodParameters>
                                     <x:Type TypeName="elrt:RomType" />
-                                </ObjectDataProvider.MethodParameters>
-                            </ObjectDataProvider>
-                            <ObjectDataProvider x:Key="SwitchEmulatorValues"
-                            ObjectType="{x:Type sys:Enum}"
-                            MethodName="GetValues">
-                                <ObjectDataProvider.MethodParameters>
-                                    <x:Type TypeName="elyuzu:SwitchEmulator" />
                                 </ObjectDataProvider.MethodParameters>
                             </ObjectDataProvider>
                         </DataGrid.Resources>
@@ -119,23 +111,6 @@
                                         <ComboBox Name="ComboRomTypes" DockPanel.Dock="Left"
                                 ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
                                 SelectedItem="{Binding RomType, Mode=TwoWay}"
-                                >
-                                        </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Switch Emulator" Width="120">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding SwitchEmulator, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox DockPanel.Dock="Left"
-                                ItemsSource="{Binding Source={StaticResource SwitchEmulatorValues}}"
-                                SelectedItem="{Binding SwitchEmulator, Mode=TwoWay}"
                                 >
                                         </ComboBox>
                                     </DataTemplate>

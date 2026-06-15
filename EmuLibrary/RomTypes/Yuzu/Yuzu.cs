@@ -79,14 +79,11 @@ namespace EmuLibrary.RomTypes.Yuzu
         private readonly string _processName;
         private readonly string _appDataFolder;
 
-        private static (string processName, string appDataFolder) GetEmulatorConfig(SwitchEmulator emulator)
+        private static (string processName, string appDataFolder) GetEmulatorConfig(string basePath)
         {
-            switch (emulator)
-            {
-                case SwitchEmulator.Eden:      return ("eden", "eden");
-                case SwitchEmulator.CitronNeo: return ("citron", "Citron");
-                default:                       return ("yuzu", "yuzu");
-            }
+            if (File.Exists(Path.Combine(basePath, "eden.exe")))    return ("eden", "eden");
+            if (File.Exists(Path.Combine(basePath, "citron.exe")))  return ("citron", "Citron");
+            return ("yuzu", "yuzu");
         }
 
         public string UserPath
@@ -263,10 +260,10 @@ namespace EmuLibrary.RomTypes.Yuzu
         private readonly ILogger _logger;
         private readonly IScanCache _scanCache;
 
-        public Yuzu(string basePath, SwitchEmulator emulator, ILogger logger, IScanCache scanCache = null)
+        public Yuzu(string basePath, ILogger logger, IScanCache scanCache = null)
         {
             BasePath = basePath;
-            (_processName, _appDataFolder) = GetEmulatorConfig(emulator);
+            (_processName, _appDataFolder) = GetEmulatorConfig(basePath);
             _logger = logger;
             _scanCache = scanCache;
 

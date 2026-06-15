@@ -49,7 +49,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (!Directory.Exists(mapping.EmulatorBasePathResolved))
                 yield break;
 
-            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, mapping.SwitchEmulator, _emuLibrary.Logger, _emuLibrary.ScanCache);
+            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache);
 
             #region Import "installed" games
             foreach (var g in mappingCache.TheCache.InstalledGames.Values)
