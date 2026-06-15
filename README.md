@@ -41,11 +41,45 @@ The Yuzu type supports Nintendo Switch emulators that share Yuzu's architecture:
 
 To add a functional mapping, select the appropriate emulator in the dropdown, then set the Playnite emulator entry to match (it does not need to be a built-in listing; custom entries work fine). In the source path, loose XCI/NSP/XCZ/NSZ files in the root of the path are considered.
 
+Unlike the SingleFile/MultiFile types, this type scans by its own fixed list of formats (XCI/NSP/XCZ/NSZ) rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined.
+
 NSP/NSZ files can also be updates and DLC, rather than just games. Unlike with Tinfoil shares, files are not required to include the title id in the filename. Additionally, while destination path must point to a folder that exists, the setting is ignored. Games install into the NAND directory configured in the selected emulator profile.
 
 When a game is installed, the latest update and any DLC from the source will also be installed to the emulator's NAND, in that order (Game, Update if available, each available DLC). Games already installed will be imported, whether or not they exist in the source folder, and will display as installed. As expected, uninstalling a game will remove the game from the NAND. (While these emulators do not support XCZ or NSZ files for launching or installing to NAND, this plugin installs directly to the NAND, without relying on the emulator's built-in install functionality)
 
-#### Known Issues
+### PS3 (Beta)
+
+The PS3 type adds support for PlayStation 3 games run under [RPCS3](https://rpcs3.net). It has a beta level of quality of support. Select RPCS3 as the emulator for the mapping (built-in or custom).
+
+Like the Yuzu type, this type scans by its own format logic (`.iso`/`.pkg`/`.rap`) rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined — RPCS3's built-in profile declares none, and that is fine.
+
+Unlike the other types, a PS3 "game" is a **composite**: a base (either a disc image or a downloadable PKG game) plus any number of update PKGs, DLC PKGs, and RAP license files. The scanner treats **each immediate subfolder of the source path as one title**, and the recommended layout groups a title's content together:
+
+```
+<SourcePath>/
+  BLES01234 - Demon's Souls/
+    BLES01234 - Demon's Souls.iso        # encrypted disc image
+    BLES01234 - Demon's Souls.dkey       # disc key (matching basename — required by RPCS3)
+    updates/  <patch>.pkg ...            # installed in APP_VER order (from each PKG, never the filename)
+    dlc/      <dlc>.pkg ...
+    licenses/ EP0001-BLES01234_00-DLC0001.rap   # filename is the content-id
+  NPUB30001 - Some PSN Game/
+    NPUB30001 - Some PSN Game.pkg        # PKG base game (no disc image)
+    updates/ ...
+    dlc/ ...
+    licenses/ ...
+```
+
+The `updates/`, `dlc/`, and `licenses/` subfolders are optional and case-insensitive. The scanner is tolerant of looser layouts too — PKGs are classified by their own metadata (the PKG patch flag plus PARAM.SFO fields), so a PKG dropped anywhere under the title folder is still categorized correctly; the subfolder name is used as an additional hint.
+
+Installing a title can touch two destinations:
+
+* **Disc bases** (an encrypted `.iso` plus its matching `.dkey`, or a decrypted `.iso`/`PS3_GAME` folder) are copied to the mapping's **destination path**. The `.dkey` sidecar is copied alongside the image so RPCS3 can load the encrypted ISO directly — there is no decrypt-on-install step.
+* **PKG content** (a PKG base game, updates, and DLC) is decrypted and extracted natively into RPCS3's `dev_hdd0/game/<TITLE_ID>` (under the selected emulator's install directory). Updates are applied in ascending `APP_VER` order. RAP licenses are copied into `dev_hdd0/home/00000001/exdata`.
+
+Both halves are handled in-process — RPCS3 is not invoked to install anything. Uninstalling removes the copied disc image/folder and/or the `dev_hdd0/game/<TITLE_ID>` directory; save data (which RPCS3 stores elsewhere) is left untouched.
+
+### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.
 * If the mapping is disabled or if EmuLibrary update is cancelled before the scan for the mapping completes, game installation for the mapping's games may result in an error message. This will be fixed in a later version of this addon.

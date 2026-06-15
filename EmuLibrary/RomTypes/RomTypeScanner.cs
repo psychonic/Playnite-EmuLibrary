@@ -17,6 +17,12 @@ namespace EmuLibrary.RomTypes
 
         public abstract RomType RomType { get; }
 
+        // Whether scanning a mapping of this RomType relies on the emulator profile's configured image
+        // extensions. SingleFile/MultiFile enumerate the source by these extensions and so require at
+        // least one. Types that scan by their own format logic (Yuzu, PS3) ignore them, and some
+        // emulator profiles (e.g. RPCS3) declare none, so those override this to false.
+        public virtual bool RequiresProfileImageExtensions => true;
+
         public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo);
         public virtual LegacySettingsMigrationResult MigrateLegacyPluginSettings(Plugin plugin, out EmulatorMapping mapping)
         {

@@ -9,7 +9,12 @@ namespace EmuLibrary.Util.ScanCache
     internal sealed class JsonScanCache : IScanCache
     {
         // Bump to invalidate ALL cached data after an incompatible change to entry shapes.
-        private const int CurrentFormatVersion = 1;
+        // v2: added InstallSize (Yuzu ExternalGameFileInfo) and ExtractedSize (Ps3FileInfo).
+        // v3: Ps3 caches a per-title install size (Ps3InstallSize); Ps3FileInfo no longer stores a manifest.
+        // v4: Ps3Pkg read the AES-CTR IV from the wrong header offset (0x60 instead of 0x70), so every PKG
+        //     scanned by an earlier build cached empty PARAM.SFO fields and a wrong classification. Bump to
+        //     discard those poisoned entries and force a re-read with the corrected decrypt.
+        private const int CurrentFormatVersion = 4;
 
         private sealed class Entry
         {
@@ -126,14 +131,19 @@ namespace EmuLibrary.Util.ScanCache
                 try
                 {
                     var store = new Store { Version = CurrentFormatVersion, Entries = _entries };
-                    var json = JsonConvert.SerializeObject(store, Formatting.Indented);
 
                     var dir = Path.GetDirectoryName(_path);
                     if (!string.IsNullOrEmpty(dir))
                         Directory.CreateDirectory(dir);
 
+                    // Stream straight to the file. Serializing the whole store to a single string first
+                    // builds one giant (Large Object Heap) string, which can OutOfMemory on a large cache.
+                    var serializer = new JsonSerializer();
                     var tmp = _path + ".tmp";
-                    File.WriteAllText(tmp, json);
+                    using (var sw = new StreamWriter(tmp, false))
+                    using (var jw = new JsonTextWriter(sw))
+                        serializer.Serialize(jw, store);
+
                     if (File.Exists(_path))
                         File.Replace(tmp, _path, null);
                     else

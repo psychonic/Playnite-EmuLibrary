@@ -21,6 +21,11 @@
     <PackageReference Include="PlayniteSDK" Version="6.16.0" />
     <PackageReference Include="protobuf-net" Version="3.1.25" />
     <PackageReference Include="System.IO.Abstractions" Version="2.1.0.227" />
+    <!-- Match the YamlDotNet that Playnite bundles (assembly version 5.0.0.0; the 5.x packages all share
+         it). Playnite ships its own copy and the Toolbox strips ours from the .pext
+         (ExtensionsRefIgnoreList.txt), so the plugin loads Playnite's at runtime — referencing a different
+         assembly version fails with a FileNotFoundException. -->
+    <PackageReference Include="YamlDotNet" Version="5.4.0" />
     <PackageReference Include="ZstdSharp.Port" Version="0.6.5" />
   </ItemGroup>
 	

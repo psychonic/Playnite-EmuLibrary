@@ -9,6 +9,9 @@
         [RomTypeInfo(typeof(MultiFile.MultiFileGameInfo), typeof(MultiFile.MultiFileScanner))]
         MultiFile = 1,
 
+        [RomTypeInfo(typeof(Ps3.Ps3GameInfo), typeof(Ps3.Ps3Scanner))]
+        Ps3 = 2,
+
         [RomTypeInfo(typeof(Yuzu.YuzuGameInfo), typeof(Yuzu.YuzuScanner))]
         Yuzu = 4,
     }

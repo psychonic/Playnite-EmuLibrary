@@ -145,7 +145,9 @@ namespace EmuLibrary.Settings
 
             Mappings.Where(m => m.Enabled)?.ForEach(m =>
             {
-                if (m.ImageExtensionsLower == null || !m.ImageExtensionsLower.Any())
+                var scanner = EmuLibrary.GetScanner(m.RomType);
+                if ((scanner?.RequiresProfileImageExtensions ?? true)
+                    && (m.ImageExtensionsLower == null || !m.ImageExtensionsLower.Any()))
                 {
                     mappingErrors.Add($"{m.MappingId}: No image extensions specified for profile {m.EmulatorProfile.Name} with emulator {m.Emulator.Name}. There is nothing for EmuLibrary to scan.");
                 }

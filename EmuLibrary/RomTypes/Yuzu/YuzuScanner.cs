@@ -16,6 +16,10 @@ namespace EmuLibrary.RomTypes.Yuzu
         public override RomType RomType => RomType.Yuzu;
         public override Guid LegacyPluginId => Guid.Parse("545C782C-5478-4B8B-8986-88911D96C420");
 
+        // Yuzu scans by its own hardcoded format list (.xci/.xcz/.nsp/.nsz, see ValidGameExtensions),
+        // never the emulator profile's image extensions, so don't require any to be configured.
+        public override bool RequiresProfileImageExtensions => false;
+
         private readonly Dictionary<Guid, SourceDirCache> _mappingCaches;
 
         // While some games are sold under different title ids in different regions and/or with different language support, this is mostly
