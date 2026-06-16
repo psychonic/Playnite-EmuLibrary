@@ -662,11 +662,13 @@ namespace EmuLibrary.RomTypes.Yuzu
             return size;
         }
 
-        // Reads just the content-meta type and install footprint of one cnmt NCA in a partition, without the
-        // full Control/Program/NACP extraction. Used to size every content unit in a multi-cnmt file.
-        private bool TryReadCnmtSummary(PartitionFileSystem pfs, DirectoryEntryEx fileEntry, out LibHac.Ncm.ContentMetaType type, out ulong installSize)
+        // Parses one cnmt NCA in a partition into its (self-contained) Cnmt and computes its install
+        // footprint, without the full Control/Program/NACP extraction. Used to size every content unit in a
+        // multi-cnmt file and to hand the primary unit's already-parsed Cnmt back to the caller, so it isn't
+        // opened and parsed a second time. The returned Cnmt stays valid after the NCA streams are disposed.
+        private bool TryReadCnmt(PartitionFileSystem pfs, DirectoryEntryEx fileEntry, out Cnmt cnmt, out ulong installSize)
         {
-            type = default;
+            cnmt = null;
             installSize = 0;
 
             pfs.OpenFile(out IFile ncaFile, fileEntry.FullPath, OpenMode.Read).ThrowIfFailure();
@@ -680,8 +682,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     {
                         using (metaFile)
                         {
-                            var cnmt = new Cnmt(metaFile.AsStream());
-                            type = cnmt.Type;
+                            cnmt = new Cnmt(metaFile.AsStream());
                             installSize = ComputeInstallSize(cnmtNca, cnmt);
                             return true;
                         }
@@ -728,42 +729,43 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                         if (info.Type != ExternalGameFileType.DLC)
                         {
+                            // entry.Type already classifies each content unit, so the Program NCA's path comes
+                            // from its NcaId without opening it, and Data/logo/legal NCAs are skipped entirely.
+                            // Only the Control NCA is opened (for the NACP).
                             foreach (var entry in cnmt.ContentEntries)
                             {
-                                if (entry.Type != LibHac.Ncm.ContentType.DeltaFragment)
+                                if (entry.Type == LibHac.Ncm.ContentType.Program)
                                 {
-                                    var ncaPathOther = Path.Combine(new string[] { NandPath, "user", "Contents", "registered", GetRelativePathFromNcaId(entry.NcaId) });
-                                    using (var ncaFileOther = File.Open(ncaPathOther, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                    {
-                                        var ncaOther = new Nca(KeySet, ncaFileOther.AsStorage());
-                                        switch (ncaOther.Header.ContentType)
-                                        {
-                                            case NcaContentType.Control:
-                                                var cfs = ncaOther.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
-                                                cfs.OpenFile(out IFile controlFile, "/control.nacp", OpenMode.Read);
-                                                using (controlFile)
-                                                {
-                                                    var nacp = new BlitStruct<ApplicationControlProperty>(1);
-                                                    controlFile.Read(out _, 0, nacp.ByteSpan, ReadOption.None);
+                                    haveProgram = true;
+                                    info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
+                                    continue;
+                                }
 
-                                                    haveNacp = true;
-                                                    info.TitleName = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Name.ToString().IsNullOrWhiteSpace()).Name.ToString();
-                                                    if (info.TitleName.IsNullOrWhiteSpace())
-                                                    {
-                                                        _logger.Warn("Empty title name");
-                                                    }
-                                                    info.Publisher = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Publisher.ToString().IsNullOrWhiteSpace()).Publisher.ToString();
-                                                    var displayVersion = nacp.Value.DisplayVersion.ToString();
-                                                    if (!displayVersion.IsNullOrWhiteSpace())
-                                                    {
-                                                        info.DisplayVersion = displayVersion;
-                                                    }
-                                                }
-                                                break;
-                                            case NcaContentType.Program:
-                                                haveProgram = true;
-                                                info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\'); ;
-                                                break;
+                                if (entry.Type != LibHac.Ncm.ContentType.Control)
+                                    continue;
+
+                                var ncaPathOther = Path.Combine(new string[] { NandPath, "user", "Contents", "registered", GetRelativePathFromNcaId(entry.NcaId) });
+                                using (var ncaFileOther = File.Open(ncaPathOther, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                {
+                                    var ncaOther = new Nca(KeySet, ncaFileOther.AsStorage());
+                                    var cfs = ncaOther.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
+                                    cfs.OpenFile(out IFile controlFile, "/control.nacp", OpenMode.Read);
+                                    using (controlFile)
+                                    {
+                                        var nacp = new BlitStruct<ApplicationControlProperty>(1);
+                                        controlFile.Read(out _, 0, nacp.ByteSpan, ReadOption.None);
+
+                                        haveNacp = true;
+                                        info.TitleName = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Name.ToString().IsNullOrWhiteSpace()).Name.ToString();
+                                        if (info.TitleName.IsNullOrWhiteSpace())
+                                        {
+                                            _logger.Warn("Empty title name");
+                                        }
+                                        info.Publisher = nacp.Value.Titles.ToArray().FirstOrDefault(t => !t.Publisher.ToString().IsNullOrWhiteSpace()).Publisher.ToString();
+                                        var displayVersion = nacp.Value.DisplayVersion.ToString();
+                                        if (!displayVersion.IsNullOrWhiteSpace())
+                                        {
+                                            info.DisplayVersion = displayVersion;
                                         }
                                     }
                                 }
@@ -919,20 +921,21 @@ namespace EmuLibrary.RomTypes.Yuzu
                     // A file can bundle multiple content units (an "all-in-one" XCI with base + update + DLC,
                     // each its own cnmt). The install writes all of them, so the install size is the sum of
                     // every cnmt's footprint. The displayed metadata, however, comes from the base game's
-                    // cnmt, so pick the Application one (falling back to the first) as the primary.
-                    DirectoryEntryEx primaryEntry = null;
+                    // cnmt, so pick the Application one (falling back to the first) as the primary, keeping its
+                    // already-parsed Cnmt so it isn't re-opened and re-parsed below.
+                    Cnmt cnmt = null;
                     bool primaryIsApp = false;
                     foreach (var ce in fileEntries)
                     {
                         try
                         {
-                            if (!TryReadCnmtSummary(pfs, ce, out var ceType, out var ceSize))
+                            if (!TryReadCnmt(pfs, ce, out var ceCnmt, out var ceSize))
                                 continue;
                             totalInstallSize += ceSize;
-                            bool isApp = ceType == LibHac.Ncm.ContentMetaType.Application;
-                            if (primaryEntry == null || (isApp && !primaryIsApp))
+                            bool isApp = ceCnmt.Type == LibHac.Ncm.ContentMetaType.Application;
+                            if (cnmt == null || (isApp && !primaryIsApp))
                             {
-                                primaryEntry = ce;
+                                cnmt = ceCnmt;
                                 primaryIsApp = isApp;
                             }
                         }
@@ -942,136 +945,121 @@ namespace EmuLibrary.RomTypes.Yuzu
                         }
                     }
 
-                    if (primaryEntry == null)
+                    if (cnmt == null)
                     {
                         _logger.Warn($"Failed to read any cnmt entry. Skipping file \"{filePath}\".");
                         return null;
                     }
 
-                    var fileEntry = primaryEntry;
-
-                    pfs.OpenFile(out IFile ncaFile, fileEntry.FullPath, OpenMode.Read).ThrowIfFailure();
-                    using (ncaFile)
+                    haveCnmt = true;
+                    info.BaseTitleId = cnmt.ApplicationTitleId;
+                    info.TitleId = cnmt.TitleId;
+                    info.DisplayVersion = cnmt.TitleVersion.ToString();
+                    info.Version = cnmt.TitleVersion.Version;
+                    switch (cnmt.Type)
                     {
-                        var cnmtNca = new Nca(KeySet, ncaFile.AsStorage());
-                        using (var fs = cnmtNca.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.IgnoreOnInvalid))
+                        case LibHac.Ncm.ContentMetaType.Application:
+                            info.Type = ExternalGameFileType.Game;
+                            break;
+                        case LibHac.Ncm.ContentMetaType.Patch:
+                            info.Type = ExternalGameFileType.Update;
+                            break;
+                        case LibHac.Ncm.ContentMetaType.AddOnContent:
+                            info.Type = ExternalGameFileType.DLC;
+                            break;
+                    }
+
+                    if (info.Type != ExternalGameFileType.DLC)
+                    {
+                        // The cnmt already classifies each content unit, so the Program NCA's launch path is
+                        // derivable from its NcaId without opening it, and Data/logo/legal NCAs need not be
+                        // opened at all. Only the Control NCA is read (for the NACP title/publisher/version).
+                        foreach (var entry in cnmt.ContentEntries.Where(e => e.Type != LibHac.Ncm.ContentType.DeltaFragment))
                         {
-                            string cnmtPath = fs.EnumerateEntries("/", "*.cnmt").Single().FullPath;
-                            if (fs.OpenFile(out var metaFile, cnmtPath, OpenMode.Read).IsSuccess())
+                            if (entry.Type == LibHac.Ncm.ContentType.Program)
                             {
-                                using (metaFile)
+                                haveProgram = true;
+                                info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
+                                continue;
+                            }
+
+                            if (entry.Type != LibHac.Ncm.ContentType.Control)
+                                continue;
+
+                            bool isNcz = false;
+                            var ncaOtherFileName = string.Format("{0}.nca", BitConverter.ToString(entry.NcaId).Replace("-", "").ToLower());
+                            if (!pfs.FileExists(ncaOtherFileName))
+                            {
+                                // If file exists but with ncz, that's not worth logging. The data is there, just not readable directly.
+                                // However, do log if it's completely missing. (Corrupt PFS?)
+                                var altName = ncaOtherFileName.Replace(".nca", ".ncz");
+                                if (pfs.FileExists(altName))
                                 {
-                                    var cnmt = new Cnmt(metaFile.AsStream());
-                                    haveCnmt = true;
-                                    info.BaseTitleId = cnmt.ApplicationTitleId;
-                                    info.TitleId = cnmt.TitleId;
-                                    info.DisplayVersion = cnmt.TitleVersion.ToString();
-                                    info.Version = cnmt.TitleVersion.Version;
-                                    switch (cnmt.Type)
-                                    {
-                                        case LibHac.Ncm.ContentMetaType.Application:
-                                            info.Type = ExternalGameFileType.Game;
-                                            break;
-                                        case LibHac.Ncm.ContentMetaType.Patch:
-                                            info.Type = ExternalGameFileType.Update;
-                                            break;
-                                        case LibHac.Ncm.ContentMetaType.AddOnContent:
-                                            info.Type = ExternalGameFileType.DLC;
-                                            break;
-                                    }
+                                    ncaOtherFileName = altName;
+                                    isNcz = true;
+                                }
+                                else
+                                {
+                                    _logger.Warn($"Failed to find NCA file \"{ncaOtherFileName}\" in \"{filePath}\". Skipping...");
+                                }
+                            }
 
-                                    if (info.Type != ExternalGameFileType.DLC)
-                                    {
-                                        foreach (var entry in cnmt.ContentEntries.Where(e => e.Type != LibHac.Ncm.ContentType.DeltaFragment))
-                                        {
-                                            bool isNcz = false;
-                                            var ncaOtherFileName = string.Format("{0}.nca", BitConverter.ToString(entry.NcaId).Replace("-", "").ToLower());
-                                            if (!pfs.FileExists(ncaOtherFileName))
-                                            {
-                                                // If file exists but with ncz, that's not worth logging. The data is there, just not readable directly.
-                                                // However, do log if it's completely missing. (Corrupt PFS?)
-                                                var altName = ncaOtherFileName.Replace(".nca", ".ncz");
-                                                if (pfs.FileExists(altName))
-                                                {
-                                                    ncaOtherFileName = altName;
-                                                    isNcz = true;
-                                                }
-                                                else
-                                                {
-                                                    _logger.Warn($"Failed to find NCA file \"{ncaOtherFileName}\" in \"{filePath}\". Skipping...");
-                                                }
-                                            }
+                            if (isNcz)
+                            {
+                                // This shouldn't happen. XCZ/NSZ files typically don't use NCZ for control NCA
+                                _logger.Warn($"Control NCA is inside NCZ for \"{filePath}\". Cannot look up NACP data.");
+                                info.TitleName = fileInfo.Extension.Length > 0 ? fileInfo.Name.Remove(fileInfo.Name.Length - fileInfo.Extension.Length) : fileInfo.Name;
+                                info.Publisher = "";
+                                info.DisplayVersion = "";
+                                continue;
+                            }
 
-                                            pfs.OpenFile(out var ncaFileOther, ncaOtherFileName, OpenMode.Read).ThrowIfFailure();
-                                            using (ncaFileOther)
-                                            {
-                                                var ncaOther = new Nca(KeySet, ncaFileOther.AsStorage());
-                                                switch (ncaOther.Header.ContentType)
-                                                {
-                                                    case NcaContentType.Control:
-                                                        if (isNcz)
-                                                        {
-                                                            // This shouldn't happen. XCZ/NSZ files typically don't use NCZ for control NCA
-                                                            _logger.Warn($"Control NCA is inside NCZ for \"{filePath}\". Cannot look up NACP data.");
-                                                            info.TitleName = fileInfo.Extension.Length > 0 ? fileInfo.Name.Remove(fileInfo.Name.Length - fileInfo.Extension.Length) : fileInfo.Name;
-                                                            info.Publisher = "";
-                                                            info.DisplayVersion = "";
-                                                            continue;
-                                                        }
+                            pfs.OpenFile(out var ncaFileOther, ncaOtherFileName, OpenMode.Read).ThrowIfFailure();
+                            using (ncaFileOther)
+                            {
+                                var ncaOther = new Nca(KeySet, ncaFileOther.AsStorage());
+                                var cfs = ncaOther.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
+                                cfs.OpenFile(out IFile controlFile, "/control.nacp", OpenMode.Read);
 
-                                                        var cfs = ncaOther.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
-                                                        cfs.OpenFile(out IFile controlFile, "/control.nacp", OpenMode.Read);
+                                var nacp = new BlitStruct<ApplicationControlProperty>(1);
+                                controlFile.Read(out long nacpReadCnt, 0, nacp.ByteSpan, ReadOption.None);
 
-                                                        var nacp = new BlitStruct<ApplicationControlProperty>(1);
-                                                        controlFile.Read(out long nacpReadCnt, 0, nacp.ByteSpan, ReadOption.None);
+                                if (nacpReadCnt != nacp.ByteSpan.Length)
+                                {
+                                    _logger.Warn($"Failed to read NACP data for \"{filePath}\". Skipping...");
+                                    continue;
+                                }
 
-                                                        if (nacpReadCnt != nacp.ByteSpan.Length)
-                                                        {
-                                                            _logger.Warn($"Failed to read NACP data for \"{filePath}\". Skipping...");
-                                                            continue;
-                                                        }
+                                haveNacp = true;
+                                // (first is American English, then British English, and then fall back to any)
+                                var titlesArr = nacp.Value.Titles.ToArray();
+                                var nameToUse = titlesArr.Select(t =>
+                                {
+                                    return t.Name.ToString();
+                                }).FirstOrDefault(t =>
+                                {
+                                    return !t.IsNullOrWhiteSpace();
+                                });
+                                info.TitleName = nameToUse;
 
+                                if (info.TitleName.IsNullOrWhiteSpace())
+                                {
+                                    _logger.Warn("Empty title name");
+                                }
+                                var publisherToUse = titlesArr.Select(p =>
+                                {
+                                    return p.Publisher.ToString();
+                                }).FirstOrDefault(p =>
+                                {
+                                    return p.IsNullOrWhiteSpace();
+                                });
 
-                                                        haveNacp = true;
-                                                        // (first is American English, then British English, and then fall back to any)
-                                                        var titlesArr = nacp.Value.Titles.ToArray();
-                                                        var nameToUse = titlesArr.Select(t =>
-                                                        {
-                                                            return t.Name.ToString();
-                                                        }).FirstOrDefault(t =>
-                                                        {
-                                                            return !t.IsNullOrWhiteSpace();
-                                                        });
-                                                        info.TitleName = nameToUse;
+                                info.Publisher = publisherToUse;
 
-                                                        if (info.TitleName.IsNullOrWhiteSpace())
-                                                        {
-                                                            _logger.Warn("Empty title name");
-                                                        }
-                                                        var publisherToUse = titlesArr.Select(p =>
-                                                        {
-                                                            return p.Publisher.ToString();
-                                                        }).FirstOrDefault(p =>
-                                                        {
-                                                            return p.IsNullOrWhiteSpace();
-                                                        });
-
-                                                        info.Publisher = publisherToUse;
-
-                                                        var displayVersion = nacp.Value.DisplayVersion.ToString();
-                                                        if (!displayVersion.IsNullOrWhiteSpace())
-                                                        {
-                                                            info.DisplayVersion = displayVersion;
-                                                        }
-                                                        break;
-                                                    case NcaContentType.Program:
-                                                        haveProgram = true;
-                                                        info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
-                                                        break;
-                                                }
-                                            }
-                                        }
-                                    }
+                                var displayVersion = nacp.Value.DisplayVersion.ToString();
+                                if (!displayVersion.IsNullOrWhiteSpace())
+                                {
+                                    info.DisplayVersion = displayVersion;
                                 }
                             }
                         }
