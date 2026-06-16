@@ -23,6 +23,12 @@ namespace EmuLibrary.RomTypes
         // emulator profiles (e.g. RPCS3) declare none, so those override this to false.
         public virtual bool RequiresProfileImageExtensions => true;
 
+        // Whether installing a mapping of this RomType uses the configured DestinationPath. SingleFile and
+        // MultiFile copy the ROM there, and PS3 copies disc images there. Yuzu installs directly into the
+        // emulator's NAND and ignores DestinationPath, so it overrides this to false — the settings UI then
+        // disables the destination column for the mapping and the value isn't validated.
+        public virtual bool RequiresDestinationPath => true;
+
         public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo);
         public virtual LegacySettingsMigrationResult MigrateLegacyPluginSettings(Plugin plugin, out EmulatorMapping mapping)
         {

@@ -50,7 +50,19 @@ namespace EmuLibrary.Settings
 
         public string SourcePath { get; set; }
         public string DestinationPath { get; set; }
-        public RomType RomType { get; set; }
+
+        private RomType _romType;
+        public RomType RomType
+        {
+            get => _romType;
+            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath) });
+        }
+
+        // False for RomTypes that install into the emulator (e.g. Yuzu) and so don't use DestinationPath. The
+        // settings UI binds this to disable the destination column, and VerifySettings skips validating it.
+        [JsonIgnore]
+        [XmlIgnore]
+        public bool SupportsDestinationPath => Settings.Instance?.EmuLibrary?.GetScanner(RomType)?.RequiresDestinationPath ?? true;
 
         public static IEnumerable<Emulator> AvailableEmulators => Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
 

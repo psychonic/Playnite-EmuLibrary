@@ -20,6 +20,9 @@ namespace EmuLibrary.RomTypes.Yuzu
         // never the emulator profile's image extensions, so don't require any to be configured.
         public override bool RequiresProfileImageExtensions => false;
 
+        // Yuzu installs into the emulator's NAND and ignores DestinationPath, so it isn't required.
+        public override bool RequiresDestinationPath => false;
+
         private readonly Dictionary<Guid, SourceDirCache> _mappingCaches;
 
         // While some games are sold under different title ids in different regions and/or with different language support, this is mostly

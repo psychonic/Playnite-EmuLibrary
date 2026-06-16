@@ -40,6 +40,11 @@ namespace EmuLibrary.Settings
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+            if (mapping == null || !mapping.SupportsDestinationPath)
+            {
+                return;
+            }
+
             string path;
             if ((path = GetSelectedFolderPath()) != null)
             {

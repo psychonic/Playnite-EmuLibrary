@@ -133,12 +133,33 @@
                             <DataGridTemplateColumn Header="Destination Path" Width="180"  >
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock x:Name="Path"  Text="{Binding Path=DestinationPath,UpdateSourceTrigger=PropertyChanged}" />
+                                        <Grid>
+                                            <TextBlock x:Name="Path" Text="{Binding Path=DestinationPath,UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock x:Name="NotApplicable" Text="N/A (not used)" FontStyle="Italic" Foreground="Gray" Visibility="Collapsed" />
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding SupportsDestinationPath}" Value="False">
+                                                <Setter TargetName="Path" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="NotApplicable" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                                 <DataGridTemplateColumn.CellEditingTemplate>
                                     <DataTemplate>
-                                        <Button Name="Browse" Click="Click_BrowseDestination" ></Button>
+                                        <Button Name="Browse" Click="Click_BrowseDestination" Content="Browse..." >
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SupportsDestinationPath}" Value="False">
+                                                            <Setter Property="IsEnabled" Value="False" />
+                                                            <Setter Property="Content" Value="N/A" />
+                                                            <Setter Property="ToolTip" Value="This ROM type installs into the emulator and does not use a destination path." />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
