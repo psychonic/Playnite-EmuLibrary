@@ -122,6 +122,18 @@ namespace EmuLibrary.Util.ScanCache
             }
         }
 
+        public void Clear()
+        {
+            lock (_lock)
+            {
+                if (_entries.Count == 0)
+                    return;
+                _entries.Clear();
+                _dirty = true;
+            }
+            Flush();
+        }
+
         public void Flush()
         {
             lock (_lock)

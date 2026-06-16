@@ -15,6 +15,9 @@ namespace EmuLibrary.Util.ScanCache
         // Only call after a completed (non-cancelled) scan of the directory.
         void RemoveKeysUnder(string directoryPrefix, ISet<string> visitedKeys);
 
+        // Drop every cached entry and persist the now-empty cache to disk.
+        void Clear();
+
         // Persist to disk if anything changed since last flush. Safe to call when nothing changed.
         void Flush();
     }

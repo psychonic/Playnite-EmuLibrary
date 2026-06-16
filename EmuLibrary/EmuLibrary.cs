@@ -200,6 +200,26 @@ namespace EmuLibrary
                 Description = "Remove uninstalled games with missing source file...",
                 MenuSection = "EmuLibrary"
             };
+            yield return new MainMenuItem()
+            {
+                Action = (arags) => ClearScanCache(),
+                Description = "Clear scan cache",
+                MenuSection = "EmuLibrary"
+            };
+        }
+
+        private void ClearScanCache()
+        {
+            try
+            {
+                _scanCache.Clear();
+                Playnite.Dialogs.ShowMessage("Scan cache cleared. It will be rebuilt on the next library update.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to clear scan cache.");
+                Playnite.Dialogs.ShowErrorMessage($"Failed to clear scan cache: {ex.Message}", "EmuLibrary");
+            }
         }
 
         public override IEnumerable<GameMenuItem> GetGameMenuItems(GetGameMenuItemsArgs args)
