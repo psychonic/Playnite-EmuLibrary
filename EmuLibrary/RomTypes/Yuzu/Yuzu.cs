@@ -841,7 +841,10 @@ namespace EmuLibrary.RomTypes.Yuzu
                 if (game == null)
                     continue;
 
-                var latestUpdate = intermediate[k].Where(x => x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
+                var latestUpdate = CompositeContent.SelectUpdatesToInstall(
+                    intermediate[k].Where(x => x.Type == ExternalGameFileType.Update),
+                    UpdateInstallStrategy.InstallLatestUpdateOnly,
+                    x => x.Version).FirstOrDefault();
 
                 cgu.TitleId = game.TitleId;
                 cgu.Name = game.TitleName;
@@ -1152,7 +1155,10 @@ namespace EmuLibrary.RomTypes.Yuzu
                 if (game == null)
                     continue;
 
-                var update = intermediate[k].Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
+                var update = CompositeContent.SelectUpdatesToInstall(
+                    intermediate[k].Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.Update),
+                    UpdateInstallStrategy.InstallLatestUpdateOnly,
+                    x => x.Version).FirstOrDefault();
 
                 cgu.TitleId = game.TitleId;
                 cgu.Name = game.TitleName;

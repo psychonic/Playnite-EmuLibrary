@@ -35,8 +35,10 @@ namespace EmuLibrary.RomTypes.Ps3
             _emuLibrary = emuLibrary;
         }
 
-        // In-memory composite for a single PS3 title (re-derived at scan and at install time).
-        internal sealed class Ps3Title
+        // In-memory composite for a single PS3 title (re-derived at scan and at install time). PS3 is the
+        // disc+package family (Family B): updates are non-cumulative (applied all-in-order) and there are
+        // license files (RAPs). Item type is Ps3FileInfo.
+        internal sealed class Ps3Title : ICompositeContentSet<Ps3FileInfo>
         {
             public string TitleId;
             public string Name;
@@ -55,9 +57,19 @@ namespace EmuLibrary.RomTypes.Ps3
             // Pkg base (BaseKind == Pkg).
             public string BasePkgPath;
 
+            // SFO scan info for the base (base pkg, or disc SFO); null when no SFO was readable. The base
+            // install primitive uses the paths above, not this; it's here to document the composite shape.
+            public Ps3FileInfo BaseInfo;
+
             public List<Ps3FileInfo> Updates = new List<Ps3FileInfo>(); // ascending APP_VER
             public List<Ps3FileInfo> Dlcs = new List<Ps3FileInfo>();
             public List<string> RapPaths = new List<string>();
+
+            Ps3FileInfo ICompositeContentSet<Ps3FileInfo>.Base => BaseInfo;
+            IReadOnlyList<Ps3FileInfo> ICompositeContentSet<Ps3FileInfo>.Updates => Updates;
+            IReadOnlyList<Ps3FileInfo> ICompositeContentSet<Ps3FileInfo>.Dlc => Dlcs;
+            IReadOnlyList<Ps3FileInfo> ICompositeContentSet<Ps3FileInfo>.Licenses =>
+                RapPaths.Select(p => new Ps3FileInfo() { FilePath = p, ContentType = Ps3ContentType.Rap }).ToList();
         }
 
         public override IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args)
@@ -274,7 +286,7 @@ namespace EmuLibrary.RomTypes.Ps3
             var title = new Ps3Title()
             {
                 SourceFolder = titleDir.Name,
-                Updates = updates.OrderBy(u => u.AppVerParsed).ToList(),
+                Updates = CompositeContent.SelectUpdatesToInstall(updates, UpdateInstallStrategy.InstallAllUpdatesInOrder, u => u.AppVerParsed).ToList(),
                 Dlcs = dlcs,
                 RapPaths = raps,
             };
@@ -309,6 +321,8 @@ namespace EmuLibrary.RomTypes.Ps3
                 // No base content found in this folder.
                 return null;
             }
+
+            title.BaseInfo = basePkg ?? discInfo;
 
             // Title id: from the base pkg / disc SFO, else a token in the iso/folder name, else any
             // update/DLC/RAP title id.

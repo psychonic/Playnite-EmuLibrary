@@ -1,11 +1,13 @@
+using System;
 using System.Collections.Generic;
 
 namespace EmuLibrary.RomTypes.Yuzu
 {
     // In-memory composite for a single Switch title resolved from the source dir (base game + latest update
     // + DLC), mirroring Ps3Scanner.Ps3Title. Re-derived at scan and at install time; nothing here is
-    // serialized.
-    internal sealed class YuzuTitle
+    // serialized. Item type is the source file path. Switch is the content-store family (Family A): updates
+    // are cumulative so only the latest is kept, and there are no license files.
+    internal sealed class YuzuTitle : ICompositeContentSet<string>
     {
         public ulong TitleId;
         public string Name;
@@ -23,6 +25,12 @@ namespace EmuLibrary.RomTypes.Yuzu
 
         // Zero or many DLC files.
         public List<string> DlcFiles = new List<string>();
+
+        string ICompositeContentSet<string>.Base => ProgramFile;
+        IReadOnlyList<string> ICompositeContentSet<string>.Updates =>
+            UpdateFile != null ? new[] { UpdateFile } : Array.Empty<string>();
+        IReadOnlyList<string> ICompositeContentSet<string>.Dlc => DlcFiles;
+        IReadOnlyList<string> ICompositeContentSet<string>.Licenses => Array.Empty<string>();
     }
 
     // Installed-state info for a single Switch title, derived from the emulator's NAND each scan.
