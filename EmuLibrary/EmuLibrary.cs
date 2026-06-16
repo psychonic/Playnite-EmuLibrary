@@ -6,11 +6,14 @@ using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 
 namespace EmuLibrary
@@ -37,6 +40,15 @@ namespace EmuLibrary
         internal static readonly MetadataNameProperty SourceName = new MetadataNameProperty(s_pluginName);
 
         private readonly Dictionary<RomType, RomTypeScanner> _scanners = new Dictionary<RomType, RomTypeScanner>();
+
+        // Max mappings scanned concurrently. Scans are typically latency-bound on a network share, so a
+        // small degree overlaps that latency for a wall-clock win; kept modest to avoid piling concurrent
+        // I/O onto a shared backing store.
+        private const int MaxScanConcurrency = 3;
+
+        // Bound on the producer->consumer hand-off queue so a fast scan can't buffer an unbounded number of
+        // GameMetadata ahead of Playnite's consumption on a very large library.
+        private const int ScanQueueCapacity = 256;
 
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
@@ -115,41 +127,15 @@ namespace EmuLibrary
                 yield break;
             }
 
+            var stopwatch = Stopwatch.StartNew();
             try
             {
-                foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled))
+                var jobs = BuildScanJobs();
+                Logger.Info($"Starting library scan of {jobs.Count} mapping(s) (up to {Math.Min(MaxScanConcurrency, Math.Max(jobs.Count, 1))} concurrent).");
+
+                foreach (var g in ScanMappings(jobs, args))
                 {
-                    if (args.CancelToken.IsCancellationRequested)
-                        yield break;
-
-                    if (mapping.Emulator == null)
-                    {
-                        Logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
-                        continue;
-                    }
-
-                    if (mapping.EmulatorProfile == null)
-                    {
-                        Logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
-                        continue;
-                    }
-
-                    if (mapping.Platform == null)
-                    {
-                        Logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
-                        continue;
-                    }
-
-                    if (!_scanners.TryGetValue(mapping.RomType, out RomTypeScanner scanner))
-                    {
-                        Logger.Warn($"Rom type {mapping.RomType} not supported, skipping.");
-                        continue;
-                    }
-
-                    foreach (var g in scanner.GetGames(mapping, args))
-                    {
-                        yield return g;
-                    }
+                    yield return g;
                 }
 
                 if (Settings.AutoRemoveUninstalledGamesMissingFromSource)
@@ -160,7 +146,144 @@ namespace EmuLibrary
             finally
             {
                 _scanCache.Flush();
+                stopwatch.Stop();
+                Logger.Info($"Library scan finished in {stopwatch.Elapsed.TotalSeconds:F1}s.");
             }
+        }
+
+        // Resolves the enabled mappings we will actually scan, skipping (and warning about) any whose
+        // emulator/profile/platform can't be resolved or whose RomType has no scanner. Snapshotting to a
+        // list also detaches us from concurrent edits to the Settings.Mappings collection during the scan.
+        private List<KeyValuePair<EmulatorMapping, RomTypeScanner>> BuildScanJobs()
+        {
+            var jobs = new List<KeyValuePair<EmulatorMapping, RomTypeScanner>>();
+            foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled) ?? Enumerable.Empty<EmulatorMapping>())
+            {
+                if (mapping.Emulator == null)
+                {
+                    Logger.Warn($"Emulator {mapping.EmulatorId} not found, skipping.");
+                    continue;
+                }
+
+                if (mapping.EmulatorProfile == null)
+                {
+                    Logger.Warn($"Emulator profile {mapping.EmulatorProfileId} for emulator {mapping.EmulatorId} not found, skipping.");
+                    continue;
+                }
+
+                if (mapping.Platform == null)
+                {
+                    Logger.Warn($"Platform {mapping.PlatformId} not found, skipping.");
+                    continue;
+                }
+
+                if (!_scanners.TryGetValue(mapping.RomType, out RomTypeScanner scanner))
+                {
+                    Logger.Warn($"Rom type {mapping.RomType} not supported, skipping.");
+                    continue;
+                }
+
+                jobs.Add(new KeyValuePair<EmulatorMapping, RomTypeScanner>(mapping, scanner));
+            }
+            return jobs;
+        }
+
+        // Scans the mappings, fanning them out across at most MaxScanConcurrency worker threads. A single
+        // mapping is scanned inline to avoid threading overhead. Per-mapping work is independent (distinct
+        // SourceDirCache instances; the shared ScanCache is internally synchronized), so the only ordering
+        // change is harmless interleaving — Playnite reconciles emitted games by GameId.
+        private IEnumerable<GameMetadata> ScanMappings(List<KeyValuePair<EmulatorMapping, RomTypeScanner>> jobs, LibraryGetGamesArgs args)
+        {
+            if (jobs.Count == 0)
+                yield break;
+
+            var ct = args.CancelToken;
+            var degree = Math.Min(MaxScanConcurrency, jobs.Count);
+
+            if (degree <= 1)
+            {
+                foreach (var job in jobs)
+                {
+                    if (ct.IsCancellationRequested)
+                        yield break;
+
+                    foreach (var g in ScanOneMapping(job.Key, job.Value, args))
+                        yield return g;
+                }
+                yield break;
+            }
+
+            using (var results = new BlockingCollection<GameMetadata>(ScanQueueCapacity))
+            {
+                var producer = Task.Run(() =>
+                {
+                    try
+                    {
+                        var options = new ParallelOptions { MaxDegreeOfParallelism = degree, CancellationToken = ct };
+                        Parallel.ForEach(jobs, options, job =>
+                        {
+                            foreach (var g in ScanOneMapping(job.Key, job.Value, args))
+                                results.Add(g, ct);
+                        });
+                    }
+                    finally
+                    {
+                        results.CompleteAdding();
+                    }
+                });
+
+                foreach (var g in results.GetConsumingEnumerable())
+                    yield return g;
+
+                // Surface any non-cancellation faults from the producer; cancellation is expected.
+                try
+                {
+                    producer.Wait();
+                }
+                catch (AggregateException ex)
+                {
+                    var faults = ex.Flatten().InnerExceptions.Where(e => !(e is OperationCanceledException)).ToList();
+                    if (faults.Count > 0)
+                        Logger.Error(new AggregateException(faults), "One or more mapping scans failed.");
+                }
+            }
+        }
+
+        // Wraps a single mapping's scan with timing and exception isolation: a failure mid-enumeration is
+        // logged and ends that mapping only, so it can't abort the other (possibly concurrent) scans.
+        private IEnumerable<GameMetadata> ScanOneMapping(EmulatorMapping mapping, RomTypeScanner scanner, LibraryGetGamesArgs args)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var count = 0;
+
+            using (var enumerator = scanner.GetGames(mapping, args).GetEnumerator())
+            {
+                while (true)
+                {
+                    GameMetadata game;
+                    try
+                    {
+                        if (!enumerator.MoveNext())
+                            break;
+                        game = enumerator.Current;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, $"Error scanning mapping {mapping.MappingId} ({mapping.RomType}, {mapping.SourcePath}). Skipping remainder of this mapping.");
+                        break;
+                    }
+
+                    count++;
+                    yield return game;
+                }
+            }
+
+            stopwatch.Stop();
+            Logger.Info($"Scanned mapping {mapping.MappingId} ({mapping.RomType}) — {count} game(s) in {stopwatch.Elapsed.TotalSeconds:F1}s.");
         }
 
         public override ISettings GetSettings(bool firstRunSettings) => Settings;

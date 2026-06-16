@@ -2,6 +2,7 @@
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,7 +24,9 @@ namespace EmuLibrary.RomTypes.Yuzu
         // Yuzu installs into the emulator's NAND and ignores DestinationPath, so it isn't required.
         public override bool RequiresDestinationPath => false;
 
-        private readonly Dictionary<Guid, SourceDirCache> _mappingCaches;
+        // Shared across all Yuzu mappings and read by the install/uninstall controllers, so it must be
+        // safe for concurrent mapping scans (EmuLibrary.GetGames may scan mappings in parallel).
+        private readonly ConcurrentDictionary<Guid, SourceDirCache> _mappingCaches;
 
         // While some games are sold under different title ids in different regions and/or with different language support, this is mostly
         // due to publishing agreements and does not match any technical implementation. All games/console units are all region-free.
@@ -32,7 +35,7 @@ namespace EmuLibrary.RomTypes.Yuzu
         public YuzuScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
             _emuLibrary = emuLibrary;
-            _mappingCaches = new Dictionary<Guid, SourceDirCache>();
+            _mappingCaches = new ConcurrentDictionary<Guid, SourceDirCache>();
         }
 
         public override IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args)
@@ -40,11 +43,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (args.CancelToken.IsCancellationRequested)
                 yield break;
 
-            if (!_mappingCaches.TryGetValue(mapping.MappingId, out var mappingCache))
-            {
-                mappingCache = new SourceDirCache(_emuLibrary, mapping);
-                _mappingCaches.Add(mapping.MappingId, mappingCache);
-            }
+            var mappingCache = _mappingCaches.GetOrAdd(mapping.MappingId, _ => new SourceDirCache(_emuLibrary, mapping));
 
             if (mappingCache.IsDirty)
             {
