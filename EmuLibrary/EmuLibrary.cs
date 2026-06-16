@@ -189,9 +189,9 @@ namespace EmuLibrary
         }
 
         // Scans the mappings, fanning them out across at most MaxScanConcurrency worker threads. A single
-        // mapping is scanned inline to avoid threading overhead. Per-mapping work is independent (distinct
-        // SourceDirCache instances; the shared ScanCache is internally synchronized), so the only ordering
-        // change is harmless interleaving — Playnite reconciles emitted games by GameId.
+        // mapping is scanned inline to avoid threading overhead. Per-mapping work is independent (the shared
+        // per-file ScanCache is internally synchronized), so the only ordering change is harmless
+        // interleaving — Playnite reconciles emitted games by GameId.
         private IEnumerable<GameMetadata> ScanMappings(List<KeyValuePair<EmulatorMapping, RomTypeScanner>> jobs, LibraryGetGamesArgs args)
         {
             if (jobs.Count == 0)

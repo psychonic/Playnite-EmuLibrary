@@ -1,8 +1,7 @@
-﻿using EmuLibrary.Settings;
+using EmuLibrary.Settings;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,10 +23,6 @@ namespace EmuLibrary.RomTypes.Yuzu
         // Yuzu installs into the emulator's NAND and ignores DestinationPath, so it isn't required.
         public override bool RequiresDestinationPath => false;
 
-        // Shared across all Yuzu mappings and read by the install/uninstall controllers, so it must be
-        // safe for concurrent mapping scans (EmuLibrary.GetGames may scan mappings in parallel).
-        private readonly ConcurrentDictionary<Guid, SourceDirCache> _mappingCaches;
-
         // While some games are sold under different title ids in different regions and/or with different language support, this is mostly
         // due to publishing agreements and does not match any technical implementation. All games/console units are all region-free.
         private readonly HashSet<MetadataProperty> _switchRegions = new HashSet<MetadataProperty>() { new MetadataNameProperty("World") };
@@ -35,7 +30,6 @@ namespace EmuLibrary.RomTypes.Yuzu
         public YuzuScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
             _emuLibrary = emuLibrary;
-            _mappingCaches = new ConcurrentDictionary<Guid, SourceDirCache>();
         }
 
         public override IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args)
@@ -43,22 +37,17 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (args.CancelToken.IsCancellationRequested)
                 yield break;
 
-            var mappingCache = _mappingCaches.GetOrAdd(mapping.MappingId, _ => new SourceDirCache(_emuLibrary, mapping));
-
-            if (mappingCache.IsDirty)
-            {
-                mappingCache.Refresh(args.CancelToken);
-            }
-
-            var installedGames = new HashSet<ulong>();
-
             if (!Directory.Exists(mapping.EmulatorBasePathResolved))
                 yield break;
 
             var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache);
 
+            var installedTitleIds = new HashSet<ulong>();
+
             #region Import "installed" games
-            foreach (var g in mappingCache.TheCache.InstalledGames.Values)
+            // Installed state is derived from the emulator's NAND on every scan (like PS3 derives it from disk),
+            // so content imported/removed outside Playnite is reflected.
+            foreach (var g in yuzu.GetInstalledGames(args.CancelToken))
             {
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
@@ -72,8 +61,8 @@ namespace EmuLibrary.RomTypes.Yuzu
                 var newGame = new GameMetadata()
                 {
                     Source = EmuLibrary.SourceName,
-                    Name = g.Title,
-                    Roms = new List<GameRom>() { new GameRom(g.Title, Path.Combine(new string[] { yuzu.NandPath, "user", "Contents", "registered", g.ProgramNcaSubPath })) },
+                    Name = g.Name,
+                    Roms = new List<GameRom>() { new GameRom(g.Name, Path.Combine(new string[] { yuzu.NandPath, "user", "Contents", "registered", g.ProgramNcaSubPath })) },
                     InstallDirectory = mapping.EmulatorBasePath,
                     IsInstalled = true,
                     GameId = gameInfo.AsGameId(),
@@ -94,7 +83,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                     }
                 };
 
-                installedGames.Add(g.TitleId);
+                installedTitleIds.Add(g.TitleId);
 
                 yield return newGame;
             }
@@ -104,12 +93,12 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (!Directory.Exists(mapping.SourcePath))
                 yield break;
 
-            foreach (var g in mappingCache.TheCache.UninstalledGames.Values)
+            foreach (var g in yuzu.GetUninstalledGamesFromDir(mapping.SourcePath, args.CancelToken))
             {
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
 
-                if (installedGames.Contains(g.TitleId))
+                if (installedTitleIds.Contains(g.TitleId))
                     continue;
 
                 var gameInfo = new YuzuGameInfo()
@@ -121,7 +110,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                 var newGame = new GameMetadata()
                 {
                     Source = EmuLibrary.SourceName,
-                    Name = g.Title,
+                    Name = g.Name,
                     IsInstalled = false,
                     GameId = gameInfo.AsGameId(),
                     Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
@@ -141,8 +130,19 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                 yield return newGame;
             }
-
             #endregion
+        }
+
+        // Resolves a single title's composite (base + latest update + DLC) from the source dir on demand,
+        // IScanCache-backed via Yuzu.GetUninstalledGamesFromDir. The Yuzu analog of Ps3Scanner.BuildTitle;
+        // shared by the install controller (which re-derives at install time). Returns null if not found.
+        internal YuzuTitle BuildTitle(EmulatorMapping mapping, ulong titleId, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(mapping.SourcePath) || !Directory.Exists(mapping.SourcePath))
+                return null;
+
+            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache);
+            return yuzu.GetUninstalledGamesFromDir(mapping.SourcePath, ct).FirstOrDefault(t => t.TitleId == titleId);
         }
 
         // TODO: This isn't as straightforward as some of the other types. We would need to scan the source folder for all base Title IDs
@@ -152,8 +152,6 @@ namespace EmuLibrary.RomTypes.Yuzu
         // derived classes to implement it just to do the same thing
         public override IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct) =>
             Enumerable.Empty<Game>();
-
-        public SourceDirCache GetCacheForMapping(Guid mappingId) => _mappingCaches[mappingId];
 
         public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo)
         {

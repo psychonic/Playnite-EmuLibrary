@@ -779,15 +779,17 @@ namespace EmuLibrary.RomTypes.Yuzu
             return info;
         }
 
-        public IEnumerable<SourceDirCache.CacheGameInstalled> GetInstalledGames(CancellationToken tk)
+        public IEnumerable<YuzuInstalledTitle> GetInstalledGames(CancellationToken tk)
         {
-            var ret = new List<SourceDirCache.CacheGameInstalled>();
+            var ret = new List<YuzuInstalledTitle>();
             var intermediate = new Dictionary<ulong, List<ExternalGameFileInfo>>();
 
             var installedNcaDir = Path.Combine(NandPath, "user", "Contents", "registered");
             if (!Directory.Exists(installedNcaDir))
             {
-                throw new DirectoryNotFoundException(installedNcaDir);
+                // No games imported into the emulator's NAND yet — not an error, just nothing installed.
+                _logger.Info($"NAND registered directory \"{installedNcaDir}\" does not exist; no installed games.");
+                return ret;
             }
 
             var fileEnumerator = new SafeFileEnumerator(installedNcaDir, "*.nca", SearchOption.AllDirectories);
@@ -834,7 +836,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             foreach (var k in intermediate.Keys)
             {
-                var cgu = new SourceDirCache.CacheGameInstalled();
+                var cgu = new YuzuInstalledTitle();
                 var game = intermediate[k].FirstOrDefault(x => x.Type == ExternalGameFileType.Game);
                 if (game == null)
                     continue;
@@ -842,7 +844,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                 var latestUpdate = intermediate[k].Where(x => x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
 
                 cgu.TitleId = game.TitleId;
-                cgu.Title = game.TitleName;
+                cgu.Name = game.TitleName;
                 cgu.Version = latestUpdate?.DisplayVersion ?? game.DisplayVersion;
                 cgu.Publisher = game.Publisher;
                 cgu.InstallSize = SumInstallSize(game, latestUpdate, intermediate[k]);
@@ -1092,9 +1094,9 @@ namespace EmuLibrary.RomTypes.Yuzu
             ".nsz",
         };
 
-        public IEnumerable<SourceDirCache.CacheGameUninstalled> GetUninstalledGamesFromDir(string path, CancellationToken tk)
+        public IEnumerable<YuzuTitle> GetUninstalledGamesFromDir(string path, CancellationToken tk)
         {
-            var ret = new List<SourceDirCache.CacheGameUninstalled>();
+            var ret = new List<YuzuTitle>();
             var intermediate = new Dictionary<ulong, List<ExternalGameFileInfo>>();
 
             var fileEnumerator = new SafeFileEnumerator(path, "*.*", SearchOption.AllDirectories);
@@ -1144,7 +1146,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             foreach (var k in intermediate.Keys)
             {
-                var cgu = new SourceDirCache.CacheGameUninstalled();
+                var cgu = new YuzuTitle();
                 var game = intermediate[k].FirstOrDefault(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.Game)
                     ?? intermediate[k].FirstOrDefault(x => x.FileType == FileType.XCI);
                 if (game == null)
@@ -1153,7 +1155,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                 var update = intermediate[k].Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.Update).OrderByDescending(x => x.Version).FirstOrDefault();
 
                 cgu.TitleId = game.TitleId;
-                cgu.Title = game.TitleName;
+                cgu.Name = game.TitleName;
                 cgu.Version = game.DisplayVersion;
                 cgu.Publisher = game.Publisher;
                 cgu.InstallSize = SumInstallSize(game, update, intermediate[k]);
