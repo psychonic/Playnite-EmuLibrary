@@ -1,6 +1,7 @@
 using EmuLibrary;
 using EmuLibrary.RomTypes;
 using EmuLibrary.Util.ScanCache;
+using EmuLibrary.Util.ScanConcurrency;
 using Playnite.SDK;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,7 @@ namespace EmuLibrary.Tests.RomTypes
             public IPlayniteAPI Playnite => null;
             public global::EmuLibrary.Settings.Settings Settings => null;
             public IScanCache ScanCache => null;
+            public IScanConcurrency ScanConcurrency => null;
             public string GetPluginUserDataPath() => null;
             public RomTypeScanner GetScanner(RomType romType) => null;
         }

@@ -1,6 +1,7 @@
 ﻿using EmuLibrary.RomTypes;
 using EmuLibrary.Settings;
 using EmuLibrary.Util.ScanCache;
+using EmuLibrary.Util.ScanConcurrency;
 using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
@@ -31,6 +32,8 @@ namespace EmuLibrary
         public Settings.Settings Settings { get; private set; }
         private IScanCache _scanCache;
         IScanCache IEmuLibrary.ScanCache => _scanCache;
+        private IScanConcurrency _scanConcurrency;
+        IScanConcurrency IEmuLibrary.ScanConcurrency => _scanConcurrency;
         RomTypeScanner IEmuLibrary.GetScanner(RomType romType) => _scanners[romType];
 
         private const string s_pluginName = "EmuLibrary";
@@ -41,10 +44,12 @@ namespace EmuLibrary
 
         private readonly Dictionary<RomType, RomTypeScanner> _scanners = new Dictionary<RomType, RomTypeScanner>();
 
-        // Max mappings scanned concurrently. Scans are typically latency-bound on a network share, so a
-        // small degree overlaps that latency for a wall-clock win; kept modest to avoid piling concurrent
-        // I/O onto a shared backing store.
-        private const int MaxScanConcurrency = 3;
+        // Cross-mapping producer fan-out: how many mappings may *produce* GameMetadata at once. Per-device I/O
+        // load is bounded separately by the ScanConcurrency governor (per-host + global permits), so this is no
+        // longer a device-protection knob — it only lets mappings on *distinct* endpoints progress in parallel.
+        // Capped at the governor's global ceiling; beyond it extra producers would just block on the shared
+        // global permit.
+        private const int MaxScanConcurrency = ScanConcurrencyGovernor.GlobalMax;
 
         // Bound on the producer->consumer hand-off queue so a fast scan can't buffer an unbounded number of
         // GameMetadata ahead of Playnite's consumption on a very large library.
@@ -57,6 +62,8 @@ namespace EmuLibrary
             _scanCache = new JsonScanCache(
                 Path.Combine(GetPluginUserDataPath(), "scancache.json"),
                 Logger);
+
+            _scanConcurrency = new ScanConcurrencyGovernor(Logger);
 
             // This must occur before we instantiate the Settings class
             InitializeRomTypeScanners();
@@ -192,6 +199,11 @@ namespace EmuLibrary
         // mapping is scanned inline to avoid threading overhead. Per-mapping work is independent (the shared
         // per-file ScanCache is internally synchronized), so the only ordering change is harmless
         // interleaving — Playnite reconciles emitted games by GameId.
+        //
+        // Per-device I/O load is bounded by the ScanConcurrency governor (per-host + global permits), which
+        // every scanner's I/O passes through, so MaxScanConcurrency here is purely producer fan-out: multiple
+        // mappings on *distinct* endpoints progress in parallel, while mappings sharing a host collapse onto
+        // that host's budget regardless of how many produce at once.
         private IEnumerable<GameMetadata> ScanMappings(List<KeyValuePair<EmulatorMapping, RomTypeScanner>> jobs, LibraryGetGamesArgs args)
         {
             if (jobs.Count == 0)

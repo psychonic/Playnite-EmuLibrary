@@ -15,6 +15,7 @@ namespace EmuLibrary.RomTypes.SingleFile
 {
     internal class SingleFileScanner : RomTypeScanner
     {
+        private readonly IEmuLibrary _emuLibrary;
         private readonly IPlayniteAPI _playniteAPI;
 
         public override RomType RomType => RomType.SingleFile;
@@ -22,6 +23,7 @@ namespace EmuLibrary.RomTypes.SingleFile
 
         public SingleFileScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
+            _emuLibrary = emuLibrary;
             _playniteAPI = emuLibrary.Playnite;
         }
 
@@ -30,117 +32,154 @@ namespace EmuLibrary.RomTypes.SingleFile
             if (args.CancelToken.IsCancellationRequested)
                 yield break;
 
-            var imageExtensionsLower = mapping.ImageExtensionsLower;
             var srcPath = mapping.SourcePath;
             var dstPath = mapping.DestinationPathResolved;
-            SafeFileEnumerator fileEnumerator;
 
-            #region Import "installed" games
-            if (Directory.Exists(dstPath))
+            // Each enumeration phase is one governor unit, keyed by the endpoint it scans, so N cheap
+            // SingleFile mappings on one host share the per-host budget with the deep scanners. Materialize
+            // inside the permit (don't hold it across the lazy yield); the lists are small file listings.
+            var installed = RunPhase(dstPath, () => GetInstalledGames(mapping, dstPath, args.CancelToken), args.CancelToken);
+            foreach (var game in installed)
             {
-                fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
+                if (args.CancelToken.IsCancellationRequested)
+                    yield break;
+                yield return game;
+            }
 
-                foreach (var file in fileEnumerator)
+            var uninstalled = RunPhase(srcPath, () => GetUninstalledGames(mapping, srcPath, dstPath, args.CancelToken), args.CancelToken);
+            foreach (var game in uninstalled)
+            {
+                if (args.CancelToken.IsCancellationRequested)
+                    yield break;
+                yield return game;
+            }
+        }
+
+        // Runs one enumeration phase through the endpoint-aware scan concurrency governor when one is
+        // available (acquires a per-host + global permit), falling back to a direct call otherwise.
+        private List<GameMetadata> RunPhase(string endpointPath, Func<List<GameMetadata>> work, CancellationToken ct)
+        {
+            var governor = _emuLibrary.ScanConcurrency;
+            if (governor != null)
+                return governor.Run(endpointPath, work, ct);
+            return work();
+        }
+
+        private List<GameMetadata> GetInstalledGames(EmulatorMapping mapping, string dstPath, CancellationToken ct)
+        {
+            var games = new List<GameMetadata>();
+            if (!Directory.Exists(dstPath))
+                return games;
+
+            var imageExtensionsLower = mapping.ImageExtensionsLower;
+            var fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
+
+            foreach (var file in fileEnumerator)
+            {
+                if (ct.IsCancellationRequested)
+                    return games;
+
+                foreach (var extension in imageExtensionsLower)
                 {
-                    if (args.CancelToken.IsCancellationRequested)
-                        yield break;
+                    if (ct.IsCancellationRequested)
+                        return games;
 
-                    foreach (var extension in imageExtensionsLower)
+                    if (HasMatchingExtension(file, extension) && !DiscFilter.IsExcludedDisc(file.Name))
                     {
-                        if (args.CancelToken.IsCancellationRequested)
-                            yield break;
-
-                        if (HasMatchingExtension(file, extension) && !DiscFilter.IsExcludedDisc(file.Name))
+                        var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
+                        var gameName = StringExtensions.NormalizeGameName(baseFileName);
+                        var info = new SingleFileGameInfo()
                         {
-                            var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
-                            var gameName = StringExtensions.NormalizeGameName(baseFileName);
-                            var info = new SingleFileGameInfo()
-                            {
-                                MappingId = mapping.MappingId,
-                                SourcePath = file.Name,
-                            };
+                            MappingId = mapping.MappingId,
+                            SourcePath = file.Name,
+                        };
 
-                            yield return new GameMetadata()
+                        games.Add(new GameMetadata()
+                        {
+                            Source = EmuLibrary.SourceName,
+                            Name = gameName,
+                            Roms = new List<GameRom>() { new GameRom(gameName, _playniteAPI.Paths.IsPortable ? file.FullName.Replace(_playniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName) },
+                            InstallDirectory = _playniteAPI.Paths.IsPortable ? dstPath.Replace(_playniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : dstPath,
+                            IsInstalled = true,
+                            GameId = info.AsGameId(),
+                            Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                            Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
+                            InstallSize = (ulong)new FileInfo(file.FullName).Length,
+                            GameActions = new List<GameAction>() { new GameAction()
                             {
-                                Source = EmuLibrary.SourceName,
-                                Name = gameName,
-                                Roms = new List<GameRom>() { new GameRom(gameName, _playniteAPI.Paths.IsPortable ? file.FullName.Replace(_playniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : file.FullName) },
-                                InstallDirectory = _playniteAPI.Paths.IsPortable ? dstPath.Replace(_playniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : dstPath,
-                                IsInstalled = true,
-                                GameId = info.AsGameId(),
-                                Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
-                                Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
-                                InstallSize = (ulong)new FileInfo(file.FullName).Length,
-                                GameActions = new List<GameAction>() { new GameAction()
-                                {
-                                    Name = $"Play in {mapping.Emulator.Name}",
-                                    Type = GameActionType.Emulator,
-                                    EmulatorId = mapping.EmulatorId,
-                                    EmulatorProfileId = mapping.EmulatorProfileId,
-                                    IsPlayAction = true,
-                                } }
-                            };
-                        }
+                                Name = $"Play in {mapping.Emulator.Name}",
+                                Type = GameActionType.Emulator,
+                                EmulatorId = mapping.EmulatorId,
+                                EmulatorProfileId = mapping.EmulatorProfileId,
+                                IsPlayAction = true,
+                            } }
+                        });
                     }
                 }
             }
-            #endregion
 
-            #region Import "uninstalled" games
-            if (Directory.Exists(srcPath))
+            return games;
+        }
+
+        private List<GameMetadata> GetUninstalledGames(EmulatorMapping mapping, string srcPath, string dstPath, CancellationToken ct)
+        {
+            var games = new List<GameMetadata>();
+            if (!Directory.Exists(srcPath))
+                return games;
+
+            var imageExtensionsLower = mapping.ImageExtensionsLower;
+            var fileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
+
+            foreach (var file in fileEnumerator)
             {
-                fileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
+                if (ct.IsCancellationRequested)
+                    return games;
 
-                foreach (var file in fileEnumerator)
+                foreach (var extension in imageExtensionsLower)
                 {
-                    if (args.CancelToken.IsCancellationRequested)
-                        yield break;
+                    if (ct.IsCancellationRequested)
+                        return games;
 
-                    foreach (var extension in imageExtensionsLower)
+                    if (HasMatchingExtension(file, extension) && !DiscFilter.IsExcludedDisc(file.Name))
                     {
-                        if (args.CancelToken.IsCancellationRequested)
-                            yield break;
-
-                        if (HasMatchingExtension(file, extension) && !DiscFilter.IsExcludedDisc(file.Name))
+                        var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
+                        if (File.Exists(equivalentInstalledPath))
                         {
-                            var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
-                            if (File.Exists(equivalentInstalledPath))
-                            {
-                                continue;
-                            }
-
-                            var info = new SingleFileGameInfo()
-                            {
-                                MappingId = mapping.MappingId,
-                                SourcePath = file.Name,
-                            };
-
-                            var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
-                            var gameName = StringExtensions.NormalizeGameName(baseFileName);
-
-                            yield return new GameMetadata()
-                            {
-                                Source = EmuLibrary.SourceName,
-                                Name = gameName,
-                                IsInstalled = false,
-                                GameId = info.AsGameId(),
-                                Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
-                                Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
-                                InstallSize = (ulong)new FileInfo(file.FullName).Length,
-                                GameActions = new List<GameAction>() { new GameAction()
-                                {
-                                    Name = $"Play in {mapping.Emulator.Name}",
-                                    Type = GameActionType.Emulator,
-                                    EmulatorId = mapping.EmulatorId,
-                                    EmulatorProfileId = mapping.EmulatorProfileId,
-                                    IsPlayAction = true,
-                                } }
-                            };
+                            continue;
                         }
+
+                        var info = new SingleFileGameInfo()
+                        {
+                            MappingId = mapping.MappingId,
+                            SourcePath = file.Name,
+                        };
+
+                        var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
+                        var gameName = StringExtensions.NormalizeGameName(baseFileName);
+
+                        games.Add(new GameMetadata()
+                        {
+                            Source = EmuLibrary.SourceName,
+                            Name = gameName,
+                            IsInstalled = false,
+                            GameId = info.AsGameId(),
+                            Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                            Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
+                            InstallSize = (ulong)new FileInfo(file.FullName).Length,
+                            GameActions = new List<GameAction>() { new GameAction()
+                            {
+                                Name = $"Play in {mapping.Emulator.Name}",
+                                Type = GameActionType.Emulator,
+                                EmulatorId = mapping.EmulatorId,
+                                EmulatorProfileId = mapping.EmulatorProfileId,
+                                IsPlayAction = true,
+                            } }
+                        });
                     }
                 }
             }
-            #endregion
+
+            return games;
         }
 
         public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo)

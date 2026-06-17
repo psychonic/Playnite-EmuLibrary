@@ -40,7 +40,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (!Directory.Exists(mapping.EmulatorBasePathResolved))
                 yield break;
 
-            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache);
+            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache, _emuLibrary.ScanConcurrency);
 
             var installedTitleIds = new HashSet<ulong>();
 
@@ -141,7 +141,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             if (string.IsNullOrEmpty(mapping.SourcePath) || !Directory.Exists(mapping.SourcePath))
                 return null;
 
-            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache);
+            var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache, _emuLibrary.ScanConcurrency);
             return yuzu.GetUninstalledGamesFromDir(mapping.SourcePath, ct).FirstOrDefault(t => t.TitleId == titleId);
         }
 

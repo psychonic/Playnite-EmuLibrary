@@ -86,19 +86,32 @@ namespace EmuLibrary.RomTypes.Ps3
             var dstPath = mapping.DestinationPathResolved;
             _emuLibrary.Logger.Info($"[PS3] Scanning source \"{mapping.SourcePath}\" (destination \"{dstPath}\").");
 
-            foreach (var titleDir in new DirectoryInfo(mapping.SourcePath).EnumerateDirectories())
+            // Parse each per-title source folder in parallel through the scan concurrency governor (keyed by
+            // the source dir). The parse opens PKGs/ISOs — network round-trips that overlap across folders.
+            // The PS3 parse path (Ps3Pkg/Ps3Iso/ParamSfo) is stateless across calls and IScanCache is
+            // internally locked, so the workers are independent. GameMetadata construction (incl. the on-disk
+            // installed-ness checks against the destination) runs single-threaded after the parallel phase.
+            var titleDirs = new DirectoryInfo(mapping.SourcePath).EnumerateDirectories().ToList();
+            var titles = RunInspections(titleDirs, mapping.SourcePath, titleDir =>
+            {
+                var t = BuildTitle(mapping, titleDir.FullName, args.CancelToken);
+                if (t == null)
+                {
+                    _emuLibrary.Logger.Warn($"[PS3] No installable base content found in \"{titleDir.FullName}\"; skipping this folder.");
+                    return null;
+                }
+
+                _emuLibrary.Logger.Debug($"[PS3] Title \"{t.Name}\" ({t.TitleId}) base={t.BaseKind} updates={t.Updates.Count} dlc={t.Dlcs.Count} raps={t.RapPaths.Count} from \"{titleDir.FullName}\".");
+                return t;
+            }, args.CancelToken);
+
+            foreach (var title in titles)
             {
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
 
-                var title = BuildTitle(mapping, titleDir.FullName, args.CancelToken);
                 if (title == null)
-                {
-                    _emuLibrary.Logger.Warn($"[PS3] No installable base content found in \"{titleDir.FullName}\"; skipping this folder.");
                     continue;
-                }
-
-                _emuLibrary.Logger.Debug($"[PS3] Title \"{title.Name}\" ({title.TitleId}) base={title.BaseKind} updates={title.Updates.Count} dlc={title.Dlcs.Count} raps={title.RapPaths.Count} from \"{titleDir.FullName}\".");
 
                 var gameInfo = new Ps3GameInfo()
                 {
@@ -143,12 +156,16 @@ namespace EmuLibrary.RomTypes.Ps3
             }
 
             // Also surface loose .iso files sitting directly in the source directory (no subfolder per title).
-            foreach (var isoFile in new DirectoryInfo(mapping.SourcePath).EnumerateFiles("*.iso"))
+            // Parsed in parallel through the governor like the per-title folders above.
+            var looseIsos = new DirectoryInfo(mapping.SourcePath).EnumerateFiles("*.iso").ToList();
+            var looseTitles = RunInspections(looseIsos, mapping.SourcePath,
+                isoFile => BuildLooseIsoTitle(isoFile.FullName, args.CancelToken), args.CancelToken);
+
+            foreach (var title in looseTitles)
             {
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
 
-                var title = BuildLooseIsoTitle(isoFile.FullName, args.CancelToken);
                 if (title == null)
                     continue;
 
@@ -157,7 +174,7 @@ namespace EmuLibrary.RomTypes.Ps3
                     MappingId = mapping.MappingId,
                     TitleId = title.TitleId,
                     SourceFolder = "",
-                    SourceIsoFileName = isoFile.Name,
+                    SourceIsoFileName = Path.GetFileName(title.DiscIsoPath),
                     BaseKind = Ps3BaseKind.Disc,
                 };
 
@@ -191,6 +208,27 @@ namespace EmuLibrary.RomTypes.Ps3
                     }
                 };
             }
+        }
+
+        // Runs the per-title parse over `items` through the endpoint-aware scan concurrency governor when one
+        // is available (parallel, bounded per-host + global), falling back to a sequential pass otherwise.
+        // `worker` is self-contained (own try/catch inside the parse); null results are kept and filtered by
+        // the caller.
+        private IReadOnlyList<TResult> RunInspections<TItem, TResult>(
+            IReadOnlyList<TItem> items, string endpointPath, Func<TItem, TResult> worker, CancellationToken ct)
+        {
+            var governor = _emuLibrary.ScanConcurrency;
+            if (governor != null)
+                return governor.Map(items, endpointPath, worker, ct);
+
+            var results = new List<TResult>(items.Count);
+            foreach (var item in items)
+            {
+                if (ct.IsCancellationRequested)
+                    break;
+                results.Add(worker(item));
+            }
+            return results;
         }
 
         // Scans one per-title source folder into a composite. Returns null if no base content is found.
