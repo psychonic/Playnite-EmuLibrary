@@ -133,22 +133,42 @@ namespace EmuLibrary.Settings
         {
             get
             {
-                IEnumerable<string> imageExtensionsLower;
-                if (EmulatorProfile is CustomEmulatorProfile)
+                if (EmulatorProfile is CustomEmulatorProfile customProfile)
                 {
-                    imageExtensionsLower = (EmulatorProfile as CustomEmulatorProfile).ImageExtensions?.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                    return NormalizeImageExtensions(customProfile.ImageExtensions);
                 }
-                else if (EmulatorProfile is BuiltInEmulatorProfile)
+                else if (EmulatorProfile is BuiltInEmulatorProfile builtInProfile)
                 {
-                    imageExtensionsLower = Settings.Instance?.PlayniteAPI.Emulation.Emulators.First(e => e.Id == Emulator.BuiltInConfigId).Profiles.FirstOrDefault(p => p.Name == EmulatorProfile.Name).ImageExtensions?.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                    return ResolveBuiltInImageExtensionsLower(
+                        Settings.Instance?.PlayniteAPI.Emulation.Emulators,
+                        Emulator.BuiltInConfigId,
+                        builtInProfile.Name);
                 }
                 else
                 {
                     throw new NotImplementedException("Unknown emulator profile type.");
                 }
-
-                return imageExtensionsLower;
             }
+        }
+
+        // Null-safe resolution of a built-in emulator profile's image extensions. Returns null (rather
+        // than throwing) when the built-in emulator or its profile can't be resolved, or when the profile
+        // declares no extensions - e.g. RPCS3, whose built-in profile lists none. VerifySettings treats a
+        // null/empty result as "no extensions specified" and surfaces it as a validation error. Without
+        // this the unguarded lookup threw a NullReferenceException that crashed Playnite (issue #13).
+        internal static IEnumerable<string> ResolveBuiltInImageExtensionsLower(
+            IEnumerable<EmulatorDefinition> builtInEmulators, string builtInConfigId, string profileName)
+        {
+            return NormalizeImageExtensions(
+                builtInEmulators?
+                .FirstOrDefault(e => e.Id == builtInConfigId)?
+                .Profiles.FirstOrDefault(p => p.Name == profileName)?
+                .ImageExtensions);
+        }
+
+        internal static IEnumerable<string> NormalizeImageExtensions(IEnumerable<string> extensions)
+        {
+            return extensions?.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
         }
 
         public IEnumerable<string> GetDescriptionLines()
