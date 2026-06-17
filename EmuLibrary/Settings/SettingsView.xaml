@@ -6,6 +6,7 @@
              x:Class="EmuLibrary.Settings.SettingsView"
              xmlns:sys="clr-namespace:System;assembly=mscorlib" 
              xmlns:elrt="clr-namespace:EmuLibrary.RomTypes"
+             xmlns:elfc="clr-namespace:EmuLibrary.Util.FileCopier"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              Padding="2,0,2,4">
@@ -30,6 +31,13 @@
                             MethodName="GetValues">
                                 <ObjectDataProvider.MethodParameters>
                                     <x:Type TypeName="elrt:RomType" />
+                                </ObjectDataProvider.MethodParameters>
+                            </ObjectDataProvider>
+                            <ObjectDataProvider x:Key="InstallMethodValues"
+                            ObjectType="{x:Type sys:Enum}"
+                            MethodName="GetValues">
+                                <ObjectDataProvider.MethodParameters>
+                                    <x:Type TypeName="elfc:InstallMethod" />
                                 </ObjectDataProvider.MethodParameters>
                             </ObjectDataProvider>
                         </DataGrid.Resources>
@@ -112,6 +120,33 @@
                                 ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
                                 SelectedItem="{Binding RomType, Mode=TwoWay}"
                                 >
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Install Method" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <TextBlock x:Name="InstallMethod" Text="{Binding InstallMethod, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock x:Name="InstallMethodNA" Text="Copy" FontStyle="Italic" Foreground="Gray" Visibility="Collapsed" />
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding SupportsInstallMethod}" Value="False">
+                                                <Setter TargetName="InstallMethod" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="InstallMethodNA" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox DockPanel.Dock="Left"
+                                ItemsSource="{Binding Source={StaticResource InstallMethodValues}}"
+                                SelectedItem="{Binding InstallMethod, Mode=TwoWay}"
+                                IsEnabled="{Binding SupportsInstallMethod}"
+                                ToolTip="Copy duplicates files to the destination. Symlink/Hardlink reference the source on disk to save space (only the source can move/delete state). Symlink needs Windows Developer Mode or admin; Hardlink needs the source and destination on the same volume.">
                                         </ComboBox>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>

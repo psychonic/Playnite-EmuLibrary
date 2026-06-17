@@ -19,9 +19,20 @@ namespace EmuLibrary.RomTypes.MultiFile
         public override void Uninstall(UninstallActionArgs args)
         {
             var gameInstallDirectoryResolved = Game.InstallDirectory.Replace(ExpandableVariables.PlayniteDirectory, _emuLibrary.Playnite.Paths.ApplicationPath);
-            if (new DirectoryInfo(gameInstallDirectoryResolved).Exists)
+            var installDir = new DirectoryInfo(gameInstallDirectoryResolved);
+            if (installDir.Exists)
             {
-                Directory.Delete(gameInstallDirectoryResolved, true);
+                // For a Symlink install the install dir is a directory symlink to the source - delete only the
+                // reparse point (non-recursive), never recurse into it, or we'd wipe the source's contents. A
+                // Copy or Hardlink install is a real directory we own, so delete it recursively.
+                if (installDir.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    installDir.Delete(false);
+                }
+                else
+                {
+                    Directory.Delete(gameInstallDirectoryResolved, true);
+                }
             }
             else
             {

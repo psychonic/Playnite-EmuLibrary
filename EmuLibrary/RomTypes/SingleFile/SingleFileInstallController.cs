@@ -31,7 +31,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                     var source = new FileInfo(info.SourceFullPath);
                     var destination = new DirectoryInfo(dstPath);
 
-                    await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);
+                    await CreateFileCopier(source, destination, info.Mapping.InstallMethod).CopyAsync(_watcherToken.Token);
 
                     var installDir = dstPath;
                     var gamePath = Path.Combine(dstPath, info.SourcePath);

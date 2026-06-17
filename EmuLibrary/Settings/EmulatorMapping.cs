@@ -1,5 +1,6 @@
 ﻿using EmuLibrary.RomTypes;
 using EmuLibrary.Util;
+using EmuLibrary.Util.FileCopier;
 using Newtonsoft.Json;
 using Playnite.SDK.Models;
 using Playnite.SDK;
@@ -55,14 +56,27 @@ namespace EmuLibrary.Settings
         public RomType RomType
         {
             get => _romType;
-            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath) });
+            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod) });
         }
+
+        // How the ROM is placed at the destination: Copy (default), Symlink, or Hardlink (issue #2). Only
+        // honored for RomTypes that support linking (see SupportsInstallMethod); otherwise the install always
+        // copies. Copy is enum value 0, so configs saved before this field existed deserialize to Copy.
+        [DefaultValue(InstallMethod.Copy)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public InstallMethod InstallMethod { get; set; }
 
         // False for RomTypes that install into the emulator (e.g. Yuzu) and so don't use DestinationPath. The
         // settings UI binds this to disable the destination column, and VerifySettings skips validating it.
         [JsonIgnore]
         [XmlIgnore]
         public bool SupportsDestinationPath => Settings.Instance?.EmuLibrary?.GetScanner(RomType)?.RequiresDestinationPath ?? true;
+
+        // True only for RomTypes that copy the source verbatim and so can link instead (SingleFile, MultiFile).
+        // The settings UI binds this to disable the Install Method column for types that always copy.
+        [JsonIgnore]
+        [XmlIgnore]
+        public bool SupportsInstallMethod => Settings.Instance?.EmuLibrary?.GetScanner(RomType)?.SupportsInstallLinking ?? false;
 
         public static IEnumerable<Emulator> AvailableEmulators => Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
 
@@ -179,6 +193,7 @@ namespace EmuLibrary.Settings
             yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
             yield return $"{nameof(PlatformId)}: {PlatformId ?? "<Unknown>"}";
             yield return $"{nameof(Platform)}*: {Platform?.Name ?? "<Unknown>"}";
+            yield return $"{nameof(InstallMethod)}: {InstallMethod}";
             yield return $"{nameof(SourcePath)}: {SourcePath ?? "<Unknown>"}";
             yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
             yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";

@@ -20,6 +20,7 @@ namespace EmuLibrary.RomTypes.SingleFile
 
         public override RomType RomType => RomType.SingleFile;
         public override Guid LegacyPluginId => EmuLibrary.PluginId;
+        public override bool SupportsInstallLinking => true;
 
         public SingleFileScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {

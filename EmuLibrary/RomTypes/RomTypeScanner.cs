@@ -29,6 +29,12 @@ namespace EmuLibrary.RomTypes
         // disables the destination column for the mapping and the value isn't validated.
         public virtual bool RequiresDestinationPath => true;
 
+        // Whether installing a mapping of this RomType can use Symlink/Hardlink instead of Copy (issue #2).
+        // Only types that place the source verbatim at the destination qualify: SingleFile (one file) and
+        // MultiFile (one folder). Types that transform the source on install - Yuzu (NAND import) and PS3
+        // (package extraction / multi-content composite) - leave this false and always copy.
+        public virtual bool SupportsInstallLinking => false;
+
         public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo);
         public virtual LegacySettingsMigrationResult MigrateLegacyPluginSettings(Plugin plugin, out EmulatorMapping mapping)
         {

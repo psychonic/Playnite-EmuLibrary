@@ -37,13 +37,22 @@ namespace EmuLibrary.RomTypes
             return false;
         }
 
-        protected IFileCopier CreateFileCopier(FileSystemInfo source, DirectoryInfo destination)
+        protected IFileCopier CreateFileCopier(FileSystemInfo source, DirectoryInfo destination, InstallMethod method = InstallMethod.Copy)
         {
-            if (UseWindowsCopyDialog())
+            switch (method)
             {
-                return new WindowsFileCopier(source, destination);
+                case InstallMethod.Symlink:
+                    return new SymlinkFileCopier(source, destination);
+                case InstallMethod.Hardlink:
+                    return new HardlinkFileCopier(source, destination);
+                default:
+                    // The Windows copy dialog only makes sense for an actual byte copy; linking is instant.
+                    if (UseWindowsCopyDialog())
+                    {
+                        return new WindowsFileCopier(source, destination);
+                    }
+                    return new SimpleFileCopier(source, destination);
             }
-            return new SimpleFileCopier(source, destination);
         }
     }
 }

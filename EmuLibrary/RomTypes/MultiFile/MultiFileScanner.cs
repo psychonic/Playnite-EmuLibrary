@@ -20,6 +20,7 @@ namespace EmuLibrary.RomTypes.MultiFile
 
         public override RomType RomType => RomType.MultiFile;
         public override Guid LegacyPluginId => EmuLibrary.PluginId;
+        public override bool SupportsInstallLinking => true;
 
         public MultiFileScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
