@@ -1,5 +1,17 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.5.0
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: '2026-06-18'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.5.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_5_0.pext
+    Changelog:
+      - Added a new "PS3" RomType for RPCS3. Installs PS3 disc images (.iso, with optional .dkey) and PSN .pkg games, including base content plus updates and DLC, and copies RAP license files
+      - Added support for the Eden and Citron-Neo emulators to the Yuzu RomType
+      - Added Symlink and Hardlink install methods for SingleFile and MultiFile mappings, letting installed games reference the source on disk instead of copying it to save space. Configurable per mapping; falls back to Copy where unsupported
+      - Added install size reporting for Yuzu and PS3 games
+      - Greatly improved library scan speed with parallel, endpoint-aware scanning, a persistent scan cache, and fewer redundant file reads
+      - The destination path setting is now disabled for the Yuzu RomType, as it installs into the emulator's NAND
+      - Fixed a crash that could occur when resolving image extensions for built-in emulator profiles that declare none
   - Version: 3.4.1
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2024-01-13'
