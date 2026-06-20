@@ -10,6 +10,35 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              Padding="2,0,2,4">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <ObjectDataProvider x:Key="RomTypeValues" ObjectType="{x:Type sys:Enum}" MethodName="GetValues">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="elrt:RomType" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="InstallMethodValues" ObjectType="{x:Type sys:Enum}" MethodName="GetValues">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="elfc:InstallMethod" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <Style x:Key="FieldLabel" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,4" />
+        </Style>
+        <!-- Small "ⓘ" affordance placed next to a setting; the explanatory text goes on the instance's ToolTip.
+             U+2139 (information source) renders in the standard UI font, and GlyphBrush keeps it theme-aware.
+             Sits inside the label/checkbox content so it shares that element's vertical centering. -->
+        <Style x:Key="InfoMarker" TargetType="TextBlock">
+            <Setter Property="Text" Value="&#x2139;" />
+            <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="Cursor" Value="Help" />
+            <Setter Property="ToolTipService.InitialShowDelay" Value="200" />
+            <Setter Property="ToolTipService.ShowDuration" Value="60000" />
+        </Style>
+    </UserControl.Resources>
     <DockPanel Margin="20">
         <ScrollViewer DockPanel.Dock="Top">
             <StackPanel x:Name="EmulatorSettingsPanel">
@@ -20,209 +49,151 @@
                     </Hyperlink>
                 </TextBlock>
                 <Separator Margin="0,5,0,10" />
-                <Grid Height="Auto" Margin="0,0,0,10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <DataGrid Grid.Row="0" Padding="0,0,0,4" ItemsSource="{Binding Mappings}" AutoGenerateColumns="False" CellEditEnding="DataGrid_CellEditEnding" CurrentCellChanged="DataGrid_CurrentCellChanged" SelectionUnit="Cell" CanUserAddRows="True">
-                        <DataGrid.Resources>
-                            <ObjectDataProvider x:Key="RomTypeValues"
-                            ObjectType="{x:Type sys:Enum}"
-                            MethodName="GetValues">
-                                <ObjectDataProvider.MethodParameters>
-                                    <x:Type TypeName="elrt:RomType" />
-                                </ObjectDataProvider.MethodParameters>
-                            </ObjectDataProvider>
-                            <ObjectDataProvider x:Key="InstallMethodValues"
-                            ObjectType="{x:Type sys:Enum}"
-                            MethodName="GetValues">
-                                <ObjectDataProvider.MethodParameters>
-                                    <x:Type TypeName="elfc:InstallMethod" />
-                                </ObjectDataProvider.MethodParameters>
-                            </ObjectDataProvider>
-                        </DataGrid.Resources>
-                        <DataGrid.Columns>
-                            <DataGridTemplateColumn Width="50">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="❌" Tag="{Binding}" Click="Click_Delete" Foreground="Red" Width="26" Margin="0" Padding="0" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text=""></TextBlock>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Emulator" Width="180">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock x:Name="Emulator" Text="{Binding Path=Emulator.Name, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox Name="ComboEmulators" DockPanel.Dock="Left"
-                                ItemsSource="{Binding AvailableEmulators}"
-                                DisplayMemberPath="Name"
-                                SelectedItem="{Binding Emulator, Mode=TwoWay}"
-                                >
-                                        </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Profile" Width="180">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock x:Name="Profile"  Text="{Binding Path=EmulatorProfile.Name, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
-                                ItemsSource="{Binding AvailableProfiles}"
-                                DisplayMemberPath="Name"
-                                SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"
-                                >
-                                        </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Platform" Width="180"  >
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock x:Name="Platform" Text="{Binding Path=Platform.Name, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox Name="ComboPlatforms" DockPanel.Dock="Left"
-                                ItemsSource="{Binding AvailablePlatforms}"
-                                DisplayMemberPath="Name"
-                                SelectedItem="{Binding Platform, Mode=TwoWay}"
-                                >
-                                        </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Rom Type" Width="180">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding RomType, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox Name="ComboRomTypes" DockPanel.Dock="Left"
-                                ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
-                                SelectedItem="{Binding RomType, Mode=TwoWay}"
-                                >
-                                        </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Install Method" Width="120">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Grid>
-                                            <TextBlock x:Name="InstallMethod" Text="{Binding InstallMethod, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock x:Name="InstallMethodNA" Text="Copy" FontStyle="Italic" Foreground="Gray" Visibility="Collapsed" />
-                                        </Grid>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding SupportsInstallMethod}" Value="False">
-                                                <Setter TargetName="InstallMethod" Property="Visibility" Value="Collapsed" />
-                                                <Setter TargetName="InstallMethodNA" Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox DockPanel.Dock="Left"
-                                ItemsSource="{Binding Source={StaticResource InstallMethodValues}}"
-                                SelectedItem="{Binding InstallMethod, Mode=TwoWay}"
-                                IsEnabled="{Binding SupportsInstallMethod}"
-                                ToolTip="Copy duplicates files to the destination. Symlink/Hardlink reference the source on disk to save space (only the source can move/delete state). Symlink needs Windows Developer Mode or admin; Hardlink needs the source and destination on the same volume.">
-                                        </ComboBox>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Source Path" Width="180"  >
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock x:Name="Path"  Text="{Binding Path=SourcePath, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <Button Name="Browse" Click="Click_BrowseSource">Browse...</Button>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Destination Path" Width="180"  >
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Grid>
-                                            <TextBlock x:Name="Path" Text="{Binding Path=DestinationPath,UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock x:Name="NotApplicable" Text="N/A (not used)" FontStyle="Italic" Foreground="Gray" Visibility="Collapsed" />
-                                        </Grid>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding SupportsDestinationPath}" Value="False">
-                                                <Setter TargetName="Path" Property="Visibility" Value="Collapsed" />
-                                                <Setter TargetName="NotApplicable" Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <Button Name="Browse" Click="Click_BrowseDestination" Content="Browse..." >
-                                            <Button.Style>
-                                                <Style TargetType="Button">
+                <ItemsControl ItemsSource="{Binding Mappings}" Margin="0,0,0,6">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Expander Margin="0,0,0,6" IsExpanded="False">
+                                <Expander.Header>
+                                    <DockPanel LastChildFill="True">
+                                        <TextBlock DockPanel.Dock="Right" Text="(disabled)" Foreground="{DynamicResource TextBrushDarker}" FontStyle="Italic"
+                                                   VerticalAlignment="Center" Margin="8,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SupportsDestinationPath}" Value="False">
-                                                            <Setter Property="IsEnabled" Value="False" />
-                                                            <Setter Property="Content" Value="N/A" />
-                                                            <Setter Property="ToolTip" Value="This ROM type installs into the emulator and does not use a destination path." />
+                                                        <DataTrigger Binding="{Binding Enabled}" Value="False">
+                                                            <Setter Property="Visibility" Value="Visible" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding DisplayName, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextBrush}" />
+                                    </DockPanel>
+                                </Expander.Header>
+                                <Grid Margin="8,8,4,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" MinWidth="90" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                            <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" />
-                            <DataGridTextColumn Header="Mapping ID" IsReadOnly="True" Binding="{Binding MappingId}" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
+                                    <Label Grid.Row="0" Grid.Column="0" Content="Emulator" Style="{StaticResource FieldLabel}" />
+                                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                                              ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name"
+                                              SelectedItem="{Binding Emulator, Mode=TwoWay}" />
+
+                                    <Label Grid.Row="1" Grid.Column="0" Content="Profile" Style="{StaticResource FieldLabel}" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                                              ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name"
+                                              SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}" />
+
+                                    <Label Grid.Row="2" Grid.Column="0" Content="Platform" Style="{StaticResource FieldLabel}" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4" IsTextSearchEnabled="True"
+                                              ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name"
+                                              SelectedItem="{Binding Platform, Mode=TwoWay}" />
+
+                                    <Label Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabel}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Rom Type" VerticalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource InfoMarker}"
+                                                       ToolTip="How this kind of ROM is laid out and installed. Each type scans and installs differently:&#x0a; • SingleFile – one file per game (.nes, .zip, …); the file is copied.&#x0a; • MultiFile – one subfolder per game; the whole folder is copied.&#x0a; • Ps3 (RPCS3) – disc image or PKG, plus updates/DLC/licenses.&#x0a; • Yuzu – installs loose XCI/NSP into the emulator's NAND.&#x0a;See the README's Rom Types section for details." />
+                                        </StackPanel>
+                                    </Label>
+                                    <ComboBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                                              ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
+                                              SelectedItem="{Binding RomType, Mode=TwoWay}" />
+
+                                    <Label Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                           Visibility="{Binding SupportsInstallMethod, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Install Method" VerticalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource InfoMarker}"
+                                                       ToolTip="How the ROM is placed at the destination:&#x0a; • Copy – duplicates the files to the destination (default).&#x0a; • Symlink / Hardlink – reference the source on disk instead of copying, to save space.&#x0a;&#x0a;With a link, installed state depends on the source staying put (only the source can move/delete it).&#x0a;Symlink needs Windows Developer Mode or running as admin; Hardlink needs the source and destination on the same volume.&#x0a;Only file-copy RomTypes (SingleFile, MultiFile) support linking." />
+                                        </StackPanel>
+                                    </Label>
+                                    <ComboBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                                              ItemsSource="{Binding Source={StaticResource InstallMethodValues}}"
+                                              SelectedItem="{Binding InstallMethod, Mode=TwoWay}"
+                                              Visibility="{Binding SupportsInstallMethod, Converter={StaticResource BoolToVis}}" />
+
+                                    <Label Grid.Row="5" Grid.Column="0" Content="Source Path" Style="{StaticResource FieldLabel}" />
+                                    <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,8,4" VerticalAlignment="Center"
+                                             Text="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button Grid.Row="5" Grid.Column="2" Content="Browse..." Padding="10,2" Margin="0,0,0,4" Click="Click_BrowseSource" />
+
+                                    <Label Grid.Row="6" Grid.Column="0" Style="{StaticResource FieldLabel}"
+                                           Visibility="{Binding SupportsDestinationPath, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Destination Path" VerticalAlignment="Center" />
+                                            <TextBlock Style="{StaticResource InfoMarker}"
+                                                       ToolTip="Local folder games are installed (copied/linked) into.&#x0a;On a portable Playnite install, a path under the Playnite folder is stored relative to it (as {PlayniteDir}\…) so it stays valid if Playnite moves." />
+                                        </StackPanel>
+                                    </Label>
+                                    <TextBox Grid.Row="6" Grid.Column="1" Margin="0,0,8,4" VerticalAlignment="Center"
+                                             Text="{Binding DestinationPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Visibility="{Binding SupportsDestinationPath, Converter={StaticResource BoolToVis}}" />
+                                    <Button Grid.Row="6" Grid.Column="2" Content="Browse..." Padding="10,2" Margin="0,0,0,4" Click="Click_BrowseDestination"
+                                            Visibility="{Binding SupportsDestinationPath, Converter={StaticResource BoolToVis}}" />
+
+                                    <DockPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,6,0,0" LastChildFill="False">
+                                        <CheckBox DockPanel.Dock="Left" Content="Enabled" VerticalAlignment="Center" IsChecked="{Binding Enabled, Mode=TwoWay}" />
+                                        <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{DynamicResource TextBrushDarker}" FontSize="11"
+                                                   Text="{Binding MappingId, Mode=OneWay, StringFormat='ID: {0}'}" />
+                                        <Button DockPanel.Dock="Right" Content="Remove" Padding="10,2" Foreground="#E53935" Tag="{Binding}"
+                                                ToolTip="Delete mapping" Click="Click_Delete" />
+                                    </DockPanel>
+                                </Grid>
+                            </Expander>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Content="Add mapping" Click="Click_AddMapping" HorizontalAlignment="Left" Padding="12,4" Margin="0,0,0,10" />
                 <Label Content="Library scanning" FontWeight="Bold" Margin="0,10,0,0" />
                 <Separator Margin="0,5,0,10" />
-                <CheckBox IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}" Margin="0,0,0,10">
-                    <TextBlock Text="Enable game scanning in fullscreen mode" TextWrapping="Wrap"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding AutoRemoveUninstalledGamesMissingFromSource, Mode=TwoWay}" Margin="0,0,0,10">
-                    <TextBlock Text="Automatically remove non-installed games from library if missing from source" TextWrapping="Wrap"/>
-                </CheckBox>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <CheckBox IsChecked="{Binding ScanGamesInFullScreen, Mode=TwoWay}" VerticalAlignment="Center">
+                        <TextBlock Text="Enable game scanning in fullscreen mode" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="Library scans normally run only in desktop mode. Enable this to also scan when Playnite starts in fullscreen (e.g. an HTPC that boots straight into fullscreen). Scanning large/networked sources can briefly affect responsiveness." />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <CheckBox IsChecked="{Binding AutoRemoveUninstalledGamesMissingFromSource, Mode=TwoWay}" VerticalAlignment="Center">
+                        <TextBlock Text="Automatically remove non-installed games from library if missing from source" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="When a scan finds that a not-installed library entry no longer exists in its source, remove it from the library automatically. Installed games are never touched, and no files on disk are deleted." />
+                </StackPanel>
                 <Label Content="Installation" FontWeight="Bold" Margin="0,10,0,0" />
                 <Separator Margin="0,5,0,10" />
                 <CheckBox IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}" Margin="0,0,0,10" >
                     <TextBlock Text="Enable notification upon game install completion" TextWrapping="Wrap"/>
                 </CheckBox>
-                <CheckBox IsChecked="{Binding UseWindowsCopyDialogInDesktopMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.">
-                    <TextBlock Text="Show Windows copy dialog in desktop mode" TextWrapping="Wrap"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding UseWindowsCopyDialogInFullscreenMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.&#x0a;Please note that enabling this option may cause issues with focus&#x0a;in fullscreen mode.">
-                    <TextBlock Text="Show Windows copy dialog in fullscreen mode" TextWrapping="Wrap"/>
-                </CheckBox>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <CheckBox IsChecked="{Binding UseWindowsCopyDialogInDesktopMode, Mode=TwoWay}" VerticalAlignment="Center">
+                        <TextBlock Text="Show Windows copy dialog in desktop mode" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="When installing in desktop mode, let Windows perform the copy natively and show its Copy File progress dialog.&#x0a;Applies only to mappings whose Install Method is Copy — Symlink/Hardlink installs are instant and ignore this." />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <CheckBox IsChecked="{Binding UseWindowsCopyDialogInFullscreenMode, Mode=TwoWay}" VerticalAlignment="Center">
+                        <TextBlock Text="Show Windows copy dialog in fullscreen mode" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="Same as above, but for installs started in fullscreen mode.&#x0a;Applies only to Copy installs (Symlink/Hardlink ignore it).&#x0a;Note: enabling this may cause focus issues in fullscreen mode." />
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

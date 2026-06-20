@@ -21,42 +21,108 @@ namespace EmuLibrary.Settings
 
         public Guid MappingId { get; set; }
 
+        private bool _enabled;
         [DefaultValue(true)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
-        public bool Enabled { get; set; }
+        public bool Enabled
+        {
+            get => _enabled;
+            set => SetValue(ref _enabled, value, new[] { nameof(Enabled) });
+        }
 
+        // Emulator/Profile/Platform are resolved live from the Playnite database by the stored *Id; the IDs
+        // are what's persisted. The setters route through the Id setters so a single SetValue raises change
+        // notifications for the resolved property, its dependent AvailableX list, and the card DisplayName -
+        // this is what lets the cascading combos in the settings cards refresh without the old DataGrid
+        // row-commit hack.
         [JsonIgnore]
         public Emulator Emulator
         {
             get => AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
-            set { EmulatorId = value.Id; }
+            set => EmulatorId = value?.Id ?? Guid.Empty;
         }
-        public Guid EmulatorId { get; set; }
+
+        private Guid _emulatorId;
+        public Guid EmulatorId
+        {
+            get => _emulatorId;
+            set => SetValue(ref _emulatorId, value, new[]
+            {
+                nameof(EmulatorId), nameof(Emulator),
+                nameof(AvailableProfiles), nameof(EmulatorProfile),
+                nameof(AvailablePlatforms), nameof(Platform),
+                nameof(DisplayName)
+            });
+        }
 
         [JsonIgnore]
         public EmulatorProfile EmulatorProfile
         {
             get => Emulator?.SelectableProfiles.FirstOrDefault(p => p.Id == EmulatorProfileId);
-            set { EmulatorProfileId = value.Id; }
+            set => EmulatorProfileId = value?.Id;
         }
-        public string EmulatorProfileId { get; set; }
+
+        private string _emulatorProfileId;
+        public string EmulatorProfileId
+        {
+            get => _emulatorProfileId;
+            set => SetValue(ref _emulatorProfileId, value, new[]
+            {
+                nameof(EmulatorProfileId), nameof(EmulatorProfile),
+                nameof(AvailablePlatforms), nameof(Platform),
+                nameof(DisplayName)
+            });
+        }
 
         [JsonIgnore]
         public EmulatedPlatform Platform
         {
             get => AvailablePlatforms.FirstOrDefault(p => p.Id == PlatformId);
-            set { PlatformId = value.Id; }
+            set => PlatformId = value?.Id;
         }
-        public string PlatformId { get; set; }
 
-        public string SourcePath { get; set; }
-        public string DestinationPath { get; set; }
+        private string _platformId;
+        public string PlatformId
+        {
+            get => _platformId;
+            set => SetValue(ref _platformId, value, new[] { nameof(PlatformId), nameof(Platform), nameof(DisplayName) });
+        }
+
+        private string _sourcePath;
+        public string SourcePath
+        {
+            get => _sourcePath;
+            set => SetValue(ref _sourcePath, value, new[] { nameof(SourcePath) });
+        }
+
+        private string _destinationPath;
+        public string DestinationPath
+        {
+            get => _destinationPath;
+            set => SetValue(ref _destinationPath, value, new[] { nameof(DestinationPath), nameof(DestinationPathResolved) });
+        }
 
         private RomType _romType;
         public RomType RomType
         {
             get => _romType;
-            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod) });
+            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(DisplayName) });
+        }
+
+        // Header text for the settings card/expander - a human-readable summary of the mapping.
+        [JsonIgnore]
+        [XmlIgnore]
+        public string DisplayName
+        {
+            get
+            {
+                var parts = new List<string>();
+                if (Emulator != null) parts.Add(Emulator.Name);
+                if (EmulatorProfile != null) parts.Add(EmulatorProfile.Name);
+                if (Platform != null) parts.Add(Platform.Name);
+                var label = parts.Any() ? string.Join(" – ", parts) : "New mapping";
+                return $"{label}  [{RomType}]";
+            }
         }
 
         // How the ROM is placed at the destination: Copy (default), Symlink, or Hardlink (issue #2). Only
