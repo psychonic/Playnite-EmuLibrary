@@ -59,6 +59,9 @@
 	
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
+    <!-- ZipArchive/ZipFile for extracting GameTDB's zipped XML (Util/Metadata/GameTdb.cs). -->
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
 	
 </Project>

@@ -47,6 +47,8 @@ NSP/NSZ files can also be updates and DLC, rather than just games. Unlike with T
 
 When a game is installed, the latest update and any DLC from the source will also be installed to the emulator's NAND, in that order (Game, Update if available, each available DLC). Games already installed will be imported, whether or not they exist in the source folder, and will display as installed. As expected, uninstalling a game will remove the game from the NAND. (While these emulators do not support XCZ or NSZ files for launching or installing to NAND, this plugin installs directly to the NAND, without relying on the emulator's built-in install functionality)
 
+Game names and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment).
+
 ### PS3 (Beta)
 
 The PS3 type adds support for PlayStation 3 games run under [RPCS3](https://rpcs3.net). It has a beta level of quality of support. Select RPCS3 as the emulator for the mapping (built-in or custom).
@@ -79,10 +81,30 @@ Installing a title can touch two destinations:
 
 Both halves are handled in-process — RPCS3 is not invoked to install anything. Uninstalling removes the copied disc image/folder and/or the `dev_hdd0/game/<TITLE_ID>` directory; save data (which RPCS3 stores elsewhere) is left untouched.
 
+Game names and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment).
+
 ### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.
 * If the mapping is disabled or if EmuLibrary update is cancelled before the scan for the mapping completes, game installation for the mapping's games may result in an error message. This will be fixed in a later version of this addon.
+
+## Metadata Enrichment
+
+For some RomTypes, EmuLibrary looks up game details from a community metadata database and uses them in preference to whatever it can read out of the game files themselves. This generally yields cleaner, properly-formatted game names plus extra details that aren't present in the files at all.
+
+| RomType | Provider | Matched by |
+| --- | --- | --- |
+| Yuzu (Switch) | [titledb](https://github.com/blawar/titledb) | Title ID |
+| PS3 | [GameTDB](https://www.gametdb.com) | Disc serial (e.g. `BLES01234`) |
+
+When a match is found, these fields are filled in (shadowing anything derived from the files): **name**, **description**, **developer**, **publisher**, **genres**, and **release date**. Anything the provider doesn't supply falls back to what was read from the files, so you never end up worse off than without enrichment.
+
+A few notes:
+
+* **Language** follows your Playnite language setting where the provider offers a translation, falling back to English otherwise.
+* **Caching / offline use** — each provider's database is downloaded once and cached under `ExtensionsData\41e49490-0583-4148-94d2-940c7c74f1d9\metadata`, and only re-downloaded when the cached copy is more than a day old. If a provider can't be reached, the most recent cached copy is used, and if there's no cached copy at all, enrichment is simply skipped — it never blocks or fails a library scan.
+* **Applies going forward** — because of how Playnite imports library games, enrichment primarily affects games as they are newly added. Re-applying it to games already in your library is not currently guaranteed.
+* GameTDB also lists Switch games, but it keys them by a cartridge serial that loose NSP/XCI dumps don't contain, so it can't be used for the Yuzu type — titledb is used there instead.
 
 ## Support
 

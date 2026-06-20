@@ -1,4 +1,5 @@
 using EmuLibrary.Settings;
+using EmuLibrary.Util.Metadata;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
@@ -41,6 +42,10 @@ namespace EmuLibrary.RomTypes.Yuzu
                 yield break;
 
             var yuzu = new Yuzu(mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache, _emuLibrary.ScanConcurrency);
+
+            // titledb names/metadata shadow what's read from the game files (loaded once, refreshed daily, and
+            // fail-soft: if it's unavailable the file-derived values are used unchanged).
+            var titleDb = new TitleDb(_emuLibrary);
 
             var installedTitleIds = new HashSet<ulong>();
 
@@ -85,6 +90,9 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                 installedTitleIds.Add(g.TitleId);
 
+                if (titleDb.TryGet(g.TitleId, out var installedMeta))
+                    installedMeta.ApplyTo(newGame);
+
                 yield return newGame;
             }
             #endregion
@@ -127,6 +135,9 @@ namespace EmuLibrary.RomTypes.Yuzu
                         }
                     }
                 };
+
+                if (titleDb.TryGet(g.TitleId, out var uninstalledMeta))
+                    uninstalledMeta.ApplyTo(newGame);
 
                 yield return newGame;
             }

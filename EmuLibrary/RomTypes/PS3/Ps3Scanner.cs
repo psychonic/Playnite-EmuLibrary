@@ -1,6 +1,7 @@
 using EmuLibrary.PlayniteCommon;
 using EmuLibrary.Settings;
 using EmuLibrary.Util;
+using EmuLibrary.Util.Metadata;
 using EmuLibrary.Util.Ps3;
 using EmuLibrary.Util.ScanCache;
 using Playnite.SDK;
@@ -86,6 +87,10 @@ namespace EmuLibrary.RomTypes.Ps3
             var dstPath = mapping.DestinationPathResolved;
             _emuLibrary.Logger.Info($"[PS3] Scanning source \"{mapping.SourcePath}\" (destination \"{dstPath}\").");
 
+            // GameTDB names/metadata (keyed by PS3 disc serial) shadow what's read from PARAM.SFO / folder
+            // names. Loaded once, refreshed daily, fail-soft: if unavailable the file-derived values stand.
+            var gameTdb = new GameTdb(_emuLibrary, "ps3tdb");
+
             // Parse each per-title source folder in parallel through the scan concurrency governor (keyed by
             // the source dir). The parse opens PKGs/ISOs — network round-trips that overlap across folders.
             // The PS3 parse path (Ps3Pkg/Ps3Iso/ParamSfo) is stateless across calls and IScanCache is
@@ -130,7 +135,7 @@ namespace EmuLibrary.RomTypes.Ps3
                     roms.Add(new GameRom(title.Name, resolvedRom));
                 }
 
-                yield return new GameMetadata()
+                var game = new GameMetadata()
                 {
                     Source = EmuLibrary.SourceName,
                     Name = title.Name,
@@ -153,6 +158,11 @@ namespace EmuLibrary.RomTypes.Ps3
                         }
                     }
                 };
+
+                if (gameTdb.TryGet(title.TitleId, out var meta))
+                    meta.ApplyTo(game);
+
+                yield return game;
             }
 
             // Also surface loose .iso files sitting directly in the source directory (no subfolder per title).
@@ -184,7 +194,7 @@ namespace EmuLibrary.RomTypes.Ps3
                 if (isInstalled && !string.IsNullOrEmpty(romPath))
                     roms.Add(new GameRom(title.Name, MaybeMakePortable(romPath)));
 
-                yield return new GameMetadata()
+                var game = new GameMetadata()
                 {
                     Source = EmuLibrary.SourceName,
                     Name = title.Name,
@@ -207,6 +217,11 @@ namespace EmuLibrary.RomTypes.Ps3
                         }
                     }
                 };
+
+                if (gameTdb.TryGet(title.TitleId, out var meta))
+                    meta.ApplyTo(game);
+
+                yield return game;
             }
         }
 
