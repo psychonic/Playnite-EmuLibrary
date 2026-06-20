@@ -10,8 +10,8 @@ namespace EmuLibrary.Util.ScanConcurrency
 {
     internal sealed class ScanConcurrencyGovernor : IScanConcurrency
     {
-        private const int NetworkPerEndpoint = 12;
-        private const int LocalPerEndpoint   = 4;
+        internal const int NetworkPerEndpoint = 12;
+        internal const int LocalPerEndpoint   = 4;
 
         // Global ceiling on concurrent endpoint I/O across every scan. Also the natural cap on cross-mapping
         // producer fan-out (EmuLibrary.MaxScanConcurrency) — beyond this, extra producers only block here.

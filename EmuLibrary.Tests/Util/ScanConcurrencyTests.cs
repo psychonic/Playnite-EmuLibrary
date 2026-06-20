@@ -116,7 +116,7 @@ namespace EmuLibrary.Tests.Util
         [Fact]
         public void Map_NeverExceeds_PerEndpointNetworkCap()
         {
-            const int NetworkCap = 8;
+            const int NetworkCap = ScanConcurrencyGovernor.NetworkPerEndpoint;
             var gov = new ScanConcurrencyGovernor(null);
             int current = 0, peak = 0;
             var items = Enumerable.Range(0, 200).ToList();
@@ -136,7 +136,7 @@ namespace EmuLibrary.Tests.Util
         [Fact]
         public void Map_NeverExceeds_PerEndpointLocalCap()
         {
-            const int LocalCap = 4;
+            const int LocalCap = ScanConcurrencyGovernor.LocalPerEndpoint;
             var gov = new ScanConcurrencyGovernor(null);
             int current = 0, peak = 0;
             var items = Enumerable.Range(0, 100).ToList();
@@ -168,12 +168,13 @@ namespace EmuLibrary.Tests.Util
         [Fact]
         public void Map_AcrossDistinctEndpoints_NeverExceedsGlobalMax()
         {
-            const int GlobalMax = 16;
+            const int GlobalMax = ScanConcurrencyGovernor.GlobalMax;
             var gov = new ScanConcurrencyGovernor(null);
             int current = 0, peak = 0;
 
-            // Four distinct network hosts each at cap 8 would allow 32 if unbounded globally; the global
-            // ceiling must hold them to 16. Run them concurrently from separate threads.
+            // Four distinct network hosts each at the per-endpoint network cap would far exceed the global
+            // ceiling if unbounded; the global ceiling must hold them to GlobalMax. Run them concurrently
+            // from separate threads.
             var hosts = new[] { @"\\h1\s", @"\\h2\s", @"\\h3\s", @"\\h4\s" };
             var items = Enumerable.Range(0, 60).ToList();
 
