@@ -14,7 +14,9 @@ namespace EmuLibrary.Util.ScanCache
         // v4: Ps3Pkg read the AES-CTR IV from the wrong header offset (0x60 instead of 0x70), so every PKG
         //     scanned by an earlier build cached empty PARAM.SFO fields and a wrong classification. Bump to
         //     discard those poisoned entries and force a re-read with the corrected decrypt.
-        private const int CurrentFormatVersion = 4;
+        // v5: Ps3FileInfo gained DrmType (RAP-required detection). Entries cached by v4 lack it (would
+        //     deserialize as -1 = unknown), so bump to force a re-read that populates the DRM Type.
+        private const int CurrentFormatVersion = 5;
 
         private sealed class Entry
         {

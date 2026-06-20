@@ -48,6 +48,17 @@ namespace EmuLibrary.RomTypes.Ps3
 
         protected override async Task InstallBaseAsync(Ps3Scanner.Ps3Title title, CancellationToken ct)
         {
+            // A pkg base that needs a RAP license (PKG DRM Type Network/Local) but has no matching .rap in the
+            // source would install but never boot in RPCS3. Refuse it before copying anything; the base
+            // controller surfaces this message as an error notification. Add the RAP and rescan to install.
+            if (title.BaseLicenseMissing)
+            {
+                throw new Exception(
+                    $"\"{Game.Name}\" is a PSN package that requires a RAP license, but no matching .rap file " +
+                    $"(named for content-id \"{title.BaseInfo?.ContentId}\") was found in its source folder. " +
+                    "Add the RAP next to the package and rescan, then install.");
+            }
+
             if (title.BaseKind == Ps3BaseKind.Disc)
             {
                 var dstPath = _mapping.DestinationPathResolved

@@ -277,6 +277,70 @@ namespace EmuLibrary.Tests.Util
             }
         }
 
+        [Theory]
+        // DRM Type Network(1)/Local(2) require a RAP; Free(3)/no-DRM(0) don't. -1 = no metadata entry.
+        [InlineData(1, true)]
+        [InlineData(2, true)]
+        [InlineData(3, false)]
+        [InlineData(0, false)]
+        public void Ps3Pkg_ReadsDrmTypeAndRequiresLicense(int drmType, bool expectedRequiresLicense)
+        {
+            var riv = Enumerable.Range(0, 16).Select(i => (byte)(0x30 + i)).ToArray();
+            var pkgPath = Path.Combine(Path.GetTempPath(), "eltest-" + Guid.NewGuid().ToString("N") + ".pkg");
+            try
+            {
+                WriteSyntheticPkg(pkgPath, "UP0102-NPUB30024_00-1942XXXXX0123456", riv, isPatch: false,
+                    new[] { ("PARAM.SFO", BuildSfo(new[] { ("CATEGORY", "HG"), ("APP_VER", "01.00") })) },
+                    drmType: drmType);
+
+                using (var pkg = Ps3Pkg.Open(pkgPath))
+                {
+                    Assert.Equal(drmType, pkg.DrmType);
+                    Assert.Equal(expectedRequiresLicense, pkg.RequiresLicense);
+                }
+            }
+            finally
+            {
+                if (File.Exists(pkgPath))
+                    File.Delete(pkgPath);
+            }
+        }
+
+        [Fact]
+        public void Ps3Pkg_DrmTypeIsMinusOneWhenMetadataEntryAbsent()
+        {
+            // No DRM Type record emitted (only the content-flags id 0x03) ⇒ unknown, treated as not requiring.
+            var riv = Enumerable.Range(0, 16).Select(i => (byte)(0x40 + i)).ToArray();
+            var pkgPath = Path.Combine(Path.GetTempPath(), "eltest-" + Guid.NewGuid().ToString("N") + ".pkg");
+            try
+            {
+                WriteSyntheticPkg(pkgPath, "UP0102-NPUB30024_00-1942XXXXX0123456", riv, isPatch: false,
+                    new[] { ("PARAM.SFO", BuildSfo(new[] { ("CATEGORY", "HG") })) });
+
+                using (var pkg = Ps3Pkg.Open(pkgPath))
+                {
+                    Assert.Equal(-1, pkg.DrmType);
+                    Assert.False(pkg.RequiresLicense);
+                }
+            }
+            finally
+            {
+                if (File.Exists(pkgPath))
+                    File.Delete(pkgPath);
+            }
+        }
+
+        [Theory]
+        [InlineData(1, true)]
+        [InlineData(2, true)]
+        [InlineData(3, false)]
+        [InlineData(0, false)]
+        [InlineData(-1, false)]
+        public void Ps3FileInfo_RequiresLicenseMirrorsDrmType(int drmType, bool expected)
+        {
+            Assert.Equal(expected, new Ps3FileInfo { DrmType = drmType }.RequiresLicense);
+        }
+
         #endregion
 
         #region disc ISO PARAM.SFO
@@ -486,9 +550,10 @@ namespace EmuLibrary.Tests.Util
         }
 
         // Builds a finalized retail PS3 PKG whose encrypted data segment holds the given files, with a
-        // minimal plaintext metadata block (content-flags id 0x03, patch bit 0x10 set per isPatch).
+        // minimal plaintext metadata block (content-flags id 0x03, patch bit 0x10 set per isPatch). When
+        // drmType >= 0 a DRM Type record (id 0x01) is emitted too, so RAP-required detection can be exercised.
         private static void WriteSyntheticPkg(string path, string contentId, byte[] riv, bool isPatch,
-            IReadOnlyList<(string Name, byte[] Data)> files)
+            IReadOnlyList<(string Name, byte[] Data)> files, int drmType = -1)
         {
             // Lay out the plaintext data segment: file records, then names, then file data.
             int recordsSize = files.Count * 0x20;
@@ -526,12 +591,25 @@ namespace EmuLibrary.Tests.Util
 
             var encryptedSegment = CtrTransform(segment, GpkgKey, riv);
 
-            // One metadata record: id 0x03 (content flags), size 4, value with the patch bit per isPatch.
+            // Metadata records (each: u32 id, u32 size, payload). Always id 0x03 (content flags, patch bit per
+            // isPatch); optionally id 0x01 (DRM Type) when drmType >= 0. Each record here is 4-byte payload.
             const int metaOffset = 0x80;
-            var meta = new byte[12];
-            WriteU32BE(meta, 0x00, 0x03);
-            WriteU32BE(meta, 0x04, 4);
-            WriteU32BE(meta, 0x08, isPatch ? 0x5Eu : 0x4Eu);
+            var records = new List<byte[]>();
+            if (drmType >= 0)
+            {
+                var drm = new byte[12];
+                WriteU32BE(drm, 0x00, 0x01);
+                WriteU32BE(drm, 0x04, 4);
+                WriteU32BE(drm, 0x08, (uint)drmType);
+                records.Add(drm);
+            }
+            var flags = new byte[12];
+            WriteU32BE(flags, 0x00, 0x03);
+            WriteU32BE(flags, 0x04, 4);
+            WriteU32BE(flags, 0x08, isPatch ? 0x5Eu : 0x4Eu);
+            records.Add(flags);
+
+            var meta = records.SelectMany(r => r).ToArray();
 
             int dataOffset = metaOffset + meta.Length;
             var header = new byte[metaOffset];
@@ -539,7 +617,7 @@ namespace EmuLibrary.Tests.Util
             WriteU16BE(header, 0x04, 0x8000);     // revision: finalized retail
             WriteU16BE(header, 0x06, 0x0001);     // type: PS3
             WriteU32BE(header, 0x08, metaOffset);  // metadata_offset
-            WriteU32BE(header, 0x0C, 1);           // metadata_count
+            WriteU32BE(header, 0x0C, (uint)records.Count); // metadata_count
             WriteU32BE(header, 0x14, (uint)files.Count); // item_count
             WriteU64BE(header, 0x18, (ulong)(dataOffset + encryptedSegment.Length)); // total_size
             WriteU64BE(header, 0x20, (ulong)dataOffset); // data_offset

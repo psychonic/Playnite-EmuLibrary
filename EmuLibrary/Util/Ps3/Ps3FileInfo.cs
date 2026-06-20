@@ -37,6 +37,14 @@ namespace EmuLibrary.Util.Ps3
         public string Category { get; set; }
         public bool IsPatch { get; set; }
 
+        // PKG DRM Type (metadata id 0x01); -1 when unknown (disc bases, or a pkg whose metadata wasn't
+        // in-buffer). 0x1 (Network) / 0x2 (Local) mean the content needs a RAP license; 0x3 (Free) / 0x0 don't.
+        public int DrmType { get; set; } = -1;
+
+        // True when this content needs a RAP license to decrypt (DRM Type Network/Local). Disc bases are -1.
+        [JsonIgnore]
+        public bool RequiresLicense => DrmType == 1 || DrmType == 2;
+
         // Parsed APP_VER used only for ordering updates; never persisted.
         [JsonIgnore]
         public Version AppVerParsed => ParseAppVer(AppVer);

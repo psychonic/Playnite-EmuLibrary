@@ -52,6 +52,14 @@ namespace EmuLibrary.Util.Ps3
         // perfect discriminator vs base/DLC across 400 real pkgs (disc + PSN + content). No decryption needed.
         public bool IsPatch { get; private set; }
 
+        // From the plaintext metadata block (id 0x01, "DRM Type"): 0x1 (Network) / 0x2 (Local) mean the title
+        // needs a per-content RAP license to decrypt; 0x3 (Free) / 0x0 (no DRM) need none. -1 when the entry
+        // wasn't present in the in-buffer block. No decryption needed.
+        public int DrmType { get; private set; } = -1;
+
+        // True when this package needs a RAP license (DRM Type Network/Local). Free packages return false.
+        public bool RequiresLicense => DrmType == 1 || DrmType == 2;
+
         private Ps3Pkg(FileStream fs, byte[] riv)
         {
             _fs = fs;
@@ -90,7 +98,10 @@ namespace EmuLibrary.Util.Ps3
                     ContentId = ReadFixedAscii(header, 0x30, 0x24),
                 };
                 pkg.TitleId = Ps3FileInfo.TitleIdFromContentId(pkg.ContentId);
-                pkg.IsPatch = ReadPatchFlag(header, read, ReadU32BE(header, 0x08), ReadU32BE(header, 0x0C));
+                ParseMetadata(header, read, ReadU32BE(header, 0x08), ReadU32BE(header, 0x0C),
+                    out var isPatch, out var drmType);
+                pkg.IsPatch = isPatch;
+                pkg.DrmType = drmType;
                 return pkg;
             }
             catch
@@ -100,12 +111,17 @@ namespace EmuLibrary.Util.Ps3
             }
         }
 
-        // Walks the plaintext metadata block (id/size/data records). Returns true if the content-flags
-        // entry (id 0x03) has the patch bit (0x10) set. Best-effort: false if the block isn't in-buffer.
-        private static bool ReadPatchFlag(byte[] buf, int available, uint metaOffset, uint metaCount)
+        // Walks the plaintext metadata block (id/size/data records) once, extracting the two scan-time signals
+        // we can read without decryption: the patch bit (content-flags entry id 0x03, bit 0x10) and the DRM
+        // Type (entry id 0x01). Best-effort: isPatch=false / drmType=-1 for any entry not found in-buffer.
+        private static void ParseMetadata(byte[] buf, int available, uint metaOffset, uint metaCount,
+            out bool isPatch, out int drmType)
         {
+            isPatch = false;
+            drmType = -1;
+
             if (metaCount > 64)
-                return false; // implausible — treat as no metadata
+                return; // implausible — treat as no metadata
 
             int o = (int)metaOffset;
             for (int i = 0; i < metaCount; i++)
@@ -117,11 +133,12 @@ namespace EmuLibrary.Util.Ps3
                 o += 8;
                 if (o + size > available)
                     break;
-                if (id == 0x03 && size >= 4)
-                    return (ReadU32BE(buf, o) & 0x10) != 0;
+                if (id == 0x01 && size >= 4)
+                    drmType = (int)ReadU32BE(buf, o);
+                else if (id == 0x03 && size >= 4)
+                    isPatch = (ReadU32BE(buf, o) & 0x10) != 0;
                 o += size;
             }
-            return false;
         }
 
         // Reads + decrypts the embedded PARAM.SFO, if present. Returns null if absent/unparseable.

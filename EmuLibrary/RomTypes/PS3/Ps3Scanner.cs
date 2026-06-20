@@ -66,6 +66,12 @@ namespace EmuLibrary.RomTypes.Ps3
             public List<Ps3FileInfo> Dlcs = new List<Ps3FileInfo>();
             public List<string> RapPaths = new List<string>();
 
+            // The base game pkg needs a RAP license (PKG DRM Type Network/Local) but no matching
+            // <content_id>.rap was found in the source. Such a game installs but can't boot in RPCS3 until the
+            // RAP is supplied; the install controller refuses to install it. Only set for a pkg base — disc
+            // bases (iso/folder) use a .dkey, not a RAP. ContentId of that base is BaseInfo.ContentId.
+            public bool BaseLicenseMissing;
+
             Ps3FileInfo ICompositeContentSet<Ps3FileInfo>.Base => BaseInfo;
             IReadOnlyList<Ps3FileInfo> ICompositeContentSet<Ps3FileInfo>.Updates => Updates;
             IReadOnlyList<Ps3FileInfo> ICompositeContentSet<Ps3FileInfo>.Dlc => Dlcs;
@@ -377,6 +383,32 @@ namespace EmuLibrary.RomTypes.Ps3
 
             title.BaseInfo = basePkg ?? discInfo;
 
+            // RAP-required detection for a pkg base: if the base needs a license (DRM Type Network/Local) but
+            // no .rap whose filename is its content-id is present in the source, flag it. A title's RAP file is
+            // named for the full content-id (e.g. "UP0102-NPUB30024_00-....rap"). Warn once at scan time; the
+            // install controller refuses the install (the game would install but not boot without the RAP).
+            if (basePkg != null && basePkg.RequiresLicense)
+            {
+                bool rapPresent = raps.Any(r => string.Equals(
+                    Path.GetFileNameWithoutExtension(r), basePkg.ContentId, StringComparison.OrdinalIgnoreCase));
+                title.BaseLicenseMissing = !rapPresent;
+                if (title.BaseLicenseMissing)
+                    _emuLibrary.Logger.Warn($"[PS3] \"{basePkg.Title ?? titleDir.Name}\" ({basePkg.TitleId}) base pkg requires a RAP license (content-id \"{basePkg.ContentId}\") but no matching .rap was found in \"{titleDirAbs}\". It will scan but can't be installed until the RAP is added next to the package.");
+            }
+
+            // DLC RAPs aren't required to install the game — only that add-on fails to decrypt without its RAP
+            // — so a missing DLC RAP doesn't block install (unlike the base). Still warn at scan so it's
+            // visible. Each DLC's RAP is named for that DLC's own content-id, not the base's.
+            foreach (var dlc in dlcs)
+            {
+                if (!dlc.RequiresLicense)
+                    continue;
+                bool dlcRapPresent = raps.Any(r => string.Equals(
+                    Path.GetFileNameWithoutExtension(r), dlc.ContentId, StringComparison.OrdinalIgnoreCase));
+                if (!dlcRapPresent)
+                    _emuLibrary.Logger.Warn($"[PS3] DLC \"{dlc.Title ?? Path.GetFileName(dlc.FilePath)}\" (content-id \"{dlc.ContentId}\") for \"{basePkg?.Title ?? discInfo?.Title ?? titleDir.Name}\" requires a RAP license but no matching .rap was found in \"{titleDirAbs}\". The game installs; this add-on won't work until its RAP is added.");
+            }
+
             // Title id: from the base pkg / disc SFO, else a token in the iso/folder name, else any
             // update/DLC/RAP title id.
             title.TitleId =
@@ -596,6 +628,7 @@ namespace EmuLibrary.RomTypes.Ps3
                         TargetAppVer = sfo?.TargetAppVer,
                         Category = sfo?.Category,
                         IsPatch = pkg.IsPatch,
+                        DrmType = pkg.DrmType,
                         ContentType = Ps3FileInfo.Classify(pkg.IsPatch, sfo?.Category, sfo?.AppVer, sfo?.TargetAppVer),
                     };
 
