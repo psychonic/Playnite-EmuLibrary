@@ -83,6 +83,28 @@ Both halves are handled in-process — RPCS3 is not invoked to install anything.
 
 Game names and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment).
 
+### Wii U (Beta)
+
+The Wii U type adds support for Nintendo Wii U games run under [Cemu](https://cemu.info). It has a beta level of quality of support. Select Cemu as the emulator for the mapping (built-in or custom).
+
+Like the Yuzu and PS3 types, this type scans by its own format logic rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined. It recognizes every common Wii U source format found directly under the source path:
+
+* **NUS/WUP dumps** — a folder containing `title.tmd`, the encrypted `.app` contents, and a `.tik` ticket.
+* **Decrypted "loadiine" folders** — a folder with `code/`, `content/`, and `meta/` subfolders.
+* **Disc images** — `.wux` (or `.wud`) with a sibling disc key named `<image>.key` (or `game.key`).
+* **Pre-made `.wua` archives** — Cemu's single-file compressed format.
+
+Decryption is done natively in-process (it does not shell out to other tools); the Wii U common key is read from `keys.txt` in the Cemu folder, and disc images additionally need their per-disc `.key`. The plugin **never installs into Cemu's NAND** — Cemu launches games directly from the installed file/folder.
+
+Like PS3, a Wii U "game" is a **composite**: a base title plus its updates and DLC. Wii U updates are cumulative, so only the **latest** update is applied (along with any DLC); there are no separate license files. The install model is **WUA-first**:
+
+* If the source is already a self-contained, decrypted bundle — a `.wua`, a standalone disc image (`.wux`/`.wud` + `.key`), or a loadiine folder with no separate update/DLC — it is **copied** as-is to the mapping's **destination path**.
+* Otherwise (a NUS dump, or a base with separate update/DLC that must be merged), the content is decrypted and **converted into a single `.wua`** at the destination, with the latest update and DLC merged in. Merging separate updates/DLC into a pre-existing `.wua` base is not supported.
+
+Each title installs into its own destination subfolder named `<name> [<title id>]`, so installed state and identity are recovered from disk on each scan. Uninstalling removes that subfolder.
+
+Game names come from each title's decrypted `meta.xml`, and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment).
+
 ### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.
@@ -96,6 +118,7 @@ For some RomTypes, EmuLibrary looks up game details from a community metadata da
 | --- | --- | --- |
 | Yuzu (Switch) | [titledb](https://github.com/blawar/titledb) | Title ID |
 | PS3 | [GameTDB](https://www.gametdb.com) | Disc serial (e.g. `BLES01234`) |
+| Wii U | [GameTDB](https://www.gametdb.com) | 6-char game code (e.g. `AVEE0W`), built from `meta.xml` |
 
 When a match is found, these fields are filled in (shadowing anything derived from the files): **name**, **description**, **developer**, **publisher**, **genres**, and **release date**. Anything the provider doesn't supply falls back to what was read from the files, so you never end up worse off than without enrichment.
 
@@ -105,6 +128,7 @@ A few notes:
 * **Caching / offline use** — each provider's database is downloaded once and cached under `ExtensionsData\41e49490-0583-4148-94d2-940c7c74f1d9\metadata`, and only re-downloaded when the cached copy is more than a day old. If a provider can't be reached, the most recent cached copy is used, and if there's no cached copy at all, enrichment is simply skipped — it never blocks or fails a library scan.
 * **Applies going forward** — because of how Playnite imports library games, enrichment primarily affects games as they are newly added. Re-applying it to games already in your library is not currently guaranteed.
 * GameTDB also lists Switch games, but it keys them by a cartridge serial that loose NSP/XCI dumps don't contain, so it can't be used for the Yuzu type — titledb is used there instead.
+* For Wii U, the game **name** always comes from the title's own `meta.xml` (Wii U files embed it), and GameTDB is only used for the extra fields. GameTDB's Wii U coverage is thin for eShop-only/indie titles, so many Wii U games are enriched by name alone.
 
 ## Support
 

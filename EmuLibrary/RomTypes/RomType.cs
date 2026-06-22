@@ -12,6 +12,9 @@
         [RomTypeInfo(typeof(Ps3.Ps3GameInfo), typeof(Ps3.Ps3Scanner))]
         Ps3 = 2,
 
+        [RomTypeInfo(typeof(WiiU.WiiUGameInfo), typeof(WiiU.WiiUScanner))]
+        WiiU = 3,
+
         [RomTypeInfo(typeof(Yuzu.YuzuGameInfo), typeof(Yuzu.YuzuScanner))]
         Yuzu = 4,
     }

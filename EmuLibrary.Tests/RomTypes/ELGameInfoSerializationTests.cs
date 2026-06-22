@@ -2,6 +2,7 @@ using EmuLibrary.RomTypes;
 using EmuLibrary.RomTypes.MultiFile;
 using EmuLibrary.RomTypes.Ps3;
 using EmuLibrary.RomTypes.SingleFile;
+using EmuLibrary.RomTypes.WiiU;
 using EmuLibrary.RomTypes.Yuzu;
 using Playnite.SDK.Models;
 using ProtoBuf.Meta;
@@ -74,6 +75,17 @@ namespace EmuLibrary.Tests.RomTypes
         }
 
         [Fact]
+        public void WiiU_RoundTrips()
+        {
+            var info = new WiiUGameInfo { MappingId = FixedMappingId, TitleId = 0x0005000010102000UL };
+            var result = RoundTrip(info);
+
+            Assert.Equal(RomType.WiiU, result.RomType);
+            Assert.Equal(info.MappingId, result.MappingId);
+            Assert.Equal(info.TitleId, result.TitleId);
+        }
+
+        [Fact]
         public void Ps3_RoundTrips()
         {
             var info = new Ps3GameInfo
@@ -136,8 +148,9 @@ namespace EmuLibrary.Tests.RomTypes
         [Theory]
         [InlineData(typeof(SingleFileGameInfo), 10)] // RomType.SingleFile (0) + 10
         [InlineData(typeof(MultiFileGameInfo), 11)]  // RomType.MultiFile  (1) + 10
-        [InlineData(typeof(YuzuGameInfo), 14)]       // RomType.Yuzu       (4) + 10
         [InlineData(typeof(Ps3GameInfo), 12)]        // RomType.Ps3        (2) + 10
+        [InlineData(typeof(WiiUGameInfo), 13)]       // RomType.WiiU       (3) + 10
+        [InlineData(typeof(YuzuGameInfo), 14)]       // RomType.Yuzu       (4) + 10        
         public void ProtoSubType_HasExpectedFieldNumber(Type gameInfoType, int expectedFieldNumber)
         {
             var subType = RuntimeTypeModel.Default[typeof(ELGameInfo)]
