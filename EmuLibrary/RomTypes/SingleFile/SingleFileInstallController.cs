@@ -22,6 +22,9 @@ namespace EmuLibrary.RomTypes.SingleFile
             var dstPath = info.Mapping?.DestinationPathResolved ??
                 throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
 
+            if (!TryBeginInstall())
+                return;
+
             _watcherToken = new CancellationTokenSource();
 
             Task.Run(async () =>
@@ -56,6 +59,10 @@ namespace EmuLibrary.RomTypes.SingleFile
                     }
                     Game.IsInstalling = false;
                     throw;
+                }
+                finally
+                {
+                    EndInstall();
                 }
             });
         }

@@ -51,6 +51,9 @@ namespace EmuLibrary.RomTypes
 
         public override void Install(InstallActionArgs args)
         {
+            if (!TryBeginInstall())
+                return;
+
             _watcherToken = new CancellationTokenSource();
 
             Task.Run(async () =>
@@ -98,6 +101,10 @@ namespace EmuLibrary.RomTypes
                     }
                     Game.IsInstalling = false;
                     throw;
+                }
+                finally
+                {
+                    EndInstall();
                 }
             });
         }
