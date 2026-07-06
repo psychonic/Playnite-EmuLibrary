@@ -20,5 +20,8 @@
 
         [RomTypeInfo(typeof(ThreeDs.ThreeDsGameInfo), typeof(ThreeDs.ThreeDsScanner))]
         ThreeDs = 5,
+
+        [RomTypeInfo(typeof(Xbox360.Xbox360GameInfo), typeof(Xbox360.Xbox360Scanner))]
+        Xbox360 = 6,
     }
 }

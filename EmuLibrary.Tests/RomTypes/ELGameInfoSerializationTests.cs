@@ -4,6 +4,7 @@ using EmuLibrary.RomTypes.Ps3;
 using EmuLibrary.RomTypes.SingleFile;
 using EmuLibrary.RomTypes.ThreeDs;
 using EmuLibrary.RomTypes.WiiU;
+using EmuLibrary.RomTypes.Xbox360;
 using EmuLibrary.RomTypes.Yuzu;
 using Playnite.SDK.Models;
 using ProtoBuf.Meta;
@@ -124,6 +125,27 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal(info.BaseKind, result.BaseKind);
         }
 
+        [Fact]
+        public void Xbox360_RoundTrips()
+        {
+            var info = new Xbox360GameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = 0x5841085EU,
+                MediaId = 0x0039F097U,
+                SourceName = @"Marathon Durandal (USA).iso",
+                BaseKind = Xbox360BaseKind.DiscImage,
+            };
+            var result = RoundTrip(info);
+
+            Assert.Equal(RomType.Xbox360, result.RomType);
+            Assert.Equal(info.MappingId, result.MappingId);
+            Assert.Equal(info.TitleId, result.TitleId);
+            Assert.Equal(info.MediaId, result.MediaId);
+            Assert.Equal(info.SourceName, result.SourceName);
+            Assert.Equal(info.BaseKind, result.BaseKind);
+        }
+
         // Golden GameId strings. Each encodes the exact bytes a current build produces for a fixed input.
         // If one of these changes, a serialization-affecting change was made and previously-saved
         // libraries may no longer deserialize. Update ONLY with a deliberate, migration-aware change.
@@ -163,6 +185,20 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal("!0YiYKCUJMRVMwMTIzNBIZQkxFUzAxMjM0IC0gRGVtb24ncyBTb3VscwoSCRERERERERERERERERERERER", info.AsGameId());
         }
 
+        [Fact]
+        public void Xbox360_GoldenGameId_IsStable()
+        {
+            var info = new Xbox360GameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = 0x5841085EU,
+                MediaId = 0x0039F097U,
+                SourceName = @"Marathon Durandal (USA).iso",
+                BaseKind = Xbox360BaseKind.DiscImage,
+            };
+            Assert.Equal("!0ggEoCN6QhMIFEJfh5wEaG01hcmF0aG9uIER1cmFuZGFsIChVU0EpLmlzbwoSCRERERERERERERERERERERER", info.AsGameId());
+        }
+
         // Pins each GameInfo subtype to its exact proto field number (RomType value + 10). Catches both a
         // RomType enum renumber and a change to the offset, either of which breaks saved GameIds.
         [Theory]
@@ -172,6 +208,7 @@ namespace EmuLibrary.Tests.RomTypes
         [InlineData(typeof(WiiUGameInfo), 13)]       // RomType.WiiU       (3) + 10
         [InlineData(typeof(YuzuGameInfo), 14)]       // RomType.Yuzu       (4) + 10
         [InlineData(typeof(ThreeDsGameInfo), 15)]    // RomType.ThreeDs    (5) + 10
+        [InlineData(typeof(Xbox360GameInfo), 16)]    // RomType.Xbox360    (6) + 10
         public void ProtoSubType_HasExpectedFieldNumber(Type gameInfoType, int expectedFieldNumber)
         {
             var subType = RuntimeTypeModel.Default[typeof(ELGameInfo)]

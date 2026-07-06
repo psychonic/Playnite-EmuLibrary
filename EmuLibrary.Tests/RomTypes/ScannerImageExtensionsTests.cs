@@ -39,6 +39,7 @@ namespace EmuLibrary.Tests.RomTypes
             { RomType.Ps3, false },
             { RomType.WiiU, false },
             { RomType.ThreeDs, false },
+            { RomType.Xbox360, false },
         };
 
         private static RomTypeScanner CreateScanner(RomType rt)
@@ -57,6 +58,7 @@ namespace EmuLibrary.Tests.RomTypes
         [InlineData(RomType.Ps3, false)]
         [InlineData(RomType.WiiU, false)]
         [InlineData(RomType.ThreeDs, false)]
+        [InlineData(RomType.Xbox360, false)]
         public void RequiresProfileImageExtensions_IsPinned(RomType rt, bool expected)
         {
             Assert.Equal(expected, CreateScanner(rt).RequiresProfileImageExtensions);

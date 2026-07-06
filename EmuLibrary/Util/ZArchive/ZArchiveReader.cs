@@ -229,6 +229,20 @@ namespace EmuLibrary.Util.ZArchive
             return data;
         }
 
+        // Reads up to `maxBytes` of a file's content (the whole file if it's smaller), decompressing only the
+        // blocks it spans. Lets a caller sniff a header out of a large archived file without inflating all of
+        // it. False if the path isn't a file.
+        public bool TryReadFilePrefix(string path, int maxBytes, out byte[] data)
+        {
+            data = null;
+            int i = FindEntry(path);
+            if (i < 0 || !_entries[i].IsFile)
+                return false;
+            ulong take = Math.Min((ulong)Math.Max(0, maxBytes), _entries[i].FileSize);
+            data = ReadData(_entries[i].FileOffset, take);
+            return true;
+        }
+
         #endregion
 
         #region Block decompression

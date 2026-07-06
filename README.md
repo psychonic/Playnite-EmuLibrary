@@ -128,6 +128,32 @@ Installed state is derived from Azahar's SD store (for content-store titles) or 
 
 Game icons come from each title's embedded SMDH where readable, and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment). By default the game **name** is the normalized filename (overridden by the 3dsdb full name when a title-id match exists), because the SMDH's embedded title is often shortened for the handheld's home menu; enable **Prefer in-file (SMDH) title over filename** on the mapping to use the embedded title instead.
 
+### Xbox 360 (Beta)
+
+The Xbox 360 type adds support for Xbox 360 games run under [Xenia](https://xenia.jp) (Canary or master — the content layout is the same across forks). It has a beta level of quality of support. Select Xenia as the emulator for the mapping (built-in or custom).
+
+Like the other console types, this type scans by its own format logic rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined. It is **entirely keyless** — there is no decryption or extraction step; every install is a plain file copy. It recognizes these source shapes found directly under the source path:
+
+* **Disc images** — `.iso` (XGD / XDVDFS). Redump `.7z` dumps are presumed already **extracted to `.iso`**.
+* **Digital packages** — single-file STFS containers (`LIVE`) for XBLA, Games on Demand, and standalone apps. Zipped digital dumps are presumed already **unzipped** (the internal `<TitleID>/<ContentType>/<ContentID>` folder layout is what is scanned).
+* **Title updates** — `TU_*` STFS packages (these shares are foldered by media id).
+* **DLC / add-ons** — marketplace STFS packages.
+
+Like PS3 and Wii U, an Xbox 360 "game" is a **composite**: a base (a disc image or a digital package) plus its updates and DLC. Updates are cumulative, so only the **latest** update is applied (along with any DLC); there are no separate license files.
+
+The plugin reads each base's **title id and media id** to group content — from the disc's `default.xex` for ISOs, or from the STFS header for digital packages. Title updates are matched to a base by **media id** (a disc release and a Games-on-Demand release of the same game share a title id but differ by media id, and an update only applies to the matching one); DLC is matched by title id. STFS content type alone does not separate a standalone app from a DLC add-on (both can sit under `00000002`), so the plugin probes whether the package contains a `default.xex` to tell them apart.
+
+Installing differs by piece:
+
+* The **base** (the `.iso` or the digital container) is **copied** to the mapping's **destination path** and launched directly — Xenia opens it in place.
+* **Updates and DLC** are **copied into Xenia's content folder**, resolved from the selected emulator's install: `content/` beside `xenia.exe` if a `portable.txt` is present there, otherwise `%USERPROFILE%\Documents\Xenia\content`. Xenia applies them automatically at boot by title id + media id. If the content folder can't be resolved, base install still works but update/DLC install is refused with a clear message.
+
+Installed state is derived from disk on each scan (the base copy in the destination plus each update/DLC file in the content tree). Uninstalling removes the copied base and the specific update/DLC files that were written — it does **not** delete the whole title content directory, so save data (stored under the same title id) is left untouched.
+
+> **Note:** each disc of a multi-disc set is treated as its own game. Some demo/promo discs are plain DVD images with no Xbox game partition; these can't be identified and are skipped with a warning.
+
+Game names and thumbnails come from each digital package's embedded STFS metadata where available; disc titles fall back to the title-id database or the No-Intro filename. See [Metadata Enrichment](#metadata-enrichment).
+
 ### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.
@@ -143,6 +169,7 @@ For some RomTypes, EmuLibrary looks up game details from a community metadata da
 | PS3 | [GameTDB](https://www.gametdb.com) | Disc serial (e.g. `BLES01234`) |
 | Wii U | [GameTDB](https://www.gametdb.com) | 6-char game code (e.g. `AVEE0W`), built from `meta.xml` |
 | 3DS | [3dsdb](https://github.com/hax0kartik/3dsdb) | Title ID |
+| Xbox 360 | [x360db](https://github.com/xenia-manager/x360db) | Title ID |
 
 When a match is found, these fields are filled in (shadowing anything derived from the files): **name**, **description**, **developer**, **publisher**, **genres**, and **release date**. Anything the provider doesn't supply falls back to what was read from the files, so you never end up worse off than without enrichment.
 
@@ -154,6 +181,7 @@ A few notes:
 * GameTDB also lists Switch games, but it keys them by a cartridge serial that loose NSP/XCI dumps don't contain, so it can't be used for the Yuzu type — titledb is used there instead.
 * For Wii U, the game **name** always comes from the title's own `meta.xml` (Wii U files embed it), and GameTDB is only used for the extra fields. GameTDB's Wii U coverage is thin for eShop-only/indie titles, so many Wii U games are enriched by name alone.
 * For 3DS, the game **icon** is read from the title's embedded SMDH when available (3DS files carry it). The game **name** comes from the normalized filename by default, overridden by the 3dsdb name when a title-id match exists; the embedded SMDH title (often shortened for the handheld's home menu) is used for the name only when **Prefer in-file (SMDH) title over filename** is enabled on the mapping. 3dsdb also supplies publisher and region. The SMDH is read for both installed and uninstalled titles.
+* For Xbox 360, digital packages carry an embedded display **name** and **thumbnail** in their STFS header, which take precedence; x360db supplies the name (and publisher) when there's no STFS metadata — notably for disc images, which have no STFS header and otherwise fall back to the filename.
 
 ## Support
 
