@@ -17,5 +17,8 @@
 
         [RomTypeInfo(typeof(Yuzu.YuzuGameInfo), typeof(Yuzu.YuzuScanner))]
         Yuzu = 4,
+
+        [RomTypeInfo(typeof(ThreeDs.ThreeDsGameInfo), typeof(ThreeDs.ThreeDsScanner))]
+        ThreeDs = 5,
     }
 }

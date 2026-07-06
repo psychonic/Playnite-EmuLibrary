@@ -105,6 +105,29 @@ Each title installs into its own destination subfolder named `<name> [<title id>
 
 Game names come from each title's decrypted `meta.xml`, and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment).
 
+### 3DS (Beta)
+
+The 3DS type adds support for Nintendo 3DS games run under [Azahar](https://azahar-emu.org) (a Citra fork). It has a beta level of quality of support. Select Azahar as the emulator for the mapping (built-in or custom).
+
+Like the other console types, this type scans by its own format logic rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined. It recognizes three source shapes found directly under the source path:
+
+* **Loose bootable images** — `.3ds`, `.cci`, `.cxi`, `.3dsx`, and their compressed Z3DS counterparts `.zcci`, `.zcxi`, `.z3dsx`. These must already be **decrypted** dumps (Azahar rejects encrypted images).
+* **CIA / Z3DS CIA** — `.cia` and `.zcia` files. Each is one title; base/update/DLC `.cia`s are grouped by their shared base title id.
+* **CDN folders** — a folder containing a `tmd.<version>` plus content files named by hex content id (the layout produced by CDN downloads). Base, update, and DLC folders are grouped by the base title id read from the tmd, **not** by the folder-name suffix.
+
+Like PS3 and Wii U, a 3DS "game" is a **composite**: a base title plus its updates and DLC. 3DS updates are cumulative, so only the **latest** update is applied (along with any DLC); there are no separate license files. Installing differs by source shape:
+
+* **Loose images** are **copied** as-is to the mapping's **destination path** (the Z3DS variants are copied verbatim — Azahar reads them natively, so there is no decompression on the copy path). This path is **keyless**.
+* **CIA / Z3DS CIA / CDN** content is decrypted in-process and written into **Azahar's SD title store** (derived from the selected emulator's data folder), the same layout Azahar's own "Install CIA" produces. Updates and DLC are written into their own title directories, where Azahar applies them automatically when the base game boots. Azahar is never invoked to install anything.
+
+Decryption needs the universal retail 3DS AES keys. These are read from **your own Azahar** — primarily its built-in key blob, with an `aes_keys.txt` (in Azahar's `sysdata` folder, beside the source, or a `3DS Keys/` folder on the source) as a fallback — so the plugin embeds no keys and requires nothing you don't already need to run Azahar. If no keys can be found, content-store install (CIA/CDN) is refused with a clear message; loose-file copy is unaffected. A CDN folder additionally needs a ticket (`.tik`) for its title key — `<folder>.tik` beside the folder, or any `.tik`/cetk inside it — and refuses install with a message if none is present (CIAs carry their own ticket).
+
+Installed state is derived from Azahar's SD store (for content-store titles) or the destination folder (for loose copies) on each scan. Uninstalling removes the installed SD title directories or the copied file.
+
+> **Note:** this targets the default Azahar that is **not linked to a real console**. If you have linked a console (Azahar wraps installed content in console-unique encryption in that case), use Azahar's own GUI installer instead.
+
+Game icons come from each title's embedded SMDH where readable, and other details are enriched from an online database where possible — see [Metadata Enrichment](#metadata-enrichment). By default the game **name** is the normalized filename (overridden by the 3dsdb full name when a title-id match exists), because the SMDH's embedded title is often shortened for the handheld's home menu; enable **Prefer in-file (SMDH) title over filename** on the mapping to use the embedded title instead.
+
 ### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.
@@ -119,6 +142,7 @@ For some RomTypes, EmuLibrary looks up game details from a community metadata da
 | Yuzu (Switch) | [titledb](https://github.com/blawar/titledb) | Title ID |
 | PS3 | [GameTDB](https://www.gametdb.com) | Disc serial (e.g. `BLES01234`) |
 | Wii U | [GameTDB](https://www.gametdb.com) | 6-char game code (e.g. `AVEE0W`), built from `meta.xml` |
+| 3DS | [3dsdb](https://github.com/hax0kartik/3dsdb) | Title ID |
 
 When a match is found, these fields are filled in (shadowing anything derived from the files): **name**, **description**, **developer**, **publisher**, **genres**, and **release date**. Anything the provider doesn't supply falls back to what was read from the files, so you never end up worse off than without enrichment.
 
@@ -129,6 +153,7 @@ A few notes:
 * **Applies going forward** — because of how Playnite imports library games, enrichment primarily affects games as they are newly added. Re-applying it to games already in your library is not currently guaranteed.
 * GameTDB also lists Switch games, but it keys them by a cartridge serial that loose NSP/XCI dumps don't contain, so it can't be used for the Yuzu type — titledb is used there instead.
 * For Wii U, the game **name** always comes from the title's own `meta.xml` (Wii U files embed it), and GameTDB is only used for the extra fields. GameTDB's Wii U coverage is thin for eShop-only/indie titles, so many Wii U games are enriched by name alone.
+* For 3DS, the game **icon** is read from the title's embedded SMDH when available (3DS files carry it). The game **name** comes from the normalized filename by default, overridden by the 3dsdb name when a title-id match exists; the embedded SMDH title (often shortened for the handheld's home menu) is used for the name only when **Prefer in-file (SMDH) title over filename** is enabled on the mapping. 3dsdb also supplies publisher and region. The SMDH is read for both installed and uninstalled titles.
 
 ## Support
 

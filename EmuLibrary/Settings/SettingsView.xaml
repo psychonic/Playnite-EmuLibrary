@@ -86,6 +86,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                     <Label Grid.Row="0" Grid.Column="0" Content="Emulator" Style="{StaticResource FieldLabel}" />
@@ -146,7 +147,15 @@
                                     <Button Grid.Row="6" Grid.Column="2" Content="Browse..." Padding="10,2" Margin="0,0,0,4" Click="Click_BrowseDestination"
                                             Visibility="{Binding SupportsDestinationPath, Converter={StaticResource BoolToVis}}" />
 
-                                    <DockPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,6,0,0" LastChildFill="False">
+                                    <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,4,0,0"
+                                                Visibility="{Binding SupportsPreferInAppTitle, Converter={StaticResource BoolToVis}}">
+                                        <CheckBox Content="Prefer in-file (SMDH) title over filename" VerticalAlignment="Center"
+                                                  IsChecked="{Binding PreferInAppTitle, Mode=TwoWay}" />
+                                        <TextBlock Style="{StaticResource InfoMarker}"
+                                                   ToolTip="Nintendo 3DS titles embed a short name sized for the handheld's home menu, which is often truncated or stylized.&#x0a;By default the normalized filename is used (overridden by the 3dsdb full name when a title-id match exists).&#x0a;Enable this to use the game's embedded (SMDH) title instead. The embedded icon is used regardless of this setting." />
+                                    </StackPanel>
+
+                                    <DockPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,6,0,0" LastChildFill="False">
                                         <CheckBox DockPanel.Dock="Left" Content="Enabled" VerticalAlignment="Center" IsChecked="{Binding Enabled, Mode=TwoWay}" />
                                         <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{DynamicResource TextBrushDarker}" FontSize="11"
                                                    Text="{Binding MappingId, Mode=OneWay, StringFormat='ID: {0}'}" />

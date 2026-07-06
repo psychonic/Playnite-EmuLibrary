@@ -106,7 +106,7 @@ namespace EmuLibrary.Settings
         public RomType RomType
         {
             get => _romType;
-            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(DisplayName) });
+            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(SupportsPreferInAppTitle), nameof(DisplayName) });
         }
 
         // Header text for the settings card/expander - a human-readable summary of the mapping.
@@ -132,6 +132,14 @@ namespace EmuLibrary.Settings
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
         public InstallMethod InstallMethod { get; set; }
 
+        // 3DS only: when true, the in-file SMDH title shadows the filename/3dsdb name (the original behavior).
+        // Default false because 3DS SMDH titles are frequently shortened for the handheld's home menu; instead
+        // the normalized filename is used, still overridden by the 3dsdb full name when a title-id match exists.
+        // Bool default false ⇒ configs saved before this field existed deserialize to false (the new default).
+        [DefaultValue(false)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public bool PreferInAppTitle { get; set; }
+
         // False for RomTypes that install into the emulator (e.g. Yuzu) and so don't use DestinationPath. The
         // settings UI binds this to disable the destination column, and VerifySettings skips validating it.
         [JsonIgnore]
@@ -143,6 +151,12 @@ namespace EmuLibrary.Settings
         [JsonIgnore]
         [XmlIgnore]
         public bool SupportsInstallMethod => Settings.Instance?.EmuLibrary?.GetScanner(RomType)?.SupportsInstallLinking ?? false;
+
+        // True only for the 3DS RomType, whose embedded SMDH title is menu-shortened and so is off by default.
+        // The settings UI binds this to show/hide the "prefer in-file title" checkbox.
+        [JsonIgnore]
+        [XmlIgnore]
+        public bool SupportsPreferInAppTitle => RomType == RomType.ThreeDs;
 
         public static IEnumerable<Emulator> AvailableEmulators => Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
 
@@ -260,6 +274,7 @@ namespace EmuLibrary.Settings
             yield return $"{nameof(PlatformId)}: {PlatformId ?? "<Unknown>"}";
             yield return $"{nameof(Platform)}*: {Platform?.Name ?? "<Unknown>"}";
             yield return $"{nameof(InstallMethod)}: {InstallMethod}";
+            yield return $"{nameof(PreferInAppTitle)}: {PreferInAppTitle}";
             yield return $"{nameof(SourcePath)}: {SourcePath ?? "<Unknown>"}";
             yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
             yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";

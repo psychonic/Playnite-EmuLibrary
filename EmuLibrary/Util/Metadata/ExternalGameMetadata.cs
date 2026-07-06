@@ -15,6 +15,7 @@ namespace EmuLibrary.Util.Metadata
         public IReadOnlyList<string> Developers;
         public IReadOnlyList<string> Publishers;
         public IReadOnlyList<string> Genres;
+        public IReadOnlyList<string> Regions;
         public ReleaseDate? ReleaseDate;
 
         // Parsed for completeness/future use; intentionally not applied to GameMetadata yet.
@@ -37,6 +38,7 @@ namespace EmuLibrary.Util.Metadata
                 if (IsEmpty(result.Developers)) result.Developers = NullIfEmpty(s.Developers);
                 if (IsEmpty(result.Publishers)) result.Publishers = NullIfEmpty(s.Publishers);
                 if (IsEmpty(result.Genres)) result.Genres = NullIfEmpty(s.Genres);
+                if (IsEmpty(result.Regions)) result.Regions = NullIfEmpty(s.Regions);
                 if (result.ReleaseDate == null) result.ReleaseDate = s.ReleaseDate;
                 if (IsBlank(result.IconUrl)) result.IconUrl = NullIfBlank(s.IconUrl);
                 if (IsBlank(result.CoverUrl)) result.CoverUrl = NullIfBlank(s.CoverUrl);
@@ -59,6 +61,8 @@ namespace EmuLibrary.Util.Metadata
                 game.Publishers = ToProperties(Publishers);
             if (!IsEmpty(Genres))
                 game.Genres = ToProperties(Genres);
+            if (!IsEmpty(Regions))
+                game.Regions = ToProperties(Regions);
             if (ReleaseDate != null)
                 game.ReleaseDate = ReleaseDate;
         }

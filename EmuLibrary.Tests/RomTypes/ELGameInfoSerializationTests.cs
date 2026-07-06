@@ -2,6 +2,7 @@ using EmuLibrary.RomTypes;
 using EmuLibrary.RomTypes.MultiFile;
 using EmuLibrary.RomTypes.Ps3;
 using EmuLibrary.RomTypes.SingleFile;
+using EmuLibrary.RomTypes.ThreeDs;
 using EmuLibrary.RomTypes.WiiU;
 using EmuLibrary.RomTypes.Yuzu;
 using Playnite.SDK.Models;
@@ -104,6 +105,25 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal(info.BaseKind, result.BaseKind);
         }
 
+        [Fact]
+        public void ThreeDs_RoundTrips()
+        {
+            var info = new ThreeDsGameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = 0x0004000000030700UL,
+                SourceName = "Some Game (USA).3ds",
+                BaseKind = ThreeDsBaseKind.LooseFile,
+            };
+            var result = RoundTrip(info);
+
+            Assert.Equal(RomType.ThreeDs, result.RomType);
+            Assert.Equal(info.MappingId, result.MappingId);
+            Assert.Equal(info.TitleId, result.TitleId);
+            Assert.Equal(info.SourceName, result.SourceName);
+            Assert.Equal(info.BaseKind, result.BaseKind);
+        }
+
         // Golden GameId strings. Each encodes the exact bytes a current build produces for a fixed input.
         // If one of these changes, a serialization-affecting change was made and previously-saved
         // libraries may no longer deserialize. Update ONLY with a deliberate, migration-aware change.
@@ -150,7 +170,8 @@ namespace EmuLibrary.Tests.RomTypes
         [InlineData(typeof(MultiFileGameInfo), 11)]  // RomType.MultiFile  (1) + 10
         [InlineData(typeof(Ps3GameInfo), 12)]        // RomType.Ps3        (2) + 10
         [InlineData(typeof(WiiUGameInfo), 13)]       // RomType.WiiU       (3) + 10
-        [InlineData(typeof(YuzuGameInfo), 14)]       // RomType.Yuzu       (4) + 10        
+        [InlineData(typeof(YuzuGameInfo), 14)]       // RomType.Yuzu       (4) + 10
+        [InlineData(typeof(ThreeDsGameInfo), 15)]    // RomType.ThreeDs    (5) + 10
         public void ProtoSubType_HasExpectedFieldNumber(Type gameInfoType, int expectedFieldNumber)
         {
             var subType = RuntimeTypeModel.Default[typeof(ELGameInfo)]
