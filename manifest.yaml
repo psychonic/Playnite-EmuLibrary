@@ -1,5 +1,16 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.6.0
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: '2026-07-06'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.6.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_6_0.pext
+    Changelog:
+      - Added new RomTypes for Xbox 360 (Xenia), Nintendo 3DS (Azahar), and Wii U (Cemu)
+      - Added an Installs sidebar panel showing in-progress installs, with progress, ETA, cancel, and a Failed section
+      - Game icons are now extracted directly from the game files for Switch, PS3, Wii U, and Xbox 360
+      - "PS3: detect games requiring a missing RAP license file at scan time and block install with a warning, instead of failing partway through"
+      - Added metadata enrichment for Switch and PS3 games using titledb/GameTDB
+      - Fixed duplicate install requests being queued when clicking Install multiple times
   - Version: 3.5.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: '2026-06-18'
