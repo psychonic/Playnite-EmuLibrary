@@ -24,8 +24,10 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
         IEnumerable<ThreeDsTmdContent> PresentContents { get; }
 
         // Streams one content out with its titlekey AES-128-CBC layer removed (still an NCCH whose internal
-        // crypto NcchDecryptor must then strip). IV = the content index as a 16-byte big-endian value.
-        void DecryptContentTo(ThreeDsTmdContent content, byte[] titleKey, Stream dest, CancellationToken ct);
+        // crypto NcchDecryptor must then strip). IV = the content index as a 16-byte big-endian value. When
+        // supplied, progress reports the INCREMENTAL bytes written per chunk (for the install progress bar).
+        void DecryptContentTo(ThreeDsTmdContent content, byte[] titleKey, Stream dest, CancellationToken ct,
+            IProgress<long> progress = null);
 
         // Reads just [offsetInContent, +length) of one content with the titlekey CBC layer removed, random
         // access (cheap even deep into a large content). Used to read a title's SMDH without decrypting it whole.

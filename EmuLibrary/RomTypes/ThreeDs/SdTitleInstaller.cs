@@ -34,11 +34,13 @@ namespace EmuLibrary.RomTypes.ThreeDs
         }
 
         // Installs one source content unit (a .cia file or a CDN folder) into the SD store. Dispatches on the
-        // unit's source shape to open the right IDecryptableTitle, then runs the shared install.
-        public Result InstallUnit(ThreeDsContentRef unit, CancellationToken ct)
+        // unit's source shape to open the right IDecryptableTitle, then runs the shared install. When supplied,
+        // progress reports INCREMENTAL bytes across the titlekey-CBC strip and the NCCH decrypt of every content
+        // (they sum to ~2× the unit's total content size — the total the caller sizes the bar to).
+        public Result InstallUnit(ThreeDsContentRef unit, CancellationToken ct, IProgress<long> progress = null)
         {
             using (var title = OpenTitle(unit))
-                return Install(title, ct);
+                return Install(title, ct, progress);
         }
 
         // Opens the right IDecryptableTitle for a source content unit. Internal so the scanner can reuse it to
@@ -56,7 +58,7 @@ namespace EmuLibrary.RomTypes.ThreeDs
             }
         }
 
-        private Result Install(IDecryptableTitle source, CancellationToken ct)
+        private Result Install(IDecryptableTitle source, CancellationToken ct, IProgress<long> progress = null)
         {
             var tmd = source.Tmd;
             var titleKey = source.Ticket.DecryptTitleKey(_keys);
@@ -78,9 +80,9 @@ namespace EmuLibrary.RomTypes.ThreeDs
                 var tmpPath = appPath + ".tmp";
 
                 using (var dest = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
-                    source.DecryptContentTo(content, titleKey, dest, ct);
+                    source.DecryptContentTo(content, titleKey, dest, ct, progress);
 
-                NcchDecryptor.DecryptFile(tmpPath, _keys, ct);
+                NcchDecryptor.DecryptFile(tmpPath, _keys, ct, progress);
 
                 if (File.Exists(appPath))
                     File.Delete(appPath);

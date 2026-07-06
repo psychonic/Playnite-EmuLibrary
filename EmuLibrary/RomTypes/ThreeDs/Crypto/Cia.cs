@@ -247,7 +247,8 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 
         // Streams one content out of the CIA with its titlekey CBC layer stripped (still an NCCH whose internal
         // crypto NcchDecryptor must then remove). IV = content index as a 16-byte big-endian value.
-        public void DecryptContentTo(ThreeDsTmdContent content, byte[] titleKey, Stream dest, CancellationToken ct)
+        public void DecryptContentTo(ThreeDsTmdContent content, byte[] titleKey, Stream dest, CancellationToken ct,
+            IProgress<long> progress = null)
         {
             if (!_contentOffsets.TryGetValue(content.Index, out var start))
                 throw new InvalidOperationException($"Content index {content.Index} is not present in \"{_path}\".");
@@ -283,6 +284,7 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
                         dec.TransformBlock(enc, 0, aligned, plain, 0);
                         dest.Write(plain, 0, aligned);
                         remaining -= aligned;
+                        progress?.Report(aligned);
                     }
                 }
             }

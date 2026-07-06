@@ -50,5 +50,13 @@ namespace EmuLibrary.RomTypes.Yuzu
         protected override string GetInstallDir(YuzuTitle title) => _mapping.EmulatorBasePathResolved;
         protected override string GetRomPath(YuzuTitle title) => _yuzu.GetLaunchPathFromTitleId(_gameInfo.TitleId);
         protected override string GetRomName(YuzuTitle title) => title.Name;
+
+        // A canceled/failed NAND import can leave partial content in the NAND; since installed-ness is derived
+        // from the NAND each scan, remove it so the game doesn't resurface as installed. If we never got past
+        // ResolveComposite (_yuzu null), nothing was imported yet.
+        protected override void CleanupPartialInstall()
+        {
+            _yuzu?.UninstallTitleFromNand(_gameInfo.TitleId, false);
+        }
     }
 }

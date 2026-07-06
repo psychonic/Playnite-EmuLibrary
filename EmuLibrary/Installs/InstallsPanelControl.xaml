@@ -1,0 +1,164 @@
+<UserControl x:Class="EmuLibrary.Installs.InstallsPanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:EmuLibrary.Installs"
+             Background="Transparent"
+             MinWidth="280">
+
+    <UserControl.Resources>
+        <local:InstallIconConverter x:Key="IconConverter" />
+        <local:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <local:NullToVisibilityConverter x:Key="NullToVis" />
+
+        <!-- One row template, reused by the Active/Finished/Failed lists. The whole card is clickable
+             (navigates to the game in the library); its buttons handle their own clicks. A brief highlight
+             flashes when the row first appears. -->
+        <DataTemplate x:Key="InstallItemTemplate">
+            <Border BorderThickness="1"
+                    BorderBrush="{DynamicResource PopupBorderBrush}"
+                    CornerRadius="4"
+                    Margin="0,0,0,8"
+                    Cursor="Hand"
+                    Background="{DynamicResource PopupBackgroundBrush}"
+                    Tag="{Binding}"
+                    MouseLeftButtonUp="RowClicked"
+                    ToolTip="Click to view this game in the library">
+                <Grid>
+                    <DockPanel Margin="8">
+                        <Image DockPanel.Dock="Left"
+                               Width="32" Height="32"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Top"
+                               Stretch="Uniform"
+                               Visibility="{Binding IconPath, Converter={StaticResource NullToVis}}"
+                               Source="{Binding IconPath, Converter={StaticResource IconConverter}}" />
+
+                        <StackPanel Orientation="Vertical">
+                            <TextBlock FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       Text="{Binding GameName}"
+                                       Foreground="{DynamicResource TextBrush}" />
+
+                            <TextBlock Opacity="0.9"
+                                       Margin="0,2,0,0"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding StatusText}"
+                                       Foreground="{DynamicResource TextBrush}" />
+
+                            <ProgressBar Height="10"
+                                         Margin="0,6,0,0"
+                                         IsIndeterminate="{Binding IsIndeterminate}"
+                                         Maximum="{Binding ProgressMaximum}"
+                                         Value="{Binding ProgressValue}" />
+
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,6,0,0"
+                                        HorizontalAlignment="Right">
+                                <Button Content="Cancel"
+                                        MinWidth="72"
+                                        Margin="0,0,6,0"
+                                        Click="CancelClicked"
+                                        Tag="{Binding}"
+                                        Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}" />
+                                <Button Content="Play"
+                                        MinWidth="72"
+                                        Margin="0,0,6,0"
+                                        Click="PlayClicked"
+                                        Tag="{Binding}"
+                                        Visibility="{Binding IsCompleted, Converter={StaticResource BoolToVis}}" />
+                                <Button Content="Clear"
+                                        MinWidth="72"
+                                        Click="ClearClicked"
+                                        Tag="{Binding}"
+                                        Visibility="{Binding IsFinished, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Appear flash: fades a highlight over the card when its container is realized. Not
+                         hit-test visible so it never eats the row/button clicks. -->
+                    <Border IsHitTestVisible="False"
+                            CornerRadius="4"
+                            Background="{DynamicResource GlyphBrush}"
+                            Opacity="0">
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         From="0.5" To="0" Duration="0:0:1.1" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel Margin="8">
+        <!-- Header. Only the (left-aligned) title lives up here: the top-right corner is where Playnite's
+             window caption buttons (minimize/maximize/close) float, so no interactive control belongs there. -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="EmuLibrary Installs"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Margin="0,0,0,8"
+                   Foreground="{DynamicResource TextBrush}" />
+
+        <!-- Empty state -->
+        <TextBlock DockPanel.Dock="Top"
+                   Margin="0,16,0,0"
+                   Opacity="0.7"
+                   TextWrapping="Wrap"
+                   Text="No installs yet. Installs you start will appear here."
+                   Foreground="{DynamicResource TextBrush}"
+                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+
+        <!-- Clear-all footer. Docked to the bottom (clear of the window caption) and shown only when there's a
+             terminal row to clear; clears both Finished and Failed. -->
+        <Border DockPanel.Dock="Bottom"
+                Margin="0,8,0,0"
+                Visibility="{Binding HasClearable, Converter={StaticResource BoolToVis}}">
+            <Button Content="Clear all finished"
+                    HorizontalAlignment="Right"
+                    Padding="10,4"
+                    Click="ClearAllClicked" />
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Orientation="Vertical">
+                <!-- Active -->
+                <TextBlock Text="In progress"
+                           FontWeight="Bold"
+                           Opacity="0.8"
+                           Margin="0,0,0,6"
+                           Foreground="{DynamicResource TextBrush}"
+                           Visibility="{Binding HasActive, Converter={StaticResource BoolToVis}}" />
+                <ItemsControl ItemsSource="{Binding Active}"
+                              ItemTemplate="{StaticResource InstallItemTemplate}" />
+
+                <!-- Failed -->
+                <TextBlock Text="Failed"
+                           FontWeight="Bold"
+                           Opacity="0.8"
+                           Margin="0,8,0,6"
+                           Foreground="{DynamicResource TextBrush}"
+                           Visibility="{Binding HasFailed, Converter={StaticResource BoolToVis}}" />
+                <ItemsControl ItemsSource="{Binding Failed}"
+                              ItemTemplate="{StaticResource InstallItemTemplate}" />
+
+                <!-- Finished -->
+                <TextBlock Text="Finished"
+                           FontWeight="Bold"
+                           Opacity="0.8"
+                           Margin="0,8,0,6"
+                           Foreground="{DynamicResource TextBrush}"
+                           Visibility="{Binding HasFinished, Converter={StaticResource BoolToVis}}" />
+                <ItemsControl ItemsSource="{Binding Finished}"
+                              ItemTemplate="{StaticResource InstallItemTemplate}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

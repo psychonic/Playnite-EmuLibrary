@@ -50,13 +50,14 @@ namespace EmuLibrary.RomTypes.WiiU
 
             var destFolder = Path.Combine(destRoot, Cemu.DestinationFolderName(title.Name, title.TitleId));
             Directory.CreateDirectory(destFolder);
+            // Record the destination up front so partial-install cleanup can remove it if the copy/convert
+            // below is canceled or fails midway.
+            _installDir = destFolder;
 
             if (title.IsSelfContained)
                 await InstallSelfContainedAsync(title, destFolder, ct);
             else
                 await ConvertToWuaAsync(title, destFolder, ct);
-
-            _installDir = destFolder;
         }
 
         // Copy a directly-playable source verbatim into the destination (Cemu loads it via -g without any
@@ -67,20 +68,20 @@ namespace EmuLibrary.RomTypes.WiiU
             switch (baseRef.Format)
             {
                 case WiiUSourceFormat.Loadiine:
-                    await CreateFileCopier(new DirectoryInfo(baseRef.SourcePath), new DirectoryInfo(destFolder)).CopyAsync(ct);
+                    await CreateFileCopier(new DirectoryInfo(baseRef.SourcePath), new DirectoryInfo(destFolder)).CopyAsync(ct, CopyProgress);
                     var rpx = Directory.GetFiles(Path.Combine(destFolder, "code"), "*.rpx", SearchOption.TopDirectoryOnly).FirstOrDefault();
                     _romPath = rpx ?? throw new Exception($"No .rpx found in copied loadiine title \"{destFolder}\".");
                     break;
 
                 case WiiUSourceFormat.Wua:
                     // A .wua is already a self-contained, decrypted bundle; Cemu loads it via -g. Just copy it.
-                    await CreateFileCopier(new FileInfo(baseRef.SourcePath), new DirectoryInfo(destFolder)).CopyAsync(ct);
+                    await CreateFileCopier(new FileInfo(baseRef.SourcePath), new DirectoryInfo(destFolder)).CopyAsync(ct, CopyProgress);
                     _romPath = Path.Combine(destFolder, Path.GetFileName(baseRef.SourcePath));
                     break;
 
                 case WiiUSourceFormat.Wux:
                 case WiiUSourceFormat.Wud:
-                    await CreateFileCopier(new FileInfo(baseRef.SourcePath), new DirectoryInfo(destFolder)).CopyAsync(ct);
+                    await CreateFileCopier(new FileInfo(baseRef.SourcePath), new DirectoryInfo(destFolder)).CopyAsync(ct, CopyProgress);
                     // Cemu needs the disc key beside the image (same basename .key) to load an encrypted disc.
                     var keyPath = Cemu.ResolveDiscKeyPath(baseRef.SourcePath)
                         ?? throw new Exception($"No .key file found beside \"{baseRef.SourcePath}\".");
@@ -162,6 +163,15 @@ namespace EmuLibrary.RomTypes.WiiU
         protected override string GetInstallDir(WiiUTitle title) => _installDir;
         protected override string GetRomPath(WiiUTitle title) => _romPath;
         protected override string GetRomName(WiiUTitle title) => title.Name;
+
+        // Everything for one title lands under _installDir (the copied tree or the merged .wua). A
+        // canceled/failed install can leave that folder partially written; since installed-ness is derived
+        // from the destination each scan, remove it so the game doesn't resurface as installed.
+        protected override void CleanupPartialInstall()
+        {
+            if (!string.IsNullOrEmpty(_installDir) && Directory.Exists(_installDir))
+                Directory.Delete(_installDir, true);
+        }
 
         private static string SanitizeFileName(string name)
         {

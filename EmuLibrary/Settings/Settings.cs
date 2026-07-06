@@ -28,6 +28,8 @@ namespace EmuLibrary.Settings
         public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; } = false;
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
+        public bool AutoClearFinishedInstalls { get; set; } = false;
+        public int AutoClearFinishedInstallsMinutes { get; set; } = 5;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         // Hidden settings

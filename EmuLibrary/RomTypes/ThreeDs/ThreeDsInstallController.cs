@@ -60,7 +60,10 @@ namespace EmuLibrary.RomTypes.ThreeDs
             _azahar = new Azahar(_mapping.EmulatorBasePathResolved, _emuLibrary.Logger, _emuLibrary.ScanCache);
             _installer = _azahar.CreateInstaller(_mapping.SourcePath);
 
-            var result = await Task.Run(() => _installer.InstallUnit(title.BaseRef, ct), ct);
+            // The bar covers both decrypt passes over every content: the titlekey-CBC strip and the NCCH
+            // decrypt, each ~one pass over the content, so size it to 2× the unit's total content bytes.
+            var progress = CreateByteProgress(2L * (long)title.BaseRef.ContentSize);
+            var result = await Task.Run(() => _installer.InstallUnit(title.BaseRef, ct, progress), ct);
             _installDir = _azahar.Paths.TitleDir(title.TitleId);
             _romPath = result.BootAppPath
                 ?? throw new Exception($"No bootable content was produced for \"{Game.Name}\".");
@@ -73,7 +76,7 @@ namespace EmuLibrary.RomTypes.ThreeDs
             Directory.CreateDirectory(destRoot);
 
             var sourceFile = title.BaseRef.SourcePath;
-            await CreateFileCopier(new FileInfo(sourceFile), new DirectoryInfo(destRoot)).CopyAsync(ct);
+            await CreateFileCopier(new FileInfo(sourceFile), new DirectoryInfo(destRoot)).CopyAsync(ct, CopyProgress);
 
             _installDir = destRoot;
             _romPath = Path.Combine(destRoot, Path.GetFileName(sourceFile));
@@ -109,18 +112,31 @@ namespace EmuLibrary.RomTypes.ThreeDs
         {
             if (title.BaseKind == ThreeDsBaseKind.LooseFile)
                 return;
-            await Task.Run(() => _installer.InstallUnit(update, ct), ct);
+            var progress = CreateByteProgress(2L * (long)update.ContentSize);
+            await Task.Run(() => _installer.InstallUnit(update, ct, progress), ct);
         }
 
         protected override async Task InstallDlcAsync(ThreeDsTitle title, ThreeDsContentRef dlc, CancellationToken ct)
         {
             if (title.BaseKind == ThreeDsBaseKind.LooseFile)
                 return;
-            await Task.Run(() => _installer.InstallUnit(dlc, ct), ct);
+            var progress = CreateByteProgress(2L * (long)dlc.ContentSize);
+            await Task.Run(() => _installer.InstallUnit(dlc, ct, progress), ct);
         }
 
         protected override string GetInstallDir(ThreeDsTitle title) => _installDir;
         protected override string GetRomPath(ThreeDsTitle title) => _romPath;
         protected override string GetRomName(ThreeDsTitle title) => title.Name;
+
+        // A canceled/failed content-store import can leave partial SD title dirs; since installed-ness is
+        // derived from disk, remove them (base + update + DLC) so the game doesn't resurface as installed.
+        // The loose-file branch copies to DestinationPath — its cleanup is deferred to the copy-path phase.
+        protected override void CleanupPartialInstall()
+        {
+            if (_gameInfo.BaseKind != ThreeDsBaseKind.ContentStore)
+                return;
+
+            ThreeDsUninstallController.RemoveContentStoreTitleDirs(_mapping ?? _gameInfo.Mapping, _gameInfo.TitleId, _emuLibrary.Logger);
+        }
     }
 }

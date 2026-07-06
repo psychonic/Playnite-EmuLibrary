@@ -67,7 +67,7 @@ namespace EmuLibrary.RomTypes.Ps3
 
                 if (title.DiscIsoPath != null)
                 {
-                    await CreateFileCopier(new FileInfo(title.DiscIsoPath), new DirectoryInfo(dstPath)).CopyAsync(ct);
+                    await CreateFileCopier(new FileInfo(title.DiscIsoPath), new DirectoryInfo(dstPath)).CopyAsync(ct, CopyProgress);
 
                     // RPCS3 loads an encrypted ISO when a matching-basename .dkey sits beside it.
                     if (title.DiscDkeyPath != null)
@@ -80,7 +80,7 @@ namespace EmuLibrary.RomTypes.Ps3
                 {
                     var folderName = new DirectoryInfo(title.DiscFolderPath).Name;
                     var destFolder = Path.Combine(dstPath, folderName);
-                    await CreateFileCopier(new DirectoryInfo(title.DiscFolderPath), new DirectoryInfo(destFolder)).CopyAsync(ct);
+                    await CreateFileCopier(new DirectoryInfo(title.DiscFolderPath), new DirectoryInfo(destFolder)).CopyAsync(ct, CopyProgress);
 
                     _installDir = destFolder;
                     _romPath = Path.Combine(destFolder, "PS3_GAME", "USRDIR", "EBOOT.BIN");
@@ -141,11 +141,45 @@ namespace EmuLibrary.RomTypes.Ps3
         protected override string GetInstallDir(Ps3Scanner.Ps3Title title) => _installDir;
         protected override string GetRomPath(Ps3Scanner.Ps3Title title) => _romPath;
 
-        private static void InstallPkg(string pkgPath, string gameDir, CancellationToken ct, bool protectBootableRootParamSfo = false)
+        // A canceled/failed install can leave a partial disc copy or partially-extracted packages behind. Mirror
+        // Ps3UninstallController: remove the disc copy (the .iso + its .dkey/.key sidecar, or the PS3_GAME folder)
+        // and the dev_hdd0/game/<id> dir where a pkg base / updates / DLC land. Uses the paths resolved during
+        // install because Game.Roms/InstallDirectory aren't set on a canceled install. Best-effort.
+        protected override void CleanupPartialInstall()
+        {
+            if (!string.IsNullOrEmpty(_romPath) && _romPath.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
+            {
+                // Disc-image base copied into the shared DestinationPath: delete only this title's files.
+                DeleteFileIfExists(_romPath);
+                DeleteFileIfExists(Path.ChangeExtension(_romPath, ".dkey"));
+                DeleteFileIfExists(Path.ChangeExtension(_romPath, ".key"));
+            }
+            else if (!string.IsNullOrEmpty(_installDir)
+                && !string.Equals(_installDir, _gameDir, StringComparison.OrdinalIgnoreCase)
+                && Directory.Exists(_installDir))
+            {
+                // PS3_GAME-folder base copied into its own per-game folder.
+                Directory.Delete(_installDir, true);
+            }
+
+            // dev_hdd0/game/<id>: the pkg base, and any updates/DLC, regardless of base kind.
+            if (!string.IsNullOrEmpty(_gameDir) && Directory.Exists(_gameDir))
+                Directory.Delete(_gameDir, true);
+        }
+
+        private static void DeleteFileIfExists(string path)
+        {
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                File.Delete(path);
+        }
+
+        private void InstallPkg(string pkgPath, string gameDir, CancellationToken ct, bool protectBootableRootParamSfo = false)
         {
             using (var pkg = Ps3Pkg.Open(pkgPath))
             {
-                pkg.ExtractTo(gameDir, ct, protectBootableRootParamSfo);
+                // Size the bar to the encrypted data segment; the written file bytes approach it from just under.
+                var progress = CreateByteProgress(pkg.DataSize);
+                pkg.ExtractTo(gameDir, ct, protectBootableRootParamSfo, progress);
             }
         }
     }

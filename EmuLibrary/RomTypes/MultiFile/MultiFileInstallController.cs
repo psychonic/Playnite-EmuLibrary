@@ -27,6 +27,8 @@ namespace EmuLibrary.RomTypes.MultiFile
 
             _watcherToken = new CancellationTokenSource();
 
+            var handle = _emuLibrary.InstallProgress.Begin(Game, _watcherToken);
+
             Task.Run(async () =>
             {
                 try
@@ -34,7 +36,9 @@ namespace EmuLibrary.RomTypes.MultiFile
                     var source = new DirectoryInfo(info.SourceFullBaseDir);
                     var destination = new DirectoryInfo(Path.Combine(dstPathBase, source.Name));
 
-                    await CreateFileCopier(source, destination, info.Mapping.InstallMethod).CopyAsync(_watcherToken.Token);
+                    handle.SetStage("Copying…");
+                    await CreateFileCopier(source, destination, info.Mapping.InstallMethod)
+                        .CopyAsync(_watcherToken.Token, new Installs.CopyProgressReporter(handle));
 
                     var installDir = Path.Combine(dstPathBase, info.SourceBaseDir);
                     var gamePath = Path.Combine(new string[] { dstPathBase, info.SourceFilePath });
@@ -50,13 +54,25 @@ namespace EmuLibrary.RomTypes.MultiFile
                         InstallDirectory = installDir,
                         Roms = new List<GameRom>() { new GameRom(Game.Name, gamePath) },
                     }));
+
+                    handle.Complete();
+                }
+                catch (OperationCanceledException)
+                {
+                    handle.Canceled();
+                    Game.IsInstalling = false;
+                    throw;
+                }
+                catch (WindowsCopyDialogClosedException)
+                {
+                    handle.Canceled();
+                    Game.IsInstalling = false;
+                    throw;
                 }
                 catch (Exception ex)
                 {
-                    if (!(ex is WindowsCopyDialogClosedException))
-                    {
-                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
-                    }
+                    handle.Fail(ex);
+                    _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     Game.IsInstalling = false;
                     throw;
                 }

@@ -38,10 +38,10 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 
         private const int RegionChunkSize = 1 << 20; // 1 MiB
 
-        public static void DecryptFile(string path, ThreeDsKeys keys, CancellationToken ct)
+        public static void DecryptFile(string path, ThreeDsKeys keys, CancellationToken ct, IProgress<long> progress = null)
         {
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-                Decrypt(fs, keys, ct);
+                Decrypt(fs, keys, ct, 0, progress);
         }
 
         // True if the NCCH at `ncchBase` is an encrypted NCCH (magic present, no_crypto clear). Used to decide
@@ -58,7 +58,10 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
             return (header[FlagsOffset + 7] & NoCryptoFlag) == 0;
         }
 
-        public static void Decrypt(FileStream fs, ThreeDsKeys keys, CancellationToken ct, long ncchBase = 0)
+        // When supplied, progress reports the INCREMENTAL plaintext bytes processed per chunk across the
+        // exheader/ExeFS/RomFS regions (for the install progress bar). The regions sum to ≤ the content size.
+        public static void Decrypt(FileStream fs, ThreeDsKeys keys, CancellationToken ct, long ncchBase = 0,
+            IProgress<long> progress = null)
         {
             if (fs.Length < ncchBase + HeaderSize)
                 return; // not an NCCH; leave as-is
@@ -110,19 +113,19 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
                 // ExHeader (+ AccessDescriptor): 0x800 bytes at 0x200, primary key, section type 1.
                 uint exHeaderSize = Le.U32(header, ExHeaderSizeOffset);
                 if (exHeaderSize > 0)
-                    DecryptRegion(fs, primary, SectionCtr(partitionId, SectionExHeader), ncchBase + 0x200, 0x800, ct);
+                    DecryptRegion(fs, primary, SectionCtr(partitionId, SectionExHeader), ncchBase + 0x200, 0x800, ct, progress);
 
                 // ExeFS: header + icon/banner with primary key, the rest (.code) with secondary key.
                 uint exefsOffMu = Le.U32(header, ExeFsOffsetOffset);
                 uint exefsSizeMu = Le.U32(header, ExeFsSizeOffset);
                 if (exefsSizeMu > 0)
-                    DecryptExeFs(fs, primary, secondary, partitionId, ncchBase + (long)exefsOffMu * mediaUnit, (long)exefsSizeMu * mediaUnit, ct);
+                    DecryptExeFs(fs, primary, secondary, partitionId, ncchBase + (long)exefsOffMu * mediaUnit, (long)exefsSizeMu * mediaUnit, ct, progress);
 
                 // RomFS: secondary key, section type 3.
                 uint romfsOffMu = Le.U32(header, RomFsOffsetOffset);
                 uint romfsSizeMu = Le.U32(header, RomFsSizeOffset);
                 if (romfsSizeMu > 0)
-                    DecryptRegion(fs, secondary, SectionCtr(partitionId, SectionRomFs), ncchBase + (long)romfsOffMu * mediaUnit, (long)romfsSizeMu * mediaUnit, ct);
+                    DecryptRegion(fs, secondary, SectionCtr(partitionId, SectionRomFs), ncchBase + (long)romfsOffMu * mediaUnit, (long)romfsSizeMu * mediaUnit, ct, progress);
             }
 
             // Mark the partition fully decrypted: set no_crypto, clear fixed-key / seed bits and the method byte.
@@ -136,10 +139,10 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
         // The ExeFS header (first 0x200) lists up to 10 files (name[8], offset(u32 LE), size(u32 LE)). Only the
         // ".code" section uses the secondary key; the header and every other section (icon, banner, logo) use
         // the primary key. All offsets are relative to the start of the ExeFS, after its 0x200 header.
-        private static void DecryptExeFs(FileStream fs, AesCtr primary, AesCtr secondary, ulong partitionId, long exefsOffset, long exefsSize, CancellationToken ct)
+        private static void DecryptExeFs(FileStream fs, AesCtr primary, AesCtr secondary, ulong partitionId, long exefsOffset, long exefsSize, CancellationToken ct, IProgress<long> progress = null)
         {
             // Decrypt the ExeFS header itself (primary key) so we can read the file table, then re-read it.
-            DecryptRegion(fs, primary, SectionCtr(partitionId, SectionExeFs), exefsOffset, 0x200, ct);
+            DecryptRegion(fs, primary, SectionCtr(partitionId, SectionExeFs), exefsOffset, 0x200, ct, progress);
 
             var exefsHeader = new byte[0x200];
             fs.Seek(exefsOffset, SeekOrigin.Begin);
@@ -158,13 +161,13 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
                 var cipher = (name == ".code") ? secondary : primary;
                 var ctr = SectionCtr(partitionId, SectionExeFs);
                 AesCtr.Add(ctr, (ulong)(regionOffset / 16));
-                DecryptRegion(fs, cipher, ctr, exefsOffset + regionOffset, fileSize, ct);
+                DecryptRegion(fs, cipher, ctr, exefsOffset + regionOffset, fileSize, ct, progress);
             }
         }
 
         // Decrypts [offset, length) of the file in place with the running counter, in chunks (so multi-GB
         // RomFS never loads fully into memory). The counter is advanced across chunks by AesCtr.Apply.
-        private static void DecryptRegion(FileStream fs, AesCtr cipher, byte[] counter, long offset, long length, CancellationToken ct)
+        private static void DecryptRegion(FileStream fs, AesCtr cipher, byte[] counter, long offset, long length, CancellationToken ct, IProgress<long> progress = null)
         {
             if (length <= 0)
                 return;
@@ -192,6 +195,7 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
                 fs.Seek(pos, SeekOrigin.Begin);
                 fs.Write(buffer, 0, read);
 
+                progress?.Report(read);
                 pos += read;
                 remaining -= read;
                 if (read < want)

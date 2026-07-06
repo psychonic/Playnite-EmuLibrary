@@ -1,4 +1,5 @@
-﻿using EmuLibrary.RomTypes;
+﻿using EmuLibrary.Installs;
+using EmuLibrary.RomTypes;
 using EmuLibrary.Settings;
 using EmuLibrary.Util.ScanCache;
 using EmuLibrary.Util.ScanConcurrency;
@@ -34,6 +35,8 @@ namespace EmuLibrary
         IScanCache IEmuLibrary.ScanCache => _scanCache;
         private IScanConcurrency _scanConcurrency;
         IScanConcurrency IEmuLibrary.ScanConcurrency => _scanConcurrency;
+        private InstallProgressService _installProgress;
+        IInstallProgressService IEmuLibrary.InstallProgress => _installProgress;
         RomTypeScanner IEmuLibrary.GetScanner(RomType romType) => _scanners[romType];
 
         private const string s_pluginName = "EmuLibrary";
@@ -64,6 +67,8 @@ namespace EmuLibrary
                 Logger);
 
             _scanConcurrency = new ScanConcurrencyGovernor(Logger);
+
+            _installProgress = new InstallProgressService(this);
 
             // This must occur before we instantiate the Settings class
             InitializeRomTypeScanners();
@@ -300,6 +305,30 @@ namespace EmuLibrary
 
         public override ISettings GetSettings(bool firstRunSettings) => Settings;
         public override UserControl GetSettingsView(bool firstRunSettings) => new SettingsView();
+
+        private SidebarItem _installsSidebarItem;
+
+        // The Installs panel is a Desktop-mode concept (sidebar items aren't surfaced the same way in
+        // Fullscreen). The service still tracks state headlessly in Fullscreen; only the panel is omitted.
+        public override IEnumerable<SidebarItem> GetSidebarItems()
+        {
+            if (Playnite.ApplicationInfo.Mode != ApplicationMode.Desktop)
+                yield break;
+
+            yield return _installsSidebarItem ?? (_installsSidebarItem = new InstallsSidebarItem(_installProgress));
+        }
+
+        private TopPanelItem _installsTopPanelItem;
+
+        // Desktop top-panel badge with the count of installs in progress (hidden when none). Like the sidebar
+        // item, this is a Desktop concept; Fullscreen keeps the existing completion-toast behaviour.
+        public override IEnumerable<TopPanelItem> GetTopPanelItems()
+        {
+            if (Playnite.ApplicationInfo.Mode != ApplicationMode.Desktop)
+                yield break;
+
+            yield return _installsTopPanelItem ?? (_installsTopPanelItem = new InstallsTopPanelItem(_installProgress.ViewModel));
+        }
 
         public override IEnumerable<InstallController> GetInstallActions(GetInstallActionsArgs args)
         {

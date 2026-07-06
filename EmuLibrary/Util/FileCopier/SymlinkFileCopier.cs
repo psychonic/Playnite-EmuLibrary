@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Threading;
 
 namespace EmuLibrary.Util.FileCopier
 {
@@ -10,7 +12,8 @@ namespace EmuLibrary.Util.FileCopier
     {
         public SymlinkFileCopier(FileSystemInfo source, DirectoryInfo destination) : base(source, destination) { }
 
-        protected override void Copy()
+        // Creating a link is instant, so there are no bytes to report.
+        protected override void Copy(CancellationToken cancellationToken, IProgress<CopyProgress> progress)
         {
             if (Source is DirectoryInfo)
             {

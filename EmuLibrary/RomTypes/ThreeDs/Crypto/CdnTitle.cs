@@ -53,7 +53,8 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
         public IEnumerable<ThreeDsTmdContent> PresentContents =>
             Tmd.Contents.Where(c => _contentFiles.ContainsKey(c.Index));
 
-        public void DecryptContentTo(ThreeDsTmdContent content, byte[] titleKey, Stream dest, CancellationToken ct)
+        public void DecryptContentTo(ThreeDsTmdContent content, byte[] titleKey, Stream dest, CancellationToken ct,
+            IProgress<long> progress = null)
         {
             if (!_contentFiles.TryGetValue(content.Index, out var path))
                 throw new InvalidOperationException($"Content index {content.Index} is not present in \"{_folder}\".");
@@ -88,6 +89,7 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
                         dec.TransformBlock(enc, 0, aligned, plain, 0);
                         dest.Write(plain, 0, aligned);
                         remaining -= aligned;
+                        progress?.Report(aligned);
                     }
                 }
             }

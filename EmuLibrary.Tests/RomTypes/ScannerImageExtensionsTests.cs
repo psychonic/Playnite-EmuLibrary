@@ -25,6 +25,7 @@ namespace EmuLibrary.Tests.RomTypes
             public global::EmuLibrary.Settings.Settings Settings => null;
             public IScanCache ScanCache => null;
             public IScanConcurrency ScanConcurrency => null;
+            public global::EmuLibrary.Installs.IInstallProgressService InstallProgress => null;
             public string GetPluginUserDataPath() => null;
             public RomTypeScanner GetScanner(RomType romType) => null;
         }

@@ -47,20 +47,23 @@ namespace EmuLibrary.RomTypes.ThreeDs
             InvokeOnUninstalled(new GameUninstalledEventArgs());
         }
 
+        private void UninstallContentStore() =>
+            RemoveContentStoreTitleDirs(_gameInfo.Mapping, _gameInfo.TitleId, _emuLibrary.Logger);
+
         // Removes the SD title dirs for the base and its derived update (0004000E) and DLC (0004008C) ids.
-        // Best-effort: a missing dir just means that piece was never installed.
-        private void UninstallContentStore()
+        // Best-effort: a missing dir just means that piece was never installed. Shared with the install
+        // controller's partial-install cleanup so a canceled/failed content-store import leaves nothing behind.
+        internal static void RemoveContentStoreTitleDirs(Settings.EmulatorMapping mapping, ulong baseTitleId, ILogger logger)
         {
-            var mapping = _gameInfo.Mapping
-                ?? throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
+            if (mapping == null)
+                throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
 
             var paths = AzaharPaths.Resolve(mapping.EmulatorBasePathResolved);
 
-            ulong baseId = _gameInfo.TitleId;
-            ulong updateId = baseId | (0x000EUL << 32);
-            ulong dlcId = baseId | (0x008CUL << 32);
+            ulong updateId = baseTitleId | (0x000EUL << 32);
+            ulong dlcId = baseTitleId | (0x008CUL << 32);
 
-            foreach (var id in new[] { baseId, updateId, dlcId })
+            foreach (var id in new[] { baseTitleId, updateId, dlcId })
             {
                 try
                 {
@@ -70,7 +73,7 @@ namespace EmuLibrary.RomTypes.ThreeDs
                 }
                 catch (Exception ex)
                 {
-                    _emuLibrary.Logger.Warn(ex, $"[3DS] Failed to remove SD title dir for {id:X16}.");
+                    logger.Warn(ex, $"[3DS] Failed to remove SD title dir for {id:X16}.");
                 }
             }
         }

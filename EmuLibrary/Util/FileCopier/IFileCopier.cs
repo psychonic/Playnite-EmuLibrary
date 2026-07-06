@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +9,8 @@ namespace EmuLibrary.Util.FileCopier
     {
         FileSystemInfo Source { get; set; }
         DirectoryInfo Destination { get; set; }
-        Task CopyAsync(CancellationToken cancellationToken);
+
+        // progress is optional; copiers that can't report bytes (Windows shell dialog, symlink/hardlink) ignore it.
+        Task CopyAsync(CancellationToken cancellationToken, IProgress<CopyProgress> progress = null);
     }
 }

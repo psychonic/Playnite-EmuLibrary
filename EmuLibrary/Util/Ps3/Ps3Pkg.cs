@@ -164,7 +164,11 @@ namespace EmuLibrary.Util.Ps3
         // would replace the base game's HG/DG SFO and the title silently stops booting. Pass true when laying
         // add-on content over a base: an existing BOOTABLE root SFO is then only overwritten by another
         // bootable one (so HG->HG version-bumping updates still apply), never downgraded to a non-bootable one.
-        public void ExtractTo(string targetDir, CancellationToken ct, bool protectBootableRootParamSfo = false)
+        // When supplied, progress reports the INCREMENTAL decrypted bytes written per chunk across all file
+        // entries (for the install progress bar). Sized by the caller to DataSize (the encrypted data segment),
+        // which the written file bytes approach from just under (the file table + names aren't written out).
+        public void ExtractTo(string targetDir, CancellationToken ct, bool protectBootableRootParamSfo = false,
+            IProgress<long> progress = null)
         {
             if (!IsFinalizedRetail || PkgType != 0x0001)
                 throw new NotSupportedException($"Unsupported PKG type (revision=0x{Revision:X4}, type=0x{PkgType:X4}). Only finalized retail PS3 packages are supported.");
@@ -203,7 +207,7 @@ namespace EmuLibrary.Util.Ps3
                 Directory.CreateDirectory(Path.GetDirectoryName(outPath));
                 using (var outStream = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    DecryptRegionTo(e.DataOffset, e.DataSize, outStream, ct);
+                    DecryptRegionTo(e.DataOffset, e.DataSize, outStream, ct, progress);
                 }
             }
         }
@@ -285,8 +289,9 @@ namespace EmuLibrary.Util.Ps3
             }
         }
 
-        // Streams the decrypted [sectionOffset, sectionOffset+length) of the data segment into output.
-        private void DecryptRegionTo(long sectionOffset, long length, Stream output, CancellationToken ct)
+        // Streams the decrypted [sectionOffset, sectionOffset+length) of the data segment into output. When
+        // supplied, progress reports the INCREMENTAL bytes written per chunk.
+        private void DecryptRegionTo(long sectionOffset, long length, Stream output, CancellationToken ct, IProgress<long> progress = null)
         {
             if (length <= 0)
                 return;
@@ -340,6 +345,7 @@ namespace EmuLibrary.Util.Ps3
                         int outLen = (int)Math.Min(avail, toOutput);
                         output.Write(cipher, drop, outLen);
                         toOutput -= outLen;
+                        progress?.Report(outLen);
                     }
 
                     drop = 0;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,9 +16,11 @@ namespace EmuLibrary.Util.FileCopier
             Destination = destination;
         }
 
-        protected abstract void Copy();
+        // The cancellation token is passed through so streamed copiers can abort mid-file; progress is optional
+        // and ignored by copiers that can't report bytes.
+        protected abstract void Copy(CancellationToken cancellationToken, IProgress<CopyProgress> progress);
 
-        public async Task CopyAsync(CancellationToken cancellationToken)
+        public async Task CopyAsync(CancellationToken cancellationToken, IProgress<CopyProgress> progress = null)
         {
             if (Source.FullName.IsNullOrEmpty() || !Source.Exists)
             {
@@ -29,12 +31,7 @@ namespace EmuLibrary.Util.FileCopier
                 throw new Exception($"destination path \"{Destination.FullName}\" is not valid");
             }
 
-            await Task.Run(() =>
-                {
-                    Copy();
-                },
-                cancellationToken
-            );
+            await Task.Run(() => Copy(cancellationToken, progress), cancellationToken);
         }
     }
 }

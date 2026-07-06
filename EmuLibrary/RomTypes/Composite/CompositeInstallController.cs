@@ -1,9 +1,11 @@
+using EmuLibrary.Installs;
 using EmuLibrary.Util.FileCopier;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +23,22 @@ namespace EmuLibrary.RomTypes
         internal CompositeInstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
         {
         }
+
+        // The active install handle for the current Install() run; drives the CopyProgress reporter and the
+        // per-phase byte reporters CreateByteProgress hands out. Null until Install() runs.
+        private IInstallProgressHandle _handle;
+
+        // Byte-level copy progress reporter for hooks that copy files (e.g. a disc-image base). Pass it to
+        // CreateFileCopier(...).CopyAsync so the copy shows a real percentage bar; forwards to the active
+        // install handle. Null until Install() runs.
+        protected IProgress<CopyProgress> CopyProgress { get; private set; }
+
+        // A byte-progress reporter for a crypto/extract phase whose total is known up front (e.g. a 3DS
+        // content-store import or a PS3 PKG extract). The primitives report INCREMENTAL bytes per chunk; the
+        // returned reporter accumulates them and forwards the running total to the install handle as a
+        // percentage bar. Returns null before Install() runs (the primitives treat null as "don't report").
+        protected IProgress<long> CreateByteProgress(long totalBytes) =>
+            _handle == null ? null : new ByteProgressReporter(_handle, totalBytes);
 
         // Family A (content-store) installs the latest update only; Family B (disc+package) installs all
         // updates in ascending version order.
@@ -49,6 +67,27 @@ namespace EmuLibrary.RomTypes
         // Name reported for the GameRom; defaults to the Playnite game name.
         protected virtual string GetRomName(TTitle title) => Game.Name;
 
+        // Best-effort removal of partial output after a canceled or failed install, so a half-installed title
+        // isn't left on disk. Critical for content-store families whose installed-ness is derived from disk on
+        // each scan (a leftover partial dir would otherwise resurface as an "installed" but corrupt game).
+        // Routed through each platform's own uninstall primitive (uninstall stays per-family, not abstracted);
+        // the default is a no-op for copy-based families, which harden mid-copy cleanup in a later phase.
+        protected virtual void CleanupPartialInstall()
+        {
+        }
+
+        private void TryCleanupPartialInstall()
+        {
+            try
+            {
+                CleanupPartialInstall();
+            }
+            catch (Exception cleanupEx)
+            {
+                _emuLibrary.Logger.Warn(cleanupEx, $"Failed to clean up partial install of \"{Game.Name}\".");
+            }
+        }
+
         public override void Install(InstallActionArgs args)
         {
             if (!TryBeginInstall())
@@ -56,34 +95,47 @@ namespace EmuLibrary.RomTypes
 
             _watcherToken = new CancellationTokenSource();
 
+            var handle = _emuLibrary.InstallProgress.Begin(Game, _watcherToken);
+            _handle = handle;
+            CopyProgress = new CopyProgressReporter(handle);
+
             Task.Run(async () =>
             {
                 try
                 {
                     var ct = _watcherToken.Token;
 
+                    handle.SetIndeterminate("Preparing…");
                     var title = ResolveComposite(ct);
 
+                    handle.SetStage("Installing base…");
                     await InstallBaseAsync(title, ct);
 
-                    foreach (var update in CompositeContent.SelectUpdatesToInstall(title.Updates, Strategy, VersionKey))
+                    var updates = CompositeContent.SelectUpdatesToInstall(title.Updates, Strategy, VersionKey).ToList();
+                    for (int i = 0; i < updates.Count; i++)
                     {
                         ct.ThrowIfCancellationRequested();
-                        await InstallUpdateAsync(title, update, ct);
+                        handle.SetStage($"Installing update {i + 1} of {updates.Count}…");
+                        await InstallUpdateAsync(title, updates[i], ct);
                     }
 
-                    foreach (var dlc in title.Dlc)
+                    var dlc = title.Dlc.ToList();
+                    for (int i = 0; i < dlc.Count; i++)
                     {
                         ct.ThrowIfCancellationRequested();
-                        await InstallDlcAsync(title, dlc, ct);
+                        handle.SetStage($"Installing DLC {i + 1} of {dlc.Count}…");
+                        await InstallDlcAsync(title, dlc[i], ct);
                     }
 
-                    foreach (var license in title.Licenses)
+                    var licenses = title.Licenses.ToList();
+                    for (int i = 0; i < licenses.Count; i++)
                     {
                         ct.ThrowIfCancellationRequested();
-                        await InstallLicenseAsync(title, license, ct);
+                        handle.SetStage($"Installing license {i + 1} of {licenses.Count}…");
+                        await InstallLicenseAsync(title, licenses[i], ct);
                     }
 
+                    handle.SetIndeterminate("Finishing…");
                     var installDir = MaybeMakePortable(GetInstallDir(title));
                     var romPath = MaybeMakePortable(GetRomPath(title));
 
@@ -92,13 +144,28 @@ namespace EmuLibrary.RomTypes
                         InstallDirectory = installDir,
                         Roms = new List<GameRom>() { new GameRom(GetRomName(title), romPath) },
                     }));
+
+                    handle.Complete();
+                }
+                catch (OperationCanceledException)
+                {
+                    handle.Canceled();
+                    TryCleanupPartialInstall();
+                    Game.IsInstalling = false;
+                    throw;
+                }
+                catch (WindowsCopyDialogClosedException)
+                {
+                    handle.Canceled();
+                    TryCleanupPartialInstall();
+                    Game.IsInstalling = false;
+                    throw;
                 }
                 catch (Exception ex)
                 {
-                    if (!(ex is WindowsCopyDialogClosedException))
-                    {
-                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
-                    }
+                    handle.Fail(ex);
+                    TryCleanupPartialInstall();
+                    _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
                     Game.IsInstalling = false;
                     throw;
                 }

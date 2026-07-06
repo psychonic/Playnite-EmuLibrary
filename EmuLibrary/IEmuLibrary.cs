@@ -1,4 +1,5 @@
-﻿using EmuLibrary.RomTypes;
+﻿using EmuLibrary.Installs;
+using EmuLibrary.RomTypes;
 using EmuLibrary.Util.ScanCache;
 using EmuLibrary.Util.ScanConcurrency;
 using Playnite.SDK;
@@ -12,6 +13,7 @@ namespace EmuLibrary
         Settings.Settings Settings { get; }
         IScanCache ScanCache { get; }
         IScanConcurrency ScanConcurrency { get; }
+        IInstallProgressService InstallProgress { get; }
         string GetPluginUserDataPath();
         RomTypeScanner GetScanner(RomType romType);
     }

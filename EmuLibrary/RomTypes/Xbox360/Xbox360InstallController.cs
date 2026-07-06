@@ -47,7 +47,7 @@ namespace EmuLibrary.RomTypes.Xbox360
             // Xenia opens the base in place — the .iso for a disc, the STFS container for a digital title, or
             // the .zar archive. Copy it verbatim to DestinationPath (no decrypt/extract); the primitive is
             // identical for all three.
-            await CreateFileCopier(new FileInfo(title.BaseRef.SourcePath), new DirectoryInfo(dstPath)).CopyAsync(ct);
+            await CreateFileCopier(new FileInfo(title.BaseRef.SourcePath), new DirectoryInfo(dstPath)).CopyAsync(ct, CopyProgress);
 
             _installDir = dstPath;
             _romPath = Path.Combine(dstPath, Path.GetFileName(title.BaseRef.SourcePath));

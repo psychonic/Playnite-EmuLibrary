@@ -203,6 +203,15 @@
                     <TextBlock Style="{StaticResource InfoMarker}"
                                ToolTip="Same as above, but for installs started in fullscreen mode.&#x0a;Applies only to Copy installs (Symlink/Hardlink ignore it).&#x0a;Note: enabling this may cause focus issues in fullscreen mode." />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <CheckBox IsChecked="{Binding AutoClearFinishedInstalls, Mode=TwoWay}" VerticalAlignment="Center">
+                        <TextBlock Text="Automatically clear finished installs from the Installs panel after" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <TextBox Text="{Binding AutoClearFinishedInstallsMinutes, Mode=TwoWay}" Width="42" Margin="6,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="minutes" VerticalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="When enabled, completed/failed/canceled rows in the Installs sidebar panel are removed automatically once they've been finished for this many minutes. Installs in progress are never affected; you can still clear rows manually at any time." />
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

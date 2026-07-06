@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace EmuLibrary.Util.FileCopier
 {
@@ -8,7 +9,9 @@ namespace EmuLibrary.Util.FileCopier
     {
         public WindowsFileCopier(FileSystemInfo source, DirectoryInfo destination) : base(source, destination) { }
 
-        protected override void Copy()
+        // The native shell dialog owns both the progress UI and cancellation, so the token and progress reporter
+        // are ignored here.
+        protected override void Copy(CancellationToken cancellationToken, IProgress<CopyProgress> progress)
         {
             try
             {
