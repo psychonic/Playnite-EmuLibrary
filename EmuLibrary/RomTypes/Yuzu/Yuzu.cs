@@ -907,6 +907,126 @@ namespace EmuLibrary.RomTypes.Yuzu
             return GetExternalGameFileInfo(filePath, KeySet);
         }
 
+        // Icon language preference: the NACP/Control-NCA icon is stored per language as icon_<language>.dat;
+        // pick English first, then a few common European/Japanese fallbacks, then (see below) any that exists.
+        private static readonly string[] PreferredIconLanguages =
+        {
+            "AmericanEnglish", "BritishEnglish", "EuropeanSpanish", "French", "German", "Italian",
+            "Spanish", "Dutch", "Portuguese", "Russian", "Japanese",
+        };
+
+        // Reads the base title's embedded icon (a JPEG, from the Control NCA's icon_<language>.dat) out of a
+        // source XCI/NSP. Best-effort: null if the file can't be opened or carries no control icon. The scanner
+        // turns this into the scan-time game icon; because IconCache extracts once per title id, this re-open
+        // only happens on a cache miss (a title first seen, or whose cached icon file was removed) — so it does
+        // not depend on, or pollute, the ExternalGameFileInfo scan cache.
+        public byte[] TryReadTitleIcon(string filePath)
+        {
+            try
+            {
+                var keySet = KeySet;
+                var fileInfo = new FileInfo(filePath);
+                if (!fileInfo.Exists || !ValidGameExtensions.Contains(fileInfo.Extension))
+                    return null;
+
+                using (var fileStream = fileInfo.OpenRead())
+                {
+                    PartitionFileSystem pfs;
+                    switch (fileInfo.Extension.ToLowerInvariant())
+                    {
+                        case ".xci":
+                        case ".xcz":
+                            pfs = new Xci(keySet, fileStream.AsStorage()).OpenPartition(XciPartitionType.Secure);
+                            break;
+                        case ".nsp":
+                        case ".nsz":
+                            pfs = new PartitionFileSystem(fileStream.AsStorage());
+                            break;
+                        default:
+                            return null;
+                    }
+
+                    using (pfs)
+                    {
+                        ImportTickets(pfs, keySet);
+
+                        // The base title's cnmt is the Application one; its Control NCA holds the icon.
+                        var cnmtEntries = pfs.EnumerateEntries("/", "*")
+                            .Where(f => f.FullPath.ToLower().Contains("cnmt") && Path.GetExtension(f.FullPath).ToLower() == ".nca")
+                            .ToList();
+
+                        Cnmt appCnmt = null;
+                        foreach (var ce in cnmtEntries)
+                        {
+                            if (TryReadCnmt(pfs, ce, keySet, out var c, out _) && c.Type == LibHac.Ncm.ContentMetaType.Application)
+                            {
+                                appCnmt = c;
+                                break;
+                            }
+                        }
+                        if (appCnmt == null)
+                            return null;
+
+                        foreach (var entry in appCnmt.ContentEntries.Where(e => e.Type == LibHac.Ncm.ContentType.Control))
+                        {
+                            var ncaName = string.Format("{0}.nca", BitConverter.ToString(entry.NcaId).Replace("-", "").ToLower());
+                            if (!pfs.FileExists(ncaName))
+                                continue;
+
+                            pfs.OpenFile(out var ncaFile, ncaName, OpenMode.Read).ThrowIfFailure();
+                            using (ncaFile)
+                            {
+                                var nca = new Nca(keySet, ncaFile.AsStorage());
+                                var cfs = nca.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.None);
+
+                                foreach (var lang in PreferredIconLanguages)
+                                {
+                                    if (cfs.OpenFile(out IFile iconFile, $"/icon_{lang}.dat", OpenMode.Read).IsSuccess())
+                                        using (iconFile)
+                                        {
+                                            var bytes = ReadWholeFile(iconFile);
+                                            if (bytes != null)
+                                                return bytes;
+                                        }
+                                }
+
+                                // No preferred language present: take the first icon_*.dat of any language.
+                                foreach (var iconEntry in cfs.EnumerateEntries("/", "icon_*.dat"))
+                                {
+                                    if (cfs.OpenFile(out IFile iconFile, iconEntry.FullPath, OpenMode.Read).IsSuccess())
+                                        using (iconFile)
+                                        {
+                                            var bytes = ReadWholeFile(iconFile);
+                                            if (bytes != null)
+                                                return bytes;
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, $"Failed to read Switch title icon from \"{filePath}\".");
+            }
+            return null;
+        }
+
+        private static byte[] ReadWholeFile(IFile file)
+        {
+            file.GetSize(out long size);
+            if (size <= 0 || size > (8 << 20))
+                return null;
+            var buf = new byte[size];
+            file.Read(out long read, 0, buf, ReadOption.None);
+            if (read <= 0)
+                return null;
+            if (read != size)
+                Array.Resize(ref buf, (int)read);
+            return buf;
+        }
+
         private ExternalGameFileInfo GetExternalGameFileInfo(string filePath, Keyset keySet)
         {
             var info = new ExternalGameFileInfo();

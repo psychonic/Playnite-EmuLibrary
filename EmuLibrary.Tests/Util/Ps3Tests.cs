@@ -341,6 +341,78 @@ namespace EmuLibrary.Tests.Util
             Assert.Equal(expected, new Ps3FileInfo { DrmType = drmType }.RequiresLicense);
         }
 
+        [Fact]
+        public void Ps3Pkg_TryReadIcon_ReturnsEmbeddedPng()
+        {
+            var riv = Enumerable.Range(0, 16).Select(i => (byte)(0x50 + i)).ToArray();
+            var png = FakePng();
+            var pkgPath = Path.Combine(Path.GetTempPath(), "eltest-" + Guid.NewGuid().ToString("N") + ".pkg");
+            try
+            {
+                WriteSyntheticPkg(pkgPath, "EP0001-BLES01234_00-0000000000000000", riv, isPatch: false,
+                    new[]
+                    {
+                        ("PARAM.SFO", BuildSfo(new[] { ("CATEGORY", "HG") })),
+                        ("ICON0.PNG", png),
+                    });
+
+                using (var pkg = Ps3Pkg.Open(pkgPath))
+                {
+                    Assert.True(pkg.TryReadIcon(out var got));
+                    Assert.Equal(png, got);
+                }
+            }
+            finally
+            {
+                if (File.Exists(pkgPath))
+                    File.Delete(pkgPath);
+            }
+        }
+
+        [Fact]
+        public void Ps3Pkg_TryReadIcon_FalseWhenAbsent()
+        {
+            var riv = Enumerable.Range(0, 16).Select(i => (byte)(0x60 + i)).ToArray();
+            var pkgPath = Path.Combine(Path.GetTempPath(), "eltest-" + Guid.NewGuid().ToString("N") + ".pkg");
+            try
+            {
+                WriteSyntheticPkg(pkgPath, "EP0001-BLES01234_00-0000000000000000", riv, isPatch: false,
+                    new[] { ("PARAM.SFO", BuildSfo(new[] { ("CATEGORY", "HG") })) });
+
+                using (var pkg = Ps3Pkg.Open(pkgPath))
+                    Assert.False(pkg.TryReadIcon(out _));
+            }
+            finally
+            {
+                if (File.Exists(pkgPath))
+                    File.Delete(pkgPath);
+            }
+        }
+
+        [Fact]
+        public void Ps3Pkg_TryReadIcon_FalseWhenNotPng()
+        {
+            var riv = Enumerable.Range(0, 16).Select(i => (byte)(0x70 + i)).ToArray();
+            var pkgPath = Path.Combine(Path.GetTempPath(), "eltest-" + Guid.NewGuid().ToString("N") + ".pkg");
+            try
+            {
+                WriteSyntheticPkg(pkgPath, "EP0001-BLES01234_00-0000000000000000", riv, isPatch: false,
+                    new[]
+                    {
+                        ("PARAM.SFO", BuildSfo(new[] { ("CATEGORY", "HG") })),
+                        ("ICON0.PNG", Encoding.ASCII.GetBytes("not a png at all")),
+                    });
+
+                using (var pkg = Ps3Pkg.Open(pkgPath))
+                    Assert.False(pkg.TryReadIcon(out _));
+            }
+            finally
+            {
+                if (File.Exists(pkgPath))
+                    File.Delete(pkgPath);
+            }
+        }
+
         #endregion
 
         #region disc ISO PARAM.SFO
@@ -395,6 +467,28 @@ namespace EmuLibrary.Tests.Util
                 Assert.False(Ps3Iso.TryReadParamSfo(ms, out var sfo));
                 Assert.Null(sfo);
             }
+        }
+
+        [Fact]
+        public void Ps3Iso_TryReadIcon_ReturnsEmbeddedPng()
+        {
+            var png = FakePng();
+            var iso = BuildPs3Iso(BuildSfo(new[] { ("CATEGORY", "DG"), ("TITLE_ID", "BLES00932") }), png);
+
+            using (var ms = new MemoryStream(iso, false))
+            {
+                Assert.True(Ps3Iso.TryReadIcon(ms, out var got));
+                Assert.Equal(png, got);
+            }
+        }
+
+        [Fact]
+        public void Ps3Iso_TryReadIcon_FalseWhenAbsent()
+        {
+            var iso = BuildPs3Iso(BuildSfo(new[] { ("CATEGORY", "DG") })); // no ICON0.PNG
+
+            using (var ms = new MemoryStream(iso, false))
+                Assert.False(Ps3Iso.TryReadIcon(ms, out _));
         }
 
         #endregion
@@ -675,13 +769,14 @@ namespace EmuLibrary.Tests.Util
             }
         }
 
-        // Builds a minimal ISO9660 image with a /PS3_GAME/PARAM.SFO file holding sfoBytes. Mirrors the
-        // unencrypted region of a PS3 disc: PVD at sector 16, root dir at 17, PS3_GAME dir at 18, SFO at 19.
-        private static byte[] BuildPs3Iso(byte[] sfoBytes)
+        // Builds a minimal ISO9660 image with a /PS3_GAME/PARAM.SFO file holding sfoBytes (and, when
+        // iconBytes is supplied, a /PS3_GAME/ICON0.PNG). Mirrors the unencrypted region of a PS3 disc: PVD at
+        // sector 16, root dir at 17, PS3_GAME dir at 18, SFO at 19, ICON0.PNG (if any) at 20.
+        private static byte[] BuildPs3Iso(byte[] sfoBytes, byte[] iconBytes = null)
         {
             const int sector = 2048;
-            const long rootLba = 17, gameLba = 18, sfoLba = 19;
-            const int totalSectors = 20;
+            const long rootLba = 17, gameLba = 18, sfoLba = 19, iconLba = 20;
+            int totalSectors = iconBytes != null ? 21 : 20;
             var iso = new byte[totalSectors * sector];
 
             // Primary Volume Descriptor at sector 16.
@@ -698,13 +793,31 @@ namespace EmuLibrary.Tests.Util
                 BuildDirRecord("\x01", rootLba, sector, true),   // ..
                 BuildDirRecord("PS3_GAME", gameLba, sector, true));
 
-            WriteDirSector(iso, (int)gameLba * sector,
+            var gameRecords = new List<byte[]>
+            {
                 BuildDirRecord("\0", gameLba, sector, true),     // .
                 BuildDirRecord("\x01", rootLba, sector, true),   // ..
-                BuildDirRecord("PARAM.SFO;1", sfoLba, sfoBytes.Length, false));
+                BuildDirRecord("PARAM.SFO;1", sfoLba, sfoBytes.Length, false),
+            };
+            if (iconBytes != null)
+                gameRecords.Add(BuildDirRecord("ICON0.PNG;1", iconLba, iconBytes.Length, false));
+            WriteDirSector(iso, (int)gameLba * sector, gameRecords.ToArray());
 
             Buffer.BlockCopy(sfoBytes, 0, iso, (int)sfoLba * sector, Math.Min(sfoBytes.Length, sector));
+            if (iconBytes != null)
+                Buffer.BlockCopy(iconBytes, 0, iso, (int)iconLba * sector, Math.Min(iconBytes.Length, sector));
             return iso;
+        }
+
+        // A minimal blob with a valid 8-byte PNG signature (the only thing the icon guard validates).
+        private static byte[] FakePng()
+        {
+            var png = new byte[64];
+            var sig = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+            Buffer.BlockCopy(sig, 0, png, 0, sig.Length);
+            for (int i = sig.Length; i < png.Length; i++)
+                png[i] = (byte)(i * 3 + 1);
+            return png;
         }
 
         private static void WriteDirSector(byte[] iso, int offset, params byte[][] records)

@@ -165,6 +165,10 @@ namespace EmuLibrary.RomTypes.Ps3
                     }
                 };
 
+                var iconPath = ResolveIconPath(title);
+                if (iconPath != null)
+                    game.Icon = new MetadataFile(iconPath);
+
                 if (gameTdb.TryGet(title.TitleId, out var meta))
                     meta.ApplyTo(game);
 
@@ -223,6 +227,10 @@ namespace EmuLibrary.RomTypes.Ps3
                         }
                     }
                 };
+
+                var iconPath = ResolveIconPath(title);
+                if (iconPath != null)
+                    game.Icon = new MetadataFile(iconPath);
 
                 if (gameTdb.TryGet(title.TitleId, out var meta))
                     meta.ApplyTo(game);
@@ -554,6 +562,51 @@ namespace EmuLibrary.RomTypes.Ps3
             installDir = gameDir;
             romPath = Path.Combine(gameDir, "USRDIR", "EBOOT.BIN");
             return Directory.Exists(gameDir);
+        }
+
+        // Resolves the title's embedded ICON0.PNG into the shared per-title-id icon cache
+        // (metadata/ps3-icons/<titleId>.png), so a disc and a PKG of the same title share one file. Extracted
+        // once (the PKG/ISO is only re-read on a cache miss), fail-soft -> null. Read from the base unit only.
+        private string ResolveIconPath(Ps3Title title)
+        {
+            if (string.IsNullOrEmpty(title.TitleId))
+                return null;
+
+            return IconCache.EnsureIcon(
+                _emuLibrary.GetPluginUserDataPath(), "ps3-icons", title.TitleId, "png",
+                () => ExtractIcon(title),
+                _emuLibrary.Logger);
+        }
+
+        private static byte[] ExtractIcon(Ps3Title title)
+        {
+            // Disc base: ICON0.PNG lives under PS3_GAME (the disc's unencrypted region for an .iso; a plain
+            // file for an extracted folder).
+            if (title.BaseKind == Ps3BaseKind.Disc)
+            {
+                if (title.DiscIsoPath != null && File.Exists(title.DiscIsoPath))
+                    return Ps3Iso.TryReadIcon(title.DiscIsoPath, out var iso) ? iso : null;
+
+                if (title.DiscFolderPath != null)
+                {
+                    var iconFile = Path.Combine(title.DiscFolderPath, "PS3_GAME", "ICON0.PNG");
+                    if (File.Exists(iconFile))
+                    {
+                        var bytes = File.ReadAllBytes(iconFile);
+                        return Ps3Png.HasPngSignature(bytes) ? bytes : null;
+                    }
+                }
+                return null;
+            }
+
+            // Pkg base: ICON0.PNG is a decrypted entry in the base package's file table.
+            if (title.BaseKind == Ps3BaseKind.Pkg && title.BasePkgPath != null && File.Exists(title.BasePkgPath))
+            {
+                using (var pkg = Ps3Pkg.Open(title.BasePkgPath))
+                    return pkg.TryReadIcon(out var png) ? png : null;
+            }
+
+            return null;
         }
 
         // Reads + caches PARAM.SFO metadata for a disc base (keyed by file stamp; nulls are not cached).

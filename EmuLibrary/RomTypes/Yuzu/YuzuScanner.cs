@@ -49,6 +49,16 @@ namespace EmuLibrary.RomTypes.Yuzu
 
             var installedTitleIds = new HashSet<ulong>();
 
+            // Resolve the source dir's titles once (IScanCache-backed). Used both as the icon-extraction
+            // fallback for installed games — installing to NAND copies rather than moves, so the base source
+            // file is usually still present — and to enumerate the uninstalled games below.
+            var sourceTitles = Directory.Exists(mapping.SourcePath)
+                ? yuzu.GetUninstalledGamesFromDir(mapping.SourcePath, args.CancelToken).ToList()
+                : new List<YuzuTitle>();
+            var sourceProgramFileByTitleId = sourceTitles
+                .GroupBy(t => t.TitleId)
+                .ToDictionary(g => g.Key, g => g.First().ProgramFile);
+
             #region Import "installed" games
             // Installed state is derived from the emulator's NAND on every scan (like PS3 derives it from disk),
             // so content imported/removed outside Playnite is reflected.
@@ -90,6 +100,18 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                 installedTitleIds.Add(g.TitleId);
 
+                // Icon keyed by title id: reuse the cached file if present, else extract from the base source
+                // file when it's still in the source dir (install to NAND copies, not moves, so it usually is).
+                // Extracting from NAND is out of scope, so a title only ever installed from a since-removed
+                // source stays icon-less until its source reappears.
+                var installedIcon = IconCache.EnsureIcon(
+                    _emuLibrary.GetPluginUserDataPath(), "switch-icons", g.TitleId.ToString("x16"), "jpg",
+                    () => sourceProgramFileByTitleId.TryGetValue(g.TitleId, out var srcFile)
+                        ? yuzu.TryReadTitleIcon(srcFile) : null,
+                    _emuLibrary.Logger);
+                if (installedIcon != null)
+                    newGame.Icon = new MetadataFile(installedIcon);
+
                 if (titleDb.TryGet(g.TitleId, out var installedMeta))
                     installedMeta.ApplyTo(newGame);
 
@@ -98,10 +120,7 @@ namespace EmuLibrary.RomTypes.Yuzu
             #endregion
 
             #region Import "uninstalled" games
-            if (!Directory.Exists(mapping.SourcePath))
-                yield break;
-
-            foreach (var g in yuzu.GetUninstalledGamesFromDir(mapping.SourcePath, args.CancelToken))
+            foreach (var g in sourceTitles)
             {
                 if (args.CancelToken.IsCancellationRequested)
                     yield break;
@@ -135,6 +154,14 @@ namespace EmuLibrary.RomTypes.Yuzu
                         }
                     }
                 };
+
+                // Extract the embedded Control-NCA icon from the base source file, cached once per title id
+                // (metadata/switch-icons/<titleId>.jpg). Only re-opens the file on a cache miss.
+                var uninstalledIcon = IconCache.EnsureIcon(
+                    _emuLibrary.GetPluginUserDataPath(), "switch-icons", g.TitleId.ToString("x16"), "jpg",
+                    () => yuzu.TryReadTitleIcon(g.ProgramFile), _emuLibrary.Logger);
+                if (uninstalledIcon != null)
+                    newGame.Icon = new MetadataFile(uninstalledIcon);
 
                 if (titleDb.TryGet(g.TitleId, out var uninstalledMeta))
                     uninstalledMeta.ApplyTo(newGame);

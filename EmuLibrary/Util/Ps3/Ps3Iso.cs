@@ -66,6 +66,55 @@ namespace EmuLibrary.Util.Ps3
             }
         }
 
+        // Reads PS3_GAME/ICON0.PNG (the disc's embedded title icon) from the same unencrypted region as
+        // PARAM.SFO, returning its raw PNG bytes. Returns false if the file isn't found or isn't a PNG.
+        public static bool TryReadIcon(string path, out byte[] png)
+        {
+            png = null;
+            try
+            {
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    return TryReadIcon(fs, out png);
+            }
+            catch
+            {
+                png = null;
+                return false;
+            }
+        }
+
+        public static bool TryReadIcon(Stream stream, out byte[] png)
+        {
+            png = null;
+            try
+            {
+                if (!TryReadRootDirectory(stream, out long rootLba, out long rootLen))
+                    return false;
+
+                if (!TryFindChild(stream, rootLba, rootLen, "PS3_GAME", wantDirectory: true, out long gameLba, out long gameLen))
+                    return false;
+
+                if (!TryFindChild(stream, gameLba, gameLen, "ICON0.PNG", wantDirectory: false, out long iconLba, out long iconLen))
+                    return false;
+
+                // ICON0.PNG is a modest PNG (typically 320x176); guard against a corrupt length.
+                if (iconLen <= 0 || iconLen > (4 << 20))
+                    return false;
+
+                var bytes = ReadBytes(stream, iconLba * SectorSize, (int)iconLen);
+                if (!Ps3Png.HasPngSignature(bytes))
+                    return false;
+
+                png = bytes;
+                return true;
+            }
+            catch
+            {
+                png = null;
+                return false;
+            }
+        }
+
         // Finds the Primary Volume Descriptor (normally at sector 16) and returns its root directory extent.
         private static bool TryReadRootDirectory(Stream stream, out long rootLba, out long rootLen)
         {

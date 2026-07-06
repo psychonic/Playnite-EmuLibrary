@@ -112,13 +112,20 @@ namespace EmuLibrary.RomTypes.WiiU.Crypto
             }
         }
 
+        // Reads a file by its forward-slash FST path (case-insensitive), or null if absent.
+        public byte[] ReadNamedFile(string path)
+        {
+            foreach (var f in EnumerateFiles())
+                if (f.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
+                    return ReadFile(f);
+            return null;
+        }
+
         // Reads meta/meta.xml as text (null if absent) — used by the scanner for the title name/product code.
         public string ReadMetaXml()
         {
-            foreach (var f in EnumerateFiles())
-                if (f.Path.Equals("meta/meta.xml", StringComparison.OrdinalIgnoreCase))
-                    return Encoding.UTF8.GetString(ReadFile(f));
-            return null;
+            var bytes = ReadNamedFile("meta/meta.xml");
+            return bytes != null ? Encoding.UTF8.GetString(bytes) : null;
         }
 
         // Plain content: one continuous CBC stream (IV = {0, contentIdLow, 0...}), block size 0x8000.

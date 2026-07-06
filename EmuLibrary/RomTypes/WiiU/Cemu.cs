@@ -429,55 +429,66 @@ namespace EmuLibrary.RomTypes.WiiU
 
         private MetaInfo TryGetMeta(UnitInfo baseUnit)
         {
+            var bytes = TryReadContentFile(ToRef(baseUnit), "meta/meta.xml");
+            return bytes != null ? ParseMeta(Encoding.UTF8.GetString(bytes)) : null;
+        }
+
+        // Reads a file (by its forward-slash content-relative path, e.g. "meta/iconTex.tga") out of a title's
+        // base content, abstracting over the source format. Returns null if the file is absent or unreadable
+        // (fail-soft). Shared by the meta.xml and icon readers.
+        private byte[] TryReadContentFile(WiiUContentRef baseRef, string relativePath)
+        {
+            if (baseRef == null)
+                return null;
             try
             {
-                if (baseUnit.Format == WiiUSourceFormat.Loadiine)
-                    return ParseMeta(File.ReadAllText(Path.Combine(baseUnit.Path, "meta", "meta.xml")));
-
-                if (baseUnit.Format == WiiUSourceFormat.Nus)
+                switch (baseRef.Format)
                 {
-                    using (var reader = new NusReader(baseUnit.Path, CommonKey))
-                    {
-                        var xml = reader.ReadMetaXml();
-                        return xml != null ? ParseMeta(xml) : null;
-                    }
-                }
+                    case WiiUSourceFormat.Loadiine:
+                        var loosePath = Path.Combine(baseRef.SourcePath, relativePath.Replace('/', Path.DirectorySeparatorChar));
+                        return File.Exists(loosePath) ? File.ReadAllBytes(loosePath) : null;
 
-                if (baseUnit.Format == WiiUSourceFormat.Wua)
-                {
-                    using (var reader = ZArchiveReader.Open(baseUnit.Path))
-                    {
-                        var metaPath = $"{baseUnit.TitleId:x16}_v{baseUnit.Version}/meta/meta.xml";
-                        if (reader.TryReadFile(metaPath, out var bytes))
-                            return ParseMeta(Encoding.UTF8.GetString(bytes));
-                        return null;
-                    }
-                }
+                    case WiiUSourceFormat.Nus:
+                        using (var reader = new NusReader(baseRef.SourcePath, CommonKey))
+                            return reader.ReadNamedFile(relativePath);
 
-                if (baseUnit.Format == WiiUSourceFormat.Wux || baseUnit.Format == WiiUSourceFormat.Wud)
-                {
-                    var keyPath = ResolveDiscKeyPath(baseUnit.Path);
-                    if (keyPath == null)
-                        return null;
-                    using (var disc = WiiUDisc.Open(baseUnit.Path, keyPath))
-                    {
-                        var part = disc.GamePartitions.FirstOrDefault(p => p.TitleId == baseUnit.TitleId)
-                            ?? disc.GamePartitions.FirstOrDefault();
-                        if (part == null)
-                            return null;
-                        using (var reader = new NusReader(new WudContentSource(disc.Reader, part), CommonKey))
+                    case WiiUSourceFormat.Wua:
+                        using (var reader = ZArchiveReader.Open(baseRef.SourcePath))
                         {
-                            var xml = reader.ReadMetaXml();
-                            return xml != null ? ParseMeta(xml) : null;
+                            var full = $"{baseRef.TitleId:x16}_v{baseRef.Version}/{relativePath}";
+                            return reader.TryReadFile(full, out var bytes) ? bytes : null;
                         }
-                    }
+
+                    case WiiUSourceFormat.Wux:
+                    case WiiUSourceFormat.Wud:
+                        var keyPath = ResolveDiscKeyPath(baseRef.SourcePath);
+                        if (keyPath == null)
+                            return null;
+                        using (var disc = WiiUDisc.Open(baseRef.SourcePath, keyPath))
+                        {
+                            var part = disc.GamePartitions.FirstOrDefault(p => p.TitleId == baseRef.TitleId)
+                                ?? disc.GamePartitions.FirstOrDefault();
+                            if (part == null)
+                                return null;
+                            using (var reader = new NusReader(new WudContentSource(disc.Reader, part), CommonKey))
+                                return reader.ReadNamedFile(relativePath);
+                        }
                 }
             }
             catch (Exception ex)
             {
-                _logger?.Warn(ex, $"[WiiU] Failed to read meta.xml for \"{baseUnit.Path}\".");
+                _logger?.Warn(ex, $"[WiiU] Failed to read \"{relativePath}\" from \"{baseRef.SourcePath}\".");
             }
             return null;
+        }
+
+        // Extracts the title's embedded icon (meta/iconTex.tga) from its base content and transcodes it to a
+        // 24-bit BMP (WPF can't render TGA). Null if there's no icon or it can't be decoded. Called only on an
+        // IconCache miss, so the source is re-opened at most once per title id.
+        public byte[] TryReadTitleIconBmp(WiiUContentRef baseRef)
+        {
+            var tga = TryReadContentFile(baseRef, "meta/iconTex.tga");
+            return tga != null ? Tga.TryDecodeToBmp24(tga) : null;
         }
 
         // Wii U meta.xml: <menu><longname_en>..</longname_en><product_code>WUP-N-XXXX</product_code>

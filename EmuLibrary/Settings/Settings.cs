@@ -30,6 +30,7 @@ namespace EmuLibrary.Settings
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
         public bool AutoClearFinishedInstalls { get; set; } = false;
         public int AutoClearFinishedInstallsMinutes { get; set; } = 5;
+        public bool ExtractDiscIcons { get; set; } = true;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         // Hidden settings

@@ -74,6 +74,15 @@ namespace EmuLibrary.RomTypes.WiiU
                     }
                 };
 
+                // Reuse a previously-extracted icon (keyed by base title id) when one is cached. Installed titles
+                // are copied .wua/.wux/loadiine bundles; extracting from those is deferred, so a prior uninstalled
+                // scan (while the source was present) is what populates the cache.
+                var installedIcon = IconCache.EnsureIcon(
+                    _emuLibrary.GetPluginUserDataPath(), "wiiu-icons", g.TitleId.ToString("x16"), "bmp",
+                    () => null, _emuLibrary.Logger);
+                if (installedIcon != null)
+                    newGame.Icon = new MetadataFile(installedIcon);
+
                 installedTitleIds.Add(g.TitleId);
                 yield return newGame;
             }
@@ -113,6 +122,14 @@ namespace EmuLibrary.RomTypes.WiiU
                         }
                     }
                 };
+
+                // Extract the embedded meta/iconTex.tga from the base content, transcoded to BMP and cached once
+                // per base title id (metadata/wiiu-icons/<titleId>.bmp). Only re-opens the source on a cache miss.
+                var iconPath = IconCache.EnsureIcon(
+                    _emuLibrary.GetPluginUserDataPath(), "wiiu-icons", t.TitleId.ToString("x16"), "bmp",
+                    () => cemu.TryReadTitleIconBmp(t.BaseRef), _emuLibrary.Logger);
+                if (iconPath != null)
+                    newGame.Icon = new MetadataFile(iconPath);
 
                 if (!string.IsNullOrEmpty(t.GameTdbId) && gameTdb.TryGet(t.GameTdbId, out var meta))
                     meta.ApplyTo(newGame);

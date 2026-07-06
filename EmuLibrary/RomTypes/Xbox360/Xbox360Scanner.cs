@@ -44,6 +44,11 @@ namespace EmuLibrary.RomTypes.Xbox360
         // + execution id all sit near the start; 256 KiB is comfortably enough and still a small SMB read.
         private const int XexHeaderReadBytes = 0x40000;
 
+        // Cap for the full default.xex read done only when extracting a disc/ZAR title image (the image lives in
+        // an XDBF resource inside the whole PE basefile, not just the header). Bounds a pathological allocation;
+        // real 360 executables are well under this.
+        private const int XexFullReadBytes = 64 * 1024 * 1024;
+
         // Extensions that are never an STFS container — skipped before the magic sniff to cut SMB round-trips.
         private static readonly HashSet<string> NonStfsExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -102,6 +107,9 @@ namespace EmuLibrary.RomTypes.Xbox360
             var updates = parsed.Stfs.Where(u => u.Kind == Xbox360ContentKind.TitleUpdate).ToList();
             var dlc = parsed.Stfs.Where(u => u.Kind == Xbox360ContentKind.Dlc).ToList();
             var digitalBases = parsed.Stfs.Where(u => u.Kind == Xbox360ContentKind.DigitalBase).ToList();
+
+            // Disc/ZAR title-image extraction is gated (a full-executable read per title over SMB); default on.
+            var extractDiscIcons = global::EmuLibrary.Settings.Settings.Instance?.ExtractDiscIcons ?? true;
 
             var bases = SelectScanBases(parsed.Disc, digitalBases);
             int shadowed = parsed.Disc.Count + digitalBases.Count - bases.Count;
@@ -163,9 +171,21 @@ namespace EmuLibrary.RomTypes.Xbox360
                 titleDb.TryGet(title.TitleId, out var dbMeta);
                 ExternalGameMetadata.Coalesce(stfsMeta, dbMeta).ApplyTo(game);
 
-                // The extracted STFS package thumbnail (digital bases only) is the title's icon.
+                // The title's icon: the extracted STFS package thumbnail for digital bases, or the XEX-embedded
+                // title image for disc/ZAR bases (gated, extracted once per title id via the shared cache).
                 if (!string.IsNullOrEmpty(title.IconPath) && File.Exists(title.IconPath))
+                {
                     game.Icon = new MetadataFile(title.IconPath);
+                }
+                else if (extractDiscIcons &&
+                    (baseUnit.Kind == Xbox360ContentKind.DiscImage || baseUnit.Kind == Xbox360ContentKind.ZarImage))
+                {
+                    var iconPath = IconCache.EnsureIcon(
+                        _emuLibrary.GetPluginUserDataPath(), "x360-thumbs", title.TitleId.ToString("X8"), "png",
+                        () => ExtractDiscTitleImagePng(baseUnit), _emuLibrary.Logger);
+                    if (!string.IsNullOrEmpty(iconPath))
+                        game.Icon = new MetadataFile(iconPath);
+                }
 
                 yield return game;
             }
@@ -600,37 +620,43 @@ namespace EmuLibrary.RomTypes.Xbox360
         }
 
         // Extracts a digital base's embedded STFS package thumbnail PNG to a stable per-title-id file under the
-        // plugin data dir and returns its path (used as the title's icon). Extracts once: if the file already
-        // exists it's reused; written atomically so concurrent scan workers can't tear it. Fail-soft -> null.
+        // plugin data dir (shared metadata/x360-thumbs cache, keyed by title id) and returns its path, used as
+        // the title's icon. Extract-once / atomic-write / fail-soft is handled by IconCache.
         private string EnsureThumbnail(uint titleId, string stfsPath)
+        {
+            return IconCache.EnsureIcon(
+                _emuLibrary.GetPluginUserDataPath(), "x360-thumbs", titleId.ToString("X8"), "png",
+                () => StfsPackage.TryExtractThumbnail(stfsPath, out var png) ? png : null,
+                _emuLibrary.Logger);
+        }
+
+        // Reads a disc/ZAR base's whole default.xex and extracts its embedded XDBF title image (decrypt +
+        // none/basic decompress). Returns the PNG bytes, or null on any failure (incl. an LZX-compressed
+        // executable, not yet supported) — fail-soft so the title simply gets no icon. Called only on a cache
+        // miss (via IconCache), so the heavy full-executable read happens once per title id.
+        private byte[] ExtractDiscTitleImagePng(Xbox360UnitInfo baseUnit)
         {
             try
             {
-                var dir = Path.Combine(_emuLibrary.GetPluginUserDataPath(), "metadata", "x360-thumbs");
-                var dest = Path.Combine(dir, titleId.ToString("X8") + ".png");
-                if (File.Exists(dest))
-                    return dest;
+                byte[] xex = null;
+                if (baseUnit.Kind == Xbox360ContentKind.DiscImage)
+                {
+                    using (var reader = XdvdfsReader.TryOpen(baseUnit.Path))
+                        xex = reader?.TryReadDefaultXex(XexFullReadBytes);
+                }
+                else if (baseUnit.Kind == Xbox360ContentKind.ZarImage)
+                {
+                    if (!Xbox360ZarReader.TryReadDefaultXex(baseUnit.Path, XexFullReadBytes, out xex))
+                        xex = null;
+                }
 
-                if (!StfsPackage.TryExtractThumbnail(stfsPath, out var png))
+                if (xex == null)
                     return null;
-
-                Directory.CreateDirectory(dir);
-                var tmp = dest + "." + Guid.NewGuid().ToString("N") + ".tmp";
-                File.WriteAllBytes(tmp, png);
-                try
-                {
-                    File.Move(tmp, dest);
-                }
-                catch (IOException)
-                {
-                    // Another worker wrote the same title-id thumbnail first; reuse it.
-                    try { File.Delete(tmp); } catch { /* best effort */ }
-                }
-                return File.Exists(dest) ? dest : null;
+                return XexImage.TryReadTitleImage(xex, baseUnit.TitleId, out var png) ? png : null;
             }
             catch (Exception ex)
             {
-                _emuLibrary.Logger.Warn(ex, $"[X360] Failed to extract STFS thumbnail from \"{stfsPath}\".");
+                _emuLibrary.Logger.Warn(ex, $"[X360] Failed to extract title image from \"{baseUnit.Path}\".");
                 return null;
             }
         }

@@ -155,6 +155,28 @@ namespace EmuLibrary.Util.Ps3
             return null;
         }
 
+        // Reads + decrypts the embedded ICON0.PNG (the package's title icon), if present. Returns false when
+        // absent or when the decrypted bytes aren't a valid PNG.
+        public bool TryReadIcon(out byte[] png)
+        {
+            png = null;
+            foreach (var e in ReadFileTable())
+            {
+                if (!e.IsDirectory && string.Equals(e.Name, "ICON0.PNG", StringComparison.OrdinalIgnoreCase))
+                {
+                    // ICON0.PNG is a modest PNG; cap the read defensively.
+                    var bytes = DecryptRegion(e.DataOffset, (int)Math.Min(e.DataSize, 4 << 20));
+                    if (Ps3Png.HasPngSignature(bytes))
+                    {
+                        png = bytes;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            return false;
+        }
+
         // Decrypts + extracts every file entry under targetDir. Honors cancellation.
         //
         // protectBootableRootParamSfo: base, updates and DLC all share the game's dev_hdd0/game/<id> dir and

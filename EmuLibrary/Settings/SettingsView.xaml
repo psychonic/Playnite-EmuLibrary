@@ -184,6 +184,13 @@
                     <TextBlock Style="{StaticResource InfoMarker}"
                                ToolTip="When a scan finds that a not-installed library entry no longer exists in its source, remove it from the library automatically. Installed games are never touched, and no files on disk are deleted." />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <CheckBox IsChecked="{Binding ExtractDiscIcons, Mode=TwoWay}" VerticalAlignment="Center">
+                        <TextBlock Text="Extract embedded icons from Xbox 360 disc/ZAR titles" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="Reads the title image embedded in each Xbox 360 disc (.iso) or ZAR archive's default.xex at scan time and uses it as the game's icon. This requires reading the whole executable over the network, but happens only once per title (the icon is cached), so the first scan of a large disc library is slower. Digital (STFS) titles always extract their icon regardless of this setting." />
+                </StackPanel>
                 <Label Content="Installation" FontWeight="Bold" Margin="0,10,0,0" />
                 <Separator Margin="0,5,0,10" />
                 <CheckBox IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}" Margin="0,0,0,10" >
