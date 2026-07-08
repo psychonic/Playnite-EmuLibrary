@@ -1,5 +1,12 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.7.0
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: '2026-07-08'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.7.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_7_0.pext
+    Changelog:
+      - Added ability to customize sidebar icon
+      - Changed sidebar icon to be hidden if all mappings are SingleFile or MultiFile and Windows copy dialog is enabled for showing install progress
   - Version: 3.6.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: '2026-07-06'
