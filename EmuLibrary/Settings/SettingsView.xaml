@@ -219,6 +219,15 @@
                     <TextBlock Style="{StaticResource InfoMarker}"
                                ToolTip="When enabled, completed/failed/canceled rows in the Installs sidebar panel are removed automatically once they've been finished for this many minutes. Installs in progress are never affected; you can still clear rows manually at any time." />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Installs sidebar icon:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Text="{Binding SidebarIconPath, Mode=TwoWay}" Width="280" VerticalAlignment="Center"
+                             ToolTip="Leave blank to use the default EmuLibrary icon."/>
+                    <Button Content="Browse..." Click="Click_BrowseSidebarIcon" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <Button Content="Clear" Click="Click_ClearSidebarIcon" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource InfoMarker}"
+                               ToolTip="Override the icon shown for the EmuLibrary Installs sidebar entry. Leave blank to use the bundled extension icon. Changes take effect after restarting Playnite." />
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

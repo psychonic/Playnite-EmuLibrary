@@ -315,7 +315,31 @@ namespace EmuLibrary
             if (Playnite.ApplicationInfo.Mode != ApplicationMode.Desktop)
                 yield break;
 
-            yield return _installsSidebarItem ?? (_installsSidebarItem = new InstallsSidebarItem(_installProgress));
+            if (_installsSidebarItem == null)
+            {
+                _installsSidebarItem = new InstallsSidebarItem(_installProgress);
+                // Recompute visibility whenever settings are committed — GetSidebarItems is only called once
+                // (at startup), so we can't rely on re-querying it to reflect later config changes.
+                Settings.Saved += (s, e) => UpdateInstallsSidebarVisibility();
+            }
+
+            UpdateInstallsSidebarVisibility();
+            yield return _installsSidebarItem;
+        }
+
+        // The Installs panel would only ever mirror what Windows already shows when Windows handles the copy
+        // (its own progress dialog) and every mapping is a plain file-copy type (SingleFile/MultiFile), so
+        // there's nothing worth surfacing — hide the sidebar entry in that case.
+        private bool ShouldShowInstallsSidebar()
+        {
+            return !(Settings.UseWindowsCopyDialogInDesktopMode
+                && (Settings.Mappings?.All(m => m.RomType == RomType.SingleFile || m.RomType == RomType.MultiFile) ?? true));
+        }
+
+        private void UpdateInstallsSidebarVisibility()
+        {
+            if (_installsSidebarItem != null)
+                _installsSidebarItem.Visible = ShouldShowInstallsSidebar();
         }
 
         private TopPanelItem _installsTopPanelItem;

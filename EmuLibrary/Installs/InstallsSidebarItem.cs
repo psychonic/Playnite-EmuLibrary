@@ -29,7 +29,7 @@ namespace EmuLibrary.Installs
             {
                 Icon = new Image
                 {
-                    Source = new BitmapImage(new Uri(EmuLibrary.Icon)),
+                    Source = new BitmapImage(new Uri(ResolveIconPath())),
                     Width = 20,
                     Height = 20,
                     Stretch = Stretch.Uniform
@@ -46,6 +46,24 @@ namespace EmuLibrary.Installs
                     _control = new InstallsPanelControl(service);
                 return _control;
             };
+        }
+
+        // Prefer the user's configured override icon (if it points at a file that exists); otherwise fall back
+        // to the bundled extension icon. Resolved once at construction — the item is cached for the session.
+        // The stored override may use the {PlayniteDir} placeholder (portable installs), so expand it first.
+        private static string ResolveIconPath()
+        {
+            var settings = Settings.Settings.Instance;
+            var overridePath = settings?.SidebarIconPath;
+            if (!string.IsNullOrWhiteSpace(overridePath))
+            {
+                var playnite = settings.PlayniteAPI;
+                var resolved = Util.PortablePathResolver.Resolve(overridePath, playnite.Paths.IsPortable, playnite.Paths.ApplicationPath);
+                if (System.IO.File.Exists(resolved))
+                    return resolved;
+            }
+
+            return EmuLibrary.Icon;
         }
 
         private void OnViewModelChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

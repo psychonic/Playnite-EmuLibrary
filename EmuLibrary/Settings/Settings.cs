@@ -31,6 +31,17 @@ namespace EmuLibrary.Settings
         public bool AutoClearFinishedInstalls { get; set; } = false;
         public int AutoClearFinishedInstallsMinutes { get; set; } = 5;
         public bool ExtractDiscIcons { get; set; } = true;
+
+        private string _sidebarIconPath = null;
+        // Optional override for the Installs sidebar icon. May contain the {PlayniteDir} placeholder on
+        // portable installs; resolved via PortablePathResolver when the sidebar item is built. Notifying so
+        // the settings TextBox reflects browse/clear actions from the code-behind.
+        public string SidebarIconPath
+        {
+            get => _sidebarIconPath;
+            set => SetValue(ref _sidebarIconPath, value, new[] { nameof(SidebarIconPath) });
+        }
+
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         // Hidden settings
@@ -137,9 +148,14 @@ namespace EmuLibrary.Settings
             LoadValues(_editingClone);
         }
 
+        // Raised after the user commits settings edits, so live UI (e.g. the Installs sidebar item's
+        // visibility) can react without requiring a Playnite restart.
+        public event EventHandler Saved;
+
         public void EndEdit()
         {
             _plugin.SavePluginSettings(this);
+            Saved?.Invoke(this, EventArgs.Empty);
         }
 
         public bool VerifySettings(out List<string> errors)

@@ -66,6 +66,30 @@ namespace EmuLibrary.Settings
             return Settings.Instance.PlayniteAPI.Dialogs.SelectFolder();
         }
 
+        private void Click_BrowseSidebarIcon(object sender, RoutedEventArgs e)
+        {
+            var playnite = Settings.Instance.PlayniteAPI;
+            var path = playnite.Dialogs.SelectIconFile();
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            // Store paths under a portable Playnite install using the {PlayniteDir} placeholder so the
+            // library stays relocatable (mirrors Click_BrowseDestination).
+            if (playnite.Paths.IsPortable)
+            {
+                path = path.Replace(playnite.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);
+            }
+
+            Settings.Instance.SidebarIconPath = path;
+        }
+
+        private void Click_ClearSidebarIcon(object sender, RoutedEventArgs e)
+        {
+            Settings.Instance.SidebarIconPath = null;
+        }
+
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
             Process.Start(e.Uri.AbsoluteUri);
