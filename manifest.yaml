@@ -1,5 +1,13 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.8.0
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: '2026-07-09'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.8.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_8_0.pext
+    Changelog:
+      - Added detailed install progress reporting for Yuzu (Switch) rom type
+      - Increased side margins on install sidebar items display
+      - Change sidebar icon to now be hidden if there are no pending or (uncleared) completed installs
   - Version: 3.7.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: '2026-07-08'
