@@ -287,7 +287,11 @@ namespace EmuLibrary.RomTypes.Yuzu
             InitKeySet();
         }
 
-        public void InstallFileToNand(string fileToInstall)
+        // `progress`, when supplied, receives the INCREMENTAL count of NAND bytes written per chunk (matching
+        // ByteProgressReporter's contract). Summed across every NCA this writes, it reaches the content unit's
+        // uncompressed footprint (ComputeInstallSize) — the value the controller sizes the bar with. Null keeps
+        // the install silent (the phase stays on the indeterminate bar).
+        public void InstallFileToNand(string fileToInstall, IProgress<long> progress = null)
         {
             if (IsEmulatorRunning())
                 throw new Exception($"Cannot install game while {_processName} is running");
@@ -376,7 +380,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                         if (!isCompressed)
                         {
-                            ncaFile.AsStream().CopyTo(outStream, 4 * 1024 * 1024);
+                            CopyStreamWithProgress(ncaFile.AsStream(), outStream, progress);
                         }
                         else
                         {
@@ -394,6 +398,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                                 var ncaHeader = br.ReadBytes(0x4000);
 
                                 outStream.Write(ncaHeader, 0, ncaHeader.Length);
+                                progress?.Report(ncaHeader.Length);
 
                                 br.BaseStream.Seek(0x4000, SeekOrigin.Begin);
                                 string magic = br.ReadAscii(8);
@@ -496,6 +501,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                                             }
 
                                             outStream.Write(inputChunk, 0, readCnt);
+                                            progress?.Report(readCnt);
 
                                             i += (ulong)readCnt;
                                         }
@@ -1327,20 +1333,38 @@ namespace EmuLibrary.RomTypes.Yuzu
                 cgu.InstallSize = SumInstallSize(game, update, intermediate[k]);
 
                 cgu.ProgramFile = game.FilePath;
+                cgu.FileInstallSizes[game.FilePath] = game.InstallSize;
                 if (update != null)
                 {
                     cgu.UpdateFile = update.FilePath;
+                    cgu.FileInstallSizes[update.FilePath] = update.InstallSize;
                 }
 
-                cgu.DlcFiles.AddRange(
-                    intermediate[k].Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.DLC)
-                    .GroupBy(x => x.TitleId, (key, g) => g.First().FilePath)
-                    );
+                foreach (var dlc in intermediate[k]
+                    .Where(x => x.FileType == FileType.NSP && x.Type == ExternalGameFileType.DLC)
+                    .GroupBy(x => x.TitleId, (key, g) => g.First()))
+                {
+                    cgu.DlcFiles.Add(dlc.FilePath);
+                    cgu.FileInstallSizes[dlc.FilePath] = dlc.InstallSize;
+                }
 
                 ret.Add(cgu);
             }
 
             return ret;
+        }
+
+        // Like Stream.CopyTo, but reports the INCREMENTAL bytes written per chunk so a NAND import shows a real
+        // percentage bar. Uses the same 4 MiB chunk as the original CopyTo call.
+        private static void CopyStreamWithProgress(Stream source, Stream destination, IProgress<long> progress)
+        {
+            var buffer = new byte[4 * 1024 * 1024];
+            int read;
+            while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                destination.Write(buffer, 0, read);
+                progress?.Report(read);
+            }
         }
 
         private static string GetRelativePathFromNcaId(string ncaFileName)

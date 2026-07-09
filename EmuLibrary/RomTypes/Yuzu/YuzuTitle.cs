@@ -17,6 +17,10 @@ namespace EmuLibrary.RomTypes.Yuzu
         // Uncompressed NAND footprint of base game + latest update + all DLC.
         public ulong InstallSize;
 
+        // Per-source-file NAND footprint (base/update/DLC), keyed by source path. Used to size the per-phase
+        // install progress bar so each InstallFileToNand shows a real percentage. Not serialized.
+        public readonly Dictionary<string, ulong> FileInstallSizes = new Dictionary<string, ulong>();
+
         // Base game file (XCI or NSP).
         public string ProgramFile;
 

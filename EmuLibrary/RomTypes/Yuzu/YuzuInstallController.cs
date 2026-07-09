@@ -39,13 +39,20 @@ namespace EmuLibrary.RomTypes.Yuzu
         }
 
         protected override Task InstallBaseAsync(YuzuTitle title, CancellationToken ct) =>
-            Task.Run(() => _yuzu.InstallFileToNand(title.ProgramFile), ct);
+            Task.Run(() => _yuzu.InstallFileToNand(title.ProgramFile, ByteProgressFor(title, title.ProgramFile)), ct);
 
         protected override Task InstallUpdateAsync(YuzuTitle title, string update, CancellationToken ct) =>
-            Task.Run(() => _yuzu.InstallFileToNand(update), ct);
+            Task.Run(() => _yuzu.InstallFileToNand(update, ByteProgressFor(title, update)), ct);
 
         protected override Task InstallDlcAsync(YuzuTitle title, string dlc, CancellationToken ct) =>
-            Task.Run(() => _yuzu.InstallFileToNand(dlc), ct);
+            Task.Run(() => _yuzu.InstallFileToNand(dlc, ByteProgressFor(title, dlc)), ct);
+
+        // A byte reporter sized to the file's known NAND footprint, so this phase's bar shows a real
+        // percentage. Null (indeterminate bar) when the size wasn't captured at scan time.
+        private IProgress<long> ByteProgressFor(YuzuTitle title, string file) =>
+            title.FileInstallSizes.TryGetValue(file, out var size) && size > 0
+                ? CreateByteProgress((long)size)
+                : null;
 
         protected override string GetInstallDir(YuzuTitle title) => _mapping.EmulatorBasePathResolved;
         protected override string GetRomPath(YuzuTitle title) => _yuzu.GetLaunchPathFromTitleId(_gameInfo.TitleId);
