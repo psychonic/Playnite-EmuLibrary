@@ -12,18 +12,22 @@ namespace EmuLibrary.Installs
     {
         private readonly InstallsViewModel _viewModel;
         private InstallsPanelControl _control;
+        // Config-driven half of visibility, set by the plugin when settings are committed. Combined with the
+        // empty-state gate (nothing to show) in RefreshVisibility so the two conditions can't clobber each other.
+        private bool _configAllowsVisibility = true;
 
         public InstallsSidebarItem(IInstallProgressService service)
         {
             // Note the SDK's spelling: SiderbarItemType.
             Type = SiderbarItemType.View;
             Title = "EmuLibrary Installs";
-            Visible = true;
 
             // Bubble the aggregate progress of in-flight installs onto the sidebar icon's built-in bar.
             _viewModel = service.ViewModel;
             _viewModel.PropertyChanged += OnViewModelChanged;
             UpdateProgress();
+            // Hidden until there's something to show; the service marshals count changes onto the UI thread.
+            RefreshVisibility();
 
             try
             {
@@ -66,11 +70,28 @@ namespace EmuLibrary.Installs
             return EmuLibrary.Icon;
         }
 
+        // Called by the plugin when settings are committed. The final Visible state ANDs this with the
+        // empty-state gate so a config change can't reveal an empty panel (and vice versa).
+        public void SetConfigAllowsVisibility(bool allowed)
+        {
+            _configAllowsVisibility = allowed;
+            RefreshVisibility();
+        }
+
         private void OnViewModelChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(InstallsViewModel.AggregateProgressValue)
                 || e.PropertyName == nameof(InstallsViewModel.AggregateProgressMaximum))
                 UpdateProgress();
+            else if (e.PropertyName == nameof(InstallsViewModel.IsEmpty))
+                RefreshVisibility();
+        }
+
+        // Show the entry only when the config permits it AND there's at least one row to show — nothing started,
+        // or everything cleared after finish/failure/cancel, leaves nothing worth a sidebar slot.
+        private void RefreshVisibility()
+        {
+            Visible = _configAllowsVisibility && !_viewModel.IsEmpty;
         }
 
         private void UpdateProgress()

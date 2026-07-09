@@ -306,7 +306,7 @@ namespace EmuLibrary
         public override ISettings GetSettings(bool firstRunSettings) => Settings;
         public override UserControl GetSettingsView(bool firstRunSettings) => new SettingsView();
 
-        private SidebarItem _installsSidebarItem;
+        private InstallsSidebarItem _installsSidebarItem;
 
         // The Installs panel is a Desktop-mode concept (sidebar items aren't surfaced the same way in
         // Fullscreen). The service still tracks state headlessly in Fullscreen; only the panel is omitted.
@@ -338,8 +338,10 @@ namespace EmuLibrary
 
         private void UpdateInstallsSidebarVisibility()
         {
+            // Config is only one half of the gate — the item also hides itself when there are no rows to show
+            // (nothing started, or everything cleared). See InstallsSidebarItem.RefreshVisibility.
             if (_installsSidebarItem != null)
-                _installsSidebarItem.Visible = ShouldShowInstallsSidebar();
+                _installsSidebarItem.SetConfigAllowsVisibility(ShouldShowInstallsSidebar());
         }
 
         private TopPanelItem _installsTopPanelItem;
