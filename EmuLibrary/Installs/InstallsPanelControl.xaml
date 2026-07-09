@@ -97,7 +97,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <DockPanel Margin="8">
+    <DockPanel Margin="24,8">
         <!-- Header. Only the (left-aligned) title lives up here: the top-right corner is where Playnite's
              window caption buttons (minimize/maximize/close) float, so no interactive control belongs there. -->
         <TextBlock DockPanel.Dock="Top"
