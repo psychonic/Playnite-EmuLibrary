@@ -1,3 +1,4 @@
+using EmuLibrary.Util;
 using System;
 
 namespace EmuLibrary.RomTypes.Xbox360
@@ -27,14 +28,13 @@ namespace EmuLibrary.RomTypes.Xbox360
         public const ulong TitleImageId = 0x8000;
 
         private static readonly byte[] Magic = { (byte)'X', (byte)'D', (byte)'B', (byte)'F' };
-        private static readonly byte[] PngSignature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
         // Finds the (namespace 2, id 0x8000) title image and returns its bytes if they are a PNG. Returns false
         // (no throw) on a bad magic, a truncated/oversized table, a missing entry, or non-PNG data.
         public static bool TryReadTitleImage(byte[] data, out byte[] png)
         {
             return TryReadEntry(data, ImageNamespace, TitleImageId, out png)
-                && StartsWith(png, PngSignature);
+                && Png.HasPngSignature(png);
         }
 
         // Locates the (namespace, id) entry and slices its bytes out of the data region. Fail-soft -> false.

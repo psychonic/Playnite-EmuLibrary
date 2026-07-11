@@ -1,9 +1,9 @@
-namespace EmuLibrary.Util.Ps3
+namespace EmuLibrary.Util
 {
-    // Tiny shared guard: PS3 ICON0.PNG icons are read out of the disc's unencrypted region (Ps3Iso) or the
-    // pkg's decrypted data segment (Ps3Pkg); validating the 8-byte PNG signature before handing the bytes to
-    // Playnite rejects a mislocated/garbage read (mirrors StfsPackage's PngSignature guard).
-    internal static class Ps3Png
+    // Tiny shared guard for the 8-byte PNG signature. Embedded title icons on several platforms are read out
+    // of a raw/decrypted region (PS3 disc/pkg, PSP UMD/PBP, Xbox 360 STFS header / XDBF resource); validating
+    // the magic before handing the bytes to Playnite rejects a mislocated or garbage read.
+    internal static class Png
     {
         private static readonly byte[] Signature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 

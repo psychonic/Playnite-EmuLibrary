@@ -113,7 +113,7 @@ namespace EmuLibrary.Util.Ps3
                     return false;
 
                 var bytes = ReadBytes(stream, iconLba * SectorSize, (int)iconLen);
-                if (!Ps3Png.HasPngSignature(bytes))
+                if (!Png.HasPngSignature(bytes))
                     return false;
 
                 png = bytes;

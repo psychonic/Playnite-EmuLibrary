@@ -166,7 +166,7 @@ namespace EmuLibrary.Util.Ps3
                 {
                     // ICON0.PNG is a modest PNG; cap the read defensively.
                     var bytes = DecryptRegion(e.DataOffset, (int)Math.Min(e.DataSize, 4 << 20));
-                    if (Ps3Png.HasPngSignature(bytes))
+                    if (Png.HasPngSignature(bytes))
                     {
                         png = bytes;
                         return true;

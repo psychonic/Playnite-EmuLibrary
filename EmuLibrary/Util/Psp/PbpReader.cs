@@ -1,4 +1,3 @@
-using EmuLibrary.Util.Ps3;
 using System;
 using System.IO;
 
@@ -111,7 +110,7 @@ namespace EmuLibrary.Util.Psp
                 if (!ReadFully(stream, buf, (int)len))
                     return false;
 
-                if (!Ps3Png.HasPngSignature(buf))
+                if (!Png.HasPngSignature(buf))
                     return false;
 
                 png = buf;

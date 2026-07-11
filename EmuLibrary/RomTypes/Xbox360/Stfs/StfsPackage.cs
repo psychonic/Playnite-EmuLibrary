@@ -1,3 +1,4 @@
+using EmuLibrary.Util;
 using System;
 using System.IO;
 using System.Text;
@@ -49,7 +50,6 @@ namespace EmuLibrary.RomTypes.Xbox360.Stfs
         private const int ThumbnailSizeOffset = 0x1712;
         private const int ThumbnailOffset = 0x171A;
         private const int ThumbnailMaxBytes = 0x4000;
-        private static readonly byte[] PngSignature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
         // STFS data layout: 0x1000-byte blocks, data starting at 0xC000 (after the header + first hash table).
         // Hash tables are interspersed every 0xAA data blocks (and every 0x70E4 at the next level), doubled when
@@ -222,7 +222,7 @@ namespace EmuLibrary.RomTypes.Xbox360.Stfs
                     var buffer = new byte[size];
                     if (!ReadAt(fs, ThumbnailOffset, buffer))
                         return false;
-                    if (!StartsWith(buffer, PngSignature))
+                    if (!Png.HasPngSignature(buffer))
                         return false;
 
                     png = buffer;
@@ -233,16 +233,6 @@ namespace EmuLibrary.RomTypes.Xbox360.Stfs
             {
                 return false;
             }
-        }
-
-        private static bool StartsWith(byte[] buffer, byte[] prefix)
-        {
-            if (buffer.Length < prefix.Length)
-                return false;
-            for (int i = 0; i < prefix.Length; i++)
-                if (buffer[i] != prefix[i])
-                    return false;
-            return true;
         }
 
         private static bool ReadAt(Stream s, long offset, byte[] buffer)

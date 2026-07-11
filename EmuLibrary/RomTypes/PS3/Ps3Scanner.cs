@@ -593,7 +593,7 @@ namespace EmuLibrary.RomTypes.Ps3
                     if (File.Exists(iconFile))
                     {
                         var bytes = File.ReadAllBytes(iconFile);
-                        return Ps3Png.HasPngSignature(bytes) ? bytes : null;
+                        return Png.HasPngSignature(bytes) ? bytes : null;
                     }
                 }
                 return null;
