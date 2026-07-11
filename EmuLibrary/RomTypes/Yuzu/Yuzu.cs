@@ -1,4 +1,5 @@
 ﻿using EmuLibrary.PlayniteCommon;
+using EmuLibrary.Util;
 using EmuLibrary.Util.ScanCache;
 using EmuLibrary.Util.ScanConcurrency;
 using IniParser.Model.Configuration;
@@ -380,7 +381,7 @@ namespace EmuLibrary.RomTypes.Yuzu
 
                         if (!isCompressed)
                         {
-                            CopyStreamWithProgress(ncaFile.AsStream(), outStream, progress);
+                            StreamUtils.CopyWithProgress(ncaFile.AsStream(), outStream, progress);
                         }
                         else
                         {
@@ -1352,19 +1353,6 @@ namespace EmuLibrary.RomTypes.Yuzu
             }
 
             return ret;
-        }
-
-        // Like Stream.CopyTo, but reports the INCREMENTAL bytes written per chunk so a NAND import shows a real
-        // percentage bar. Uses the same 4 MiB chunk as the original CopyTo call.
-        private static void CopyStreamWithProgress(Stream source, Stream destination, IProgress<long> progress)
-        {
-            var buffer = new byte[4 * 1024 * 1024];
-            int read;
-            while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                destination.Write(buffer, 0, read);
-                progress?.Report(read);
-            }
         }
 
         private static string GetRelativePathFromNcaId(string ncaFileName)
