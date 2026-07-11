@@ -23,5 +23,8 @@
 
         [RomTypeInfo(typeof(Xbox360.Xbox360GameInfo), typeof(Xbox360.Xbox360Scanner))]
         Xbox360 = 6,
+
+        [RomTypeInfo(typeof(Psp.PspGameInfo), typeof(Psp.PspScanner))]
+        Psp = 7,
     }
 }

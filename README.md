@@ -154,6 +154,32 @@ Installed state is derived from disk on each scan (the base copy in the destinat
 
 Game names and thumbnails come from each digital package's embedded STFS metadata where available; disc titles fall back to the title-id database or the No-Intro filename. See [Metadata Enrichment](#metadata-enrichment).
 
+### PSP (Beta)
+
+The PSP type adds support for PlayStation Portable games run under [PPSSPP](https://www.ppsspp.org) — either the standalone emulator or the PPSSPP libretro core in RetroArch. It has a beta level of quality of support. Select PPSSPP (or RetroArch) as the emulator for the mapping (built-in or custom).
+
+Like the other console types, this type scans by its own format logic rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined. The source is a **flat** directory of disc images, freely named, in any of these formats:
+
+* **`.iso`** — a raw UMD image (ISO9660).
+* **`.chd`** — MAME/chdman compressed image (v5; zstd/zlib/lzma hunks). It is read directly — during a scan only the few sectors needed to identify the title are decompressed, not the whole image.
+* **`.cso` / `.zso`** — CISO/ZISO block-compressed images.
+* **`.pbp`** — an `EBOOT.PBP` (PSN / minis / homebrew).
+
+Beside the images sit optional **update/DLC payload folders, each named by the bare 9-character title id** (e.g. `ULUS10538`). The scanner reads the **`DISC_ID`** out of each image (cached) and pairs the sibling folder of that name as the title's update/DLC content — association is by the id inside the image, not by filename, so nothing needs renaming.
+
+Installing a title touches two destinations:
+
+* The **base image** is copied as-is to the mapping's **destination path** (compressed images are copied verbatim — PPSSPP opens `.chd`/`.cso`/`.pbp` natively, so there is no decompression on install).
+* Each **update/DLC payload folder** is copied verbatim into the emulator's memory stick under **`PSP/GAME/<title id>`**, where PPSSPP applies it at launch. Multiple updates are applied in ascending `APP_VER` order (read from each payload's `PBOOT.PBP`, never the folder name). There are no separate license files — PSP DRM (EDAT) is keyed to the console and is PPSSPP's job; the plugin only copies.
+
+The memory-stick root is resolved from the selected emulator profile: for **standalone PPSSPP** a portable `memstick/` beside the exe, else `memstick_dir.txt`, else `Documents/PPSSPP`; for the **RetroArch core** it is `<system_directory>/PPSSPP`. A base-only title installs regardless, but if a title has update/DLC content and the memory stick can't be resolved, that install is refused with a clear message.
+
+Installed state is derived from disk on each scan (the base copy in the destination plus each payload folder under the memory stick). Uninstalling removes the copied base image and the `PSP/GAME/<title id>` payload directories it wrote; save data (`PSP/SAVEDATA`) is left untouched.
+
+Game **icons** come from each image's embedded `ICON0.PNG` — read from `/PSP_GAME/ICON0.PNG` on a UMD image (`.iso`/`.chd`/`.cso`/`.zso`) or from the icon segment of a `.pbp`. Game **names** come from the image's `PARAM.SFO` title, falling back to the normalized filename. There is no external metadata provider for PSP.
+
+> **Note:** multi-disc PSP games are out of scope.
+
 ### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.

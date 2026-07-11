@@ -1,6 +1,7 @@
 using EmuLibrary.RomTypes;
 using EmuLibrary.RomTypes.MultiFile;
 using EmuLibrary.RomTypes.Ps3;
+using EmuLibrary.RomTypes.Psp;
 using EmuLibrary.RomTypes.SingleFile;
 using EmuLibrary.RomTypes.ThreeDs;
 using EmuLibrary.RomTypes.WiiU;
@@ -146,6 +147,23 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal(info.BaseKind, result.BaseKind);
         }
 
+        [Fact]
+        public void Psp_RoundTrips()
+        {
+            var info = new PspGameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = "ULUS10538",
+                SourceImagePath = @"Armored Core - Last Raven Portable (USA).chd",
+            };
+            var result = RoundTrip(info);
+
+            Assert.Equal(RomType.Psp, result.RomType);
+            Assert.Equal(info.MappingId, result.MappingId);
+            Assert.Equal(info.TitleId, result.TitleId);
+            Assert.Equal(info.SourceImagePath, result.SourceImagePath);
+        }
+
         // Golden GameId strings. Each encodes the exact bytes a current build produces for a fixed input.
         // If one of these changes, a serialization-affecting change was made and previously-saved
         // libraries may no longer deserialize. Update ONLY with a deliberate, migration-aware change.
@@ -199,6 +217,18 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal("!0ggEoCN6QhMIFEJfh5wEaG01hcmF0aG9uIER1cmFuZGFsIChVU0EpLmlzbwoSCRERERERERERERERERERERER", info.AsGameId());
         }
 
+        [Fact]
+        public void Psp_GoldenGameId_IsStable()
+        {
+            var info = new PspGameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = "ULUS10538",
+                SourceImagePath = @"Armored Core - Last Raven Portable (USA).chd",
+            };
+            Assert.Equal("!0igE5CixBcm1vcmVkIENvcmUgLSBMYXN0IFJhdmVuIFBvcnRhYmxlIChVU0EpLmNoZBIJVUxVUzEwNTM4ChIJERERERERERERERERERERERE=", info.AsGameId());
+        }
+
         // Pins each GameInfo subtype to its exact proto field number (RomType value + 10). Catches both a
         // RomType enum renumber and a change to the offset, either of which breaks saved GameIds.
         [Theory]
@@ -209,6 +239,7 @@ namespace EmuLibrary.Tests.RomTypes
         [InlineData(typeof(YuzuGameInfo), 14)]       // RomType.Yuzu       (4) + 10
         [InlineData(typeof(ThreeDsGameInfo), 15)]    // RomType.ThreeDs    (5) + 10
         [InlineData(typeof(Xbox360GameInfo), 16)]    // RomType.Xbox360    (6) + 10
+        [InlineData(typeof(PspGameInfo), 17)]        // RomType.Psp        (7) + 10
         public void ProtoSubType_HasExpectedFieldNumber(Type gameInfoType, int expectedFieldNumber)
         {
             var subType = RuntimeTypeModel.Default[typeof(ELGameInfo)]

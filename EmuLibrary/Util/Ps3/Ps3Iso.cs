@@ -38,7 +38,13 @@ namespace EmuLibrary.Util.Ps3
             }
         }
 
-        public static bool TryReadParamSfo(Stream stream, out ParamSfo sfo)
+        public static bool TryReadParamSfo(Stream stream, out ParamSfo sfo) =>
+            TryReadParamSfo(stream, "PS3_GAME", out sfo);
+
+        // gameDirName is the top-level game folder inside the ISO9660 filesystem holding PARAM.SFO:
+        // "PS3_GAME" for PS3 discs, "PSP_GAME" for PSP UMD images. Both share the same layout, so the same
+        // walk handles either.
+        public static bool TryReadParamSfo(Stream stream, string gameDirName, out ParamSfo sfo)
         {
             sfo = null;
             try
@@ -46,7 +52,7 @@ namespace EmuLibrary.Util.Ps3
                 if (!TryReadRootDirectory(stream, out long rootLba, out long rootLen))
                     return false;
 
-                if (!TryFindChild(stream, rootLba, rootLen, "PS3_GAME", wantDirectory: true, out long gameLba, out long gameLen))
+                if (!TryFindChild(stream, rootLba, rootLen, gameDirName, wantDirectory: true, out long gameLba, out long gameLen))
                     return false;
 
                 if (!TryFindChild(stream, gameLba, gameLen, "PARAM.SFO", wantDirectory: false, out long sfoLba, out long sfoLen))
@@ -83,7 +89,12 @@ namespace EmuLibrary.Util.Ps3
             }
         }
 
-        public static bool TryReadIcon(Stream stream, out byte[] png)
+        public static bool TryReadIcon(Stream stream, out byte[] png) =>
+            TryReadIcon(stream, "PS3_GAME", out png);
+
+        // gameDirName is the top-level game folder inside the ISO9660 filesystem holding ICON0.PNG:
+        // "PS3_GAME" for PS3 discs, "PSP_GAME" for PSP UMD images. Both carry ICON0.PNG in the same place.
+        public static bool TryReadIcon(Stream stream, string gameDirName, out byte[] png)
         {
             png = null;
             try
@@ -91,7 +102,7 @@ namespace EmuLibrary.Util.Ps3
                 if (!TryReadRootDirectory(stream, out long rootLba, out long rootLen))
                     return false;
 
-                if (!TryFindChild(stream, rootLba, rootLen, "PS3_GAME", wantDirectory: true, out long gameLba, out long gameLen))
+                if (!TryFindChild(stream, rootLba, rootLen, gameDirName, wantDirectory: true, out long gameLba, out long gameLen))
                     return false;
 
                 if (!TryFindChild(stream, gameLba, gameLen, "ICON0.PNG", wantDirectory: false, out long iconLba, out long iconLen))

@@ -16,6 +16,9 @@
   <ItemGroup>
     <PackageReference Include="ini-parser" Version="2.5.2" />
     <PackageReference Include="LibHac" Version="0.7.0" />
+    <!-- Igor Pavlov's public-domain LZMA SDK; used to decode CHD v5 lzma-compressed hunks
+         (Util/Chd/ChdReader.cs). net20/netstandard2.0 assets restore cleanly on net462. -->
+    <PackageReference Include="LZMA-SDK" Version="22.1.1" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
     <PackageReference Include="PlayniteSDK" Version="6.16.0" />
