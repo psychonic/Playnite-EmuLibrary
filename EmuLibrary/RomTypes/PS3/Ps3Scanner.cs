@@ -2,6 +2,7 @@ using EmuLibrary.PlayniteCommon;
 using EmuLibrary.Settings;
 using EmuLibrary.Util;
 using EmuLibrary.Util.Metadata;
+using EmuLibrary.Util.PlayStation;
 using EmuLibrary.Util.Ps3;
 using EmuLibrary.Util.ScanCache;
 using Playnite.SDK;
@@ -99,7 +100,7 @@ namespace EmuLibrary.RomTypes.Ps3
 
             // Parse each per-title source folder in parallel through the scan concurrency governor (keyed by
             // the source dir). The parse opens PKGs/ISOs — network round-trips that overlap across folders.
-            // The PS3 parse path (Ps3Pkg/Ps3Iso/ParamSfo) is stateless across calls and IScanCache is
+            // The PS3 parse path (Ps3Pkg/PsDiscIso/ParamSfo) is stateless across calls and IScanCache is
             // internally locked, so the workers are independent. GameMetadata construction (incl. the on-disk
             // installed-ness checks against the destination) runs single-threaded after the parallel phase.
             var titleDirs = new DirectoryInfo(mapping.SourcePath).EnumerateDirectories().ToList();
@@ -585,7 +586,7 @@ namespace EmuLibrary.RomTypes.Ps3
             if (title.BaseKind == Ps3BaseKind.Disc)
             {
                 if (title.DiscIsoPath != null && File.Exists(title.DiscIsoPath))
-                    return Ps3Iso.TryReadIcon(title.DiscIsoPath, out var iso) ? iso : null;
+                    return PsDiscIso.TryReadIcon(title.DiscIsoPath, out var iso) ? iso : null;
 
                 if (title.DiscFolderPath != null)
                 {
@@ -628,7 +629,7 @@ namespace EmuLibrary.RomTypes.Ps3
             {
                 ParamSfo sfo;
                 bool ok = isIso
-                    ? Ps3Iso.TryReadParamSfo(sfoSourcePath, out sfo)
+                    ? PsDiscIso.TryReadParamSfo(sfoSourcePath, out sfo)
                     : ParamSfo.TryParse(File.ReadAllBytes(sfoSourcePath), out sfo);
 
                 if (ok && sfo != null)

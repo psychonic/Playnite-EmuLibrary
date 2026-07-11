@@ -2,10 +2,11 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace EmuLibrary.Util.Ps3
+namespace EmuLibrary.Util.PlayStation
 {
-    // Minimal ISO9660 reader for locating PARAM.SFO inside a PS3 disc image (ECMA-119 / psdevwiki
-    // "Bluray disc"). On a PS3 game disc the ISO9660 filesystem metadata and the PS3_GAME metadata
+    // Minimal ISO9660 reader for locating PARAM.SFO / ICON0.PNG inside a PlayStation disc image (ECMA-119 /
+    // psdevwiki "Bluray disc") — shared by PS3 discs (PS3_GAME) and PSP UMD images (PSP_GAME), parameterized by
+    // the game-dir name. On a PS3 game disc the ISO9660 filesystem metadata and the PS3_GAME metadata
     // files (PARAM.SFO, ICON0.PNG, ...) live in the disc's UNENCRYPTED region — only USRDIR/EBOOT.BIN
     // and game data sit in the encrypted region(s) — so PARAM.SFO can be read directly from an
     // encrypted .iso with no disc key. Decrypted images and 1:1 encrypted images share the same
@@ -15,7 +16,7 @@ namespace EmuLibrary.Util.Ps3
     // the SFO extent) rather than streaming the whole multi-GB image — important on the SMB scan path.
     // If PARAM.SFO can't be located, or its bytes aren't a valid SFO (e.g. it unexpectedly fell in an
     // encrypted region), callers fall back to the folder/filename heuristics.
-    internal static class Ps3Iso
+    internal static class PsDiscIso
     {
         private const int SectorSize = 2048;
         private const int VolumeDescriptorRecordOffset = 156; // root dir record within a PVD (ECMA-119)

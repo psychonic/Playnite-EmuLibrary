@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace EmuLibrary.Util.Ps3
+namespace EmuLibrary.Util.PlayStation
 {
-    // Parser for the PS3/PSP PARAM.SFO key/value blob (psdevwiki "PARAM.SFO").
+    // Parser for the PlayStation PARAM.SFO key/value blob (psdevwiki "PARAM.SFO"), shared across PS3/PSP (and,
+    // as they land, Vita/PS4).
     // Layout:
     //   header  : magic(0x46535000 = "\0PSF"), version(u32), key_table_start(u32),
     //             data_table_start(u32), num_entries(u32)

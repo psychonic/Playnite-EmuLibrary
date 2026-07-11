@@ -2,6 +2,7 @@ using EmuLibrary.PlayniteCommon;
 using EmuLibrary.Settings;
 using EmuLibrary.Util;
 using EmuLibrary.Util.Metadata;
+using EmuLibrary.Util.PlayStation;
 using EmuLibrary.Util.Ps3;
 using EmuLibrary.Util.Psp;
 using EmuLibrary.Util.ScanCache;

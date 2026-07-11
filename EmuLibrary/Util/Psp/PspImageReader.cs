@@ -1,6 +1,6 @@
 using EmuLibrary.Util.Chd;
 using EmuLibrary.Util.Cso;
-using EmuLibrary.Util.Ps3;
+using EmuLibrary.Util.PlayStation;
 using System;
 using System.IO;
 
@@ -8,7 +8,7 @@ namespace EmuLibrary.Util.Psp
 {
     // The common entry point for reading a PSP image's title id, regardless of container. Every supported
     // container (.chd / .iso / .cso / .zso / .pbp) resolves to the same PARAM.SFO read: for the disc formats
-    // the ISO9660 filesystem is walked to /PSP_GAME/PARAM.SFO (reusing Ps3Iso); PBP holds PARAM.SFO as its
+    // the ISO9660 filesystem is walked to /PSP_GAME/PARAM.SFO (reusing PsDiscIso); PBP holds PARAM.SFO as its
     // first segment. The reported title id is the SFO DISC_ID (the field a UMD carries and that update/DLC
     // payload folders are named after), falling back to TITLE_ID for PBP/PSN content.
     internal static class PspImageReader
@@ -76,7 +76,7 @@ namespace EmuLibrary.Util.Psp
 
         // Reads the image's embedded ICON0.PNG (the PSP title icon) as raw PNG bytes, or returns false if there
         // is none. For the disc formats it lives at /PSP_GAME/ICON0.PNG in the same ISO9660 filesystem as
-        // PARAM.SFO (reusing Ps3Iso); for a PBP it's the container's second segment. Never throws.
+        // PARAM.SFO (reusing PsDiscIso); for a PBP it's the container's second segment. Never throws.
         public static bool TryReadIcon(string path, out byte[] png)
         {
             png = null;
@@ -91,7 +91,7 @@ namespace EmuLibrary.Util.Psp
                                 return false;
                             using (chd)
                             using (var stream = chd.GetStream())
-                                return Ps3Iso.TryReadIcon(stream, PspGameDir, out png);
+                                return PsDiscIso.TryReadIcon(stream, PspGameDir, out png);
                         }
                     case "cso":
                     case "zso":
@@ -100,12 +100,12 @@ namespace EmuLibrary.Util.Psp
                                 return false;
                             using (cso)
                             using (var stream = cso.GetStream())
-                                return Ps3Iso.TryReadIcon(stream, PspGameDir, out png);
+                                return PsDiscIso.TryReadIcon(stream, PspGameDir, out png);
                         }
                     case "iso":
                         {
                             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                return Ps3Iso.TryReadIcon(fs, PspGameDir, out png);
+                                return PsDiscIso.TryReadIcon(fs, PspGameDir, out png);
                         }
                     case "pbp":
                         return PbpReader.TryReadIcon0Bytes(path, out png);
@@ -127,7 +127,7 @@ namespace EmuLibrary.Util.Psp
                 return false;
             using (chd)
             using (var stream = chd.GetStream())
-                return Ps3Iso.TryReadParamSfo(stream, PspGameDir, out sfo);
+                return PsDiscIso.TryReadParamSfo(stream, PspGameDir, out sfo);
         }
 
         private static bool TryReadFromCso(string path, out ParamSfo sfo)
@@ -137,13 +137,13 @@ namespace EmuLibrary.Util.Psp
                 return false;
             using (cso)
             using (var stream = cso.GetStream())
-                return Ps3Iso.TryReadParamSfo(stream, PspGameDir, out sfo);
+                return PsDiscIso.TryReadParamSfo(stream, PspGameDir, out sfo);
         }
 
         private static bool TryReadFromIso(string path, out ParamSfo sfo)
         {
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return Ps3Iso.TryReadParamSfo(fs, PspGameDir, out sfo);
+                return PsDiscIso.TryReadParamSfo(fs, PspGameDir, out sfo);
         }
 
         private static bool TryReadFromPbp(string path, out ParamSfo sfo)

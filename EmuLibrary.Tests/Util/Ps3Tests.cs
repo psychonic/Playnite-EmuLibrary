@@ -1,4 +1,5 @@
 using EmuLibrary.RomTypes.Ps3;
+using EmuLibrary.Util.PlayStation;
 using EmuLibrary.Util.Ps3;
 using System;
 using System.Collections.Generic;
@@ -418,7 +419,7 @@ namespace EmuLibrary.Tests.Util
         #region disc ISO PARAM.SFO
 
         [Fact]
-        public void Ps3Iso_ReadsParamSfoFromUnencryptedRegion()
+        public void PsDiscIso_ReadsParamSfoFromUnencryptedRegion()
         {
             var sfoBytes = BuildSfo(new[]
             {
@@ -432,7 +433,7 @@ namespace EmuLibrary.Tests.Util
 
             using (var ms = new MemoryStream(iso, false))
             {
-                Assert.True(Ps3Iso.TryReadParamSfo(ms, out var sfo));
+                Assert.True(PsDiscIso.TryReadParamSfo(ms, out var sfo));
                 Assert.Equal("Demon's Souls", sfo.Title);
                 Assert.Equal("BLES00932", sfo.TitleId);
                 Assert.Equal("01.01", sfo.AppVer);
@@ -441,7 +442,7 @@ namespace EmuLibrary.Tests.Util
         }
 
         [Fact]
-        public void Ps3Iso_ReturnsFalseWhenSfoBytesAreNotValid()
+        public void PsDiscIso_ReturnsFalseWhenSfoBytesAreNotValid()
         {
             // Simulates PARAM.SFO landing in an encrypted region: the directory walk locates it, but the
             // bytes aren't a valid SFO — the reader must fail cleanly so the scanner can fall back.
@@ -453,42 +454,42 @@ namespace EmuLibrary.Tests.Util
 
             using (var ms = new MemoryStream(iso, false))
             {
-                Assert.False(Ps3Iso.TryReadParamSfo(ms, out var sfo));
+                Assert.False(PsDiscIso.TryReadParamSfo(ms, out var sfo));
                 Assert.Null(sfo);
             }
         }
 
         [Fact]
-        public void Ps3Iso_ReturnsFalseWhenNotIso9660()
+        public void PsDiscIso_ReturnsFalseWhenNotIso9660()
         {
             var notAnIso = new byte[64 * 1024]; // no "CD001" at sector 16
             using (var ms = new MemoryStream(notAnIso, false))
             {
-                Assert.False(Ps3Iso.TryReadParamSfo(ms, out var sfo));
+                Assert.False(PsDiscIso.TryReadParamSfo(ms, out var sfo));
                 Assert.Null(sfo);
             }
         }
 
         [Fact]
-        public void Ps3Iso_TryReadIcon_ReturnsEmbeddedPng()
+        public void PsDiscIso_TryReadIcon_ReturnsEmbeddedPng()
         {
             var png = FakePng();
             var iso = BuildPs3Iso(BuildSfo(new[] { ("CATEGORY", "DG"), ("TITLE_ID", "BLES00932") }), png);
 
             using (var ms = new MemoryStream(iso, false))
             {
-                Assert.True(Ps3Iso.TryReadIcon(ms, out var got));
+                Assert.True(PsDiscIso.TryReadIcon(ms, out var got));
                 Assert.Equal(png, got);
             }
         }
 
         [Fact]
-        public void Ps3Iso_TryReadIcon_FalseWhenAbsent()
+        public void PsDiscIso_TryReadIcon_FalseWhenAbsent()
         {
             var iso = BuildPs3Iso(BuildSfo(new[] { ("CATEGORY", "DG") })); // no ICON0.PNG
 
             using (var ms = new MemoryStream(iso, false))
-                Assert.False(Ps3Iso.TryReadIcon(ms, out _));
+                Assert.False(PsDiscIso.TryReadIcon(ms, out _));
         }
 
         #endregion
