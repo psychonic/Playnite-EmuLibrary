@@ -19,6 +19,7 @@ namespace EmuLibrary.RomTypes
         // existing users' serialized GameIds depend on it.
         internal const int ProtoSubTypeFieldOffset = 10;
 
+        private static readonly object s_protoSubTypesLock = new object();
         private static bool s_protoSubTypesRegistered;
 
         public abstract RomType RomType { get; }
@@ -31,20 +32,29 @@ namespace EmuLibrary.RomTypes
         // plugin at startup and from tests, guaranteeing both exercise identical numbering.
         internal static void RegisterProtoSubTypes()
         {
+            // Double-checked lock: AddSubType mutates the process-wide RuntimeTypeModel.Default, so two
+            // threads racing this (e.g. parallel xUnit test classes) could each register the same subtypes
+            // and trip protobuf's duplicate-field-number guard. The fast path stays lock-free once registered.
             if (s_protoSubTypesRegistered)
                 return;
 
-            foreach (var rt in Enum.GetValues(typeof(RomType)).Cast<RomType>())
+            lock (s_protoSubTypesLock)
             {
-                var fieldInfo = typeof(RomType).GetField(rt.ToString());
-                var romInfo = fieldInfo.GetCustomAttributes(false).OfType<RomTypeInfoAttribute>().FirstOrDefault();
-                if (romInfo == null)
-                    continue;
+                if (s_protoSubTypesRegistered)
+                    return;
 
-                RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + ProtoSubTypeFieldOffset, romInfo.GameInfoType);
+                foreach (var rt in Enum.GetValues(typeof(RomType)).Cast<RomType>())
+                {
+                    var fieldInfo = typeof(RomType).GetField(rt.ToString());
+                    var romInfo = fieldInfo.GetCustomAttributes(false).OfType<RomTypeInfoAttribute>().FirstOrDefault();
+                    if (romInfo == null)
+                        continue;
+
+                    RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + ProtoSubTypeFieldOffset, romInfo.GameInfoType);
+                }
+
+                s_protoSubTypesRegistered = true;
             }
-
-            s_protoSubTypesRegistered = true;
         }
 
         public EmulatorMapping Mapping

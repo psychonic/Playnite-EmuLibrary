@@ -22,7 +22,16 @@ namespace EmuLibrary.Settings
         {
             if (((FrameworkElement)sender).DataContext is EmulatorMapping mapping)
             {
-                var res = Settings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescriptionLines().Aggregate((a, b) => $"{a}{Environment.NewLine}{b}")), "Confirm delete", MessageBoxButton.YesNo);
+                var details = mapping.GetDescriptionLines().Aggregate((a, b) => $"{a}{Environment.NewLine}{b}");
+
+                // A game stores its mapping's Id inside its GameId, so deleting the mapping orphans every
+                // game imported under it (their mapping can no longer be resolved). Warn with the count.
+                var gameCount = MappingEditReconciler.GamesForMapping(Settings.Instance.PlayniteAPI, mapping.MappingId).Count();
+                var warning = gameCount > 0
+                    ? $"{Environment.NewLine}{Environment.NewLine}WARNING: {gameCount} imported game(s) reference this mapping. Deleting it will orphan them - they can no longer be installed/uninstalled through EmuLibrary unless the mapping is re-created."
+                    : "";
+
+                var res = Settings.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}{1}", details, warning), "Confirm delete", MessageBoxButton.YesNo);
                 if (res == MessageBoxResult.Yes)
                 {
                     Settings.Instance.Mappings.Remove(mapping);

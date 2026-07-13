@@ -152,9 +152,30 @@ namespace EmuLibrary.Settings
         // visibility) can react without requiring a Playnite restart.
         public event EventHandler Saved;
 
+        // Mappings whose emulator/profile/platform changed and for which the user (in VerifySettings)
+        // opted to push the change onto already-imported games. Applied in EndEdit, after the save.
+        private List<EmulatorMapping> _pendingMetadataMigrations;
+
         public void EndEdit()
         {
             _plugin.SavePluginSettings(this);
+
+            if (_pendingMetadataMigrations != null)
+            {
+                foreach (var mapping in _pendingMetadataMigrations)
+                {
+                    try
+                    {
+                        MappingEditReconciler.ApplyEmulatorPlatformMigration(PlayniteAPI, mapping, EmuLibrary.Logger);
+                    }
+                    catch (Exception ex)
+                    {
+                        EmuLibrary.Logger.Error(ex, $"Failed to migrate imported games for mapping {mapping.MappingId}.");
+                    }
+                }
+                _pendingMetadataMigrations = null;
+            }
+
             Saved?.Invoke(this, EventArgs.Empty);
         }
 
@@ -193,8 +214,70 @@ namespace EmuLibrary.Settings
                 }
             });
 
+            // Guardrail: changing a mapping's RomType rewrites the GameId format of its games (the RomType is
+            // encoded in the serialized ELGameInfo), orphaning every game already imported under it. Block the
+            // save while any such game exists - the remedy is to remove those games first or use a new mapping.
+            if (_editingClone?.Mappings != null)
+            {
+                foreach (var current in Mappings)
+                {
+                    var previous = _editingClone.Mappings.FirstOrDefault(m => m.MappingId == current.MappingId);
+                    if (previous == null || previous.RomType == current.RomType)
+                        continue;
+
+                    var count = MappingEditReconciler.GamesForMapping(PlayniteAPI, current.MappingId).Count();
+                    if (count > 0)
+                    {
+                        mappingErrors.Add($"Cannot change ROM type from {previous.RomType} to {current.RomType} for mapping \"{current.DisplayName}\" while {count} imported game(s) reference it. Remove those games first, or create a separate mapping.");
+                    }
+                }
+            }
+
             errors = mappingErrors;
-            return errors.Count == 0;
+            if (errors.Count > 0)
+            {
+                _pendingMetadataMigrations = null;
+                return false;
+            }
+
+            OfferMetadataMigrations();
+            return true;
+        }
+
+        // For each edited mapping whose emulator/profile/platform changed and that has already-imported games,
+        // ask whether to push the change onto those games (they otherwise keep the old play action/platform
+        // baked in at import - a rescan does not refresh them). Records the accepted mappings for EndEdit to
+        // apply after the save. Called only once VerifySettings has otherwise passed.
+        private void OfferMetadataMigrations()
+        {
+            _pendingMetadataMigrations = new List<EmulatorMapping>();
+            if (_editingClone?.Mappings == null)
+                return;
+
+            foreach (var current in Mappings)
+            {
+                var previous = _editingClone.Mappings.FirstOrDefault(m => m.MappingId == current.MappingId);
+                if (previous == null)
+                    continue;
+
+                var changed = previous.EmulatorId != current.EmulatorId
+                    || previous.EmulatorProfileId != current.EmulatorProfileId
+                    || previous.PlatformId != current.PlatformId;
+                if (!changed)
+                    continue;
+
+                var count = MappingEditReconciler.GamesForMapping(PlayniteAPI, current.MappingId).Count();
+                if (count == 0)
+                    continue;
+
+                var res = PlayniteAPI.Dialogs.ShowMessage(
+                    $"You changed the emulator, profile, or platform for mapping \"{current.DisplayName}\".\r\n\r\n{count} already-imported game(s) still point at the previous settings and will not be updated by a rescan. Update them now?",
+                    "Update imported games?",
+                    System.Windows.MessageBoxButton.YesNo);
+
+                if (res == System.Windows.MessageBoxResult.Yes)
+                    _pendingMetadataMigrations.Add(current);
+            }
         }
 
         private void LoadValues(Settings source)
