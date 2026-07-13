@@ -108,7 +108,13 @@ namespace EmuLibrary.RomTypes.Yuzu
         {
             get
             {
+                // Default nand directory used by yuzu/Eden/Citron when qt-config.ini doesn't exist yet
+                // (fresh install that's never been launched) or doesn't specify one.
+                var defaultNandPath = Path.Combine(UserPath, "nand");
+
                 string yuzuConfigPath = Path.Combine(new string[] { UserPath, "config", "qt-config.ini" });
+                if (!File.Exists(yuzuConfigPath))
+                    return defaultNandPath;
 
                 var parser = new IniDataParser(
                     new IniParserConfiguration()
@@ -118,7 +124,11 @@ namespace EmuLibrary.RomTypes.Yuzu
                 );
 
                 var iniData = parser.Parse(File.ReadAllText(yuzuConfigPath));
-                return iniData["Data%20Storage"]["nand_directory"].Replace("\\\\", "\\").Replace('/', '\\');
+                var nandDirectory = iniData["Data%20Storage"]["nand_directory"];
+                if (string.IsNullOrEmpty(nandDirectory))
+                    return defaultNandPath;
+
+                return nandDirectory.Replace("\\\\", "\\").Replace('/', '\\');
             }
         }
 
