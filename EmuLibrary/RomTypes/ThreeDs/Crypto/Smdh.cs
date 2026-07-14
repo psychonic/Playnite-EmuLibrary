@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using EmuLibrary.Util;
 
 namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 {
@@ -341,17 +342,6 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
             }
         }
 
-        private static void ReadExactlyAt(FileStream fs, long offset, byte[] buffer, int count)
-        {
-            fs.Seek(offset, SeekOrigin.Begin);
-            int read = 0;
-            while (read < count)
-            {
-                int n = fs.Read(buffer, read, count - read);
-                if (n <= 0)
-                    throw new EndOfStreamException("Unexpected end of NCCH stream.");
-                read += n;
-            }
-        }
+        private static void ReadExactlyAt(FileStream fs, long offset, byte[] buffer, int count) => StreamUtils.ReadExactlyAt(fs, offset, buffer, count, "NCCH stream");
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using EmuLibrary.Util;
 
 namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 {
@@ -28,8 +29,7 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
             if (fs.Length < MagicOffset + 4)
                 return false;
             var magic = new byte[4];
-            fs.Seek(MagicOffset, SeekOrigin.Begin);
-            fs.Read(magic, 0, 4);
+            StreamUtils.ReadExactlyAt(fs, MagicOffset, magic, 4, "NCSD stream");
             return Encoding.ASCII.GetString(magic) == "NCSD";
         }
 
@@ -42,14 +42,7 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 
             var header = new byte[0x200];
             fs.Seek(0, SeekOrigin.Begin);
-            int read = 0;
-            while (read < header.Length)
-            {
-                int n = fs.Read(header, read, header.Length - read);
-                if (n <= 0)
-                    break;
-                read += n;
-            }
+            StreamUtils.ReadUpTo(fs, header, header.Length);
 
             int mediaUnit = 0x200 << header[PartitionFlagsOffset + 6];
 

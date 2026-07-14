@@ -3,6 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using EmuLibrary.Util;
 
 namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 {
@@ -234,29 +235,8 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
             }
         }
 
-        private static int ReadUpTo(Stream s, byte[] buffer, int count)
-        {
-            int read = 0;
-            while (read < count)
-            {
-                int n = s.Read(buffer, read, count - read);
-                if (n <= 0)
-                    break;
-                read += n;
-            }
-            return read;
-        }
+        private static int ReadUpTo(Stream s, byte[] buffer, int count) => StreamUtils.ReadUpTo(s, buffer, count);
 
-        private static void ReadExactlyInto(Stream s, byte[] buffer, int count)
-        {
-            int read = 0;
-            while (read < count)
-            {
-                int n = s.Read(buffer, read, count - read);
-                if (n <= 0)
-                    throw new EndOfStreamException("Unexpected end of NCCH stream.");
-                read += n;
-            }
-        }
+        private static void ReadExactlyInto(Stream s, byte[] buffer, int count) => StreamUtils.ReadExactly(s, buffer, count, "NCCH stream");
     }
 }

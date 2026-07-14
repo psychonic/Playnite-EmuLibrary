@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
+using EmuLibrary.Util;
 
 namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 {
@@ -156,17 +157,7 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
             return best;
         }
 
-        private static void ReadExactlyInto(Stream s, byte[] buffer, int count)
-        {
-            int read = 0;
-            while (read < count)
-            {
-                int n = s.Read(buffer, read, count - read);
-                if (n <= 0)
-                    throw new EndOfStreamException("Unexpected end of CDN content file.");
-                read += n;
-            }
-        }
+        private static void ReadExactlyInto(Stream s, byte[] buffer, int count) => StreamUtils.ReadExactly(s, buffer, count, "CDN content file");
 
         public void Dispose() { }
     }

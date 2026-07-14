@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
+using EmuLibrary.Util;
 
 namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 {
@@ -300,24 +301,9 @@ namespace EmuLibrary.RomTypes.ThreeDs.Crypto
 
         private static long Align(long value) => (value + Alignment - 1) / Alignment * Alignment;
 
-        private static byte[] ReadExactly(Stream s, int count)
-        {
-            var buffer = new byte[count];
-            ReadExactlyInto(s, buffer, count);
-            return buffer;
-        }
+        private static byte[] ReadExactly(Stream s, int count) => StreamUtils.ReadExactly(s, count, "CIA stream");
 
-        private static void ReadExactlyInto(Stream s, byte[] buffer, int count)
-        {
-            int read = 0;
-            while (read < count)
-            {
-                int n = s.Read(buffer, read, count - read);
-                if (n <= 0)
-                    throw new EndOfStreamException("Unexpected end of CIA stream.");
-                read += n;
-            }
-        }
+        private static void ReadExactlyInto(Stream s, byte[] buffer, int count) => StreamUtils.ReadExactly(s, buffer, count, "CIA stream");
 
         public void Dispose()
         {
