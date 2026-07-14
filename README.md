@@ -180,6 +180,32 @@ Game **icons** come from each image's embedded `ICON0.PNG` — read from `/PSP_G
 
 > **Note:** multi-disc PSP games are out of scope.
 
+### PS Vita (Beta)
+
+The PS Vita type adds support for PlayStation Vita games run under [Vita3K](https://vita3k.org). It has a beta level of quality of support. Select Vita3K as the emulator for the mapping.
+
+**Launching requires a custom Vita3K emulator profile.** Vita3K runs an already-installed title by its **title id** (`Vita3K.exe -r <TITLE_ID>`), not by a file path — so Playnite's *built-in* Vita3K profile (which passes the ROM path as `"{ImagePath}"`) does **not** work: Vita3K treats the path as content to install and reports *"is not a supported content type."* Because this plugin installs each base into `ux0/app/<TITLE_ID>` (so the game's install-directory *name* is the title id), add a custom Vita3K emulator profile in Playnite with:
+
+- **Executable:** your `Vita3K.exe`
+- **Arguments:** `-r "{InstallDirName}"`
+
+Playnite expands `{InstallDirName}` to the install-directory name (the title id), producing `-r PCSE01056` — the correct "run installed title" command. This one profile works for every Vita game the plugin installs; no per-game editing. Select this custom profile (not the built-in one) for the mapping.
+
+Like the other console types, this type scans by its own format logic rather than the emulator profile's configured image extensions, so the profile does not need any image extensions defined.
+
+Two source formats are supported:
+
+- **NoNpDrm** — pre-decrypted, drop-in app trees (as produced by extracting the common NoNpDrm archive sets). A base game is an **`app/<TITLE_ID>/`** tree (which carries its `sce_sys/package/work.bin` license inside) and a game update is a **`patch/<TITLE_ID>/`** tree. No decryption is done — the plugin only copies.
+- **PSN** — the encrypted `.pkg` distribution (a NoIntro-style folder per item, each holding a `.pkg` and, for base games and DLC, a `work.bin`). Base games, game updates, **DLC**, and their **licenses** are decrypted and extracted on install. The AES/PKG and `work.bin`/zRIF handling is built in (no external tool required); the fixed `pkg_vita` keys are public constants.
+
+In both cases the scanner pairs a base with its updates/DLC by **title id** (the folder name for NoNpDrm, the package content id for PSN), so nothing needs renaming.
+
+Installing places content into Vita3K's `ux0`: the base into **`ux0/app/<TITLE_ID>`**, each update into **`ux0/patch/<TITLE_ID>`**, and (PSN) DLC into **`ux0/addcont/<TITLE_ID>/<CONTENT_ID>`**, where Vita3K applies them at launch. Multiple updates are applied in ascending `APP_VER` order (read from each update's `param.sfo`, never the folder name). For NoNpDrm the `work.bin` license travels inside the app tree; for PSN the license is written to **`ux0/license/<TITLE_ID>/<CONTENT_ID>.rif`** (the flattened path Vita3K reads, with no `app` subfolder), which Vita3K uses to decrypt the retail eboot at launch.
+
+The `ux0` root is resolved from the selected Vita3K emulator (its `pref-path`). Installed state is derived from disk on each scan (`ux0/app/<TITLE_ID>` present). Uninstalling removes the `app/<TITLE_ID>`, `patch/<TITLE_ID>`, `addcont/<TITLE_ID>`, and `license/<TITLE_ID>` entries it wrote; save data (`ux0/user`) is left untouched.
+
+Game **icons** come from each title's `sce_sys/icon0.png` — a loose file for NoNpDrm, or extracted from the base package for PSN; game **names** come from the title's `param.sfo`, falling back to the normalized folder name. There is no external metadata provider for PS Vita.
+
 ### Known Issues (all types)
 
 * If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.

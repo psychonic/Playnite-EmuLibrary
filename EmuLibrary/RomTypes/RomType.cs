@@ -26,5 +26,8 @@
 
         [RomTypeInfo(typeof(Psp.PspGameInfo), typeof(Psp.PspScanner))]
         Psp = 7,
+
+        [RomTypeInfo(typeof(Vita.VitaGameInfo), typeof(Vita.VitaScanner))]
+        Vita = 8,
     }
 }

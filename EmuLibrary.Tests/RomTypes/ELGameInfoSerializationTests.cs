@@ -4,6 +4,7 @@ using EmuLibrary.RomTypes.Ps3;
 using EmuLibrary.RomTypes.Psp;
 using EmuLibrary.RomTypes.SingleFile;
 using EmuLibrary.RomTypes.ThreeDs;
+using EmuLibrary.RomTypes.Vita;
 using EmuLibrary.RomTypes.WiiU;
 using EmuLibrary.RomTypes.Xbox360;
 using EmuLibrary.RomTypes.Yuzu;
@@ -164,6 +165,23 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal(info.SourceImagePath, result.SourceImagePath);
         }
 
+        [Fact]
+        public void Vita_RoundTrips()
+        {
+            var info = new VitaGameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = "PCSE00890",
+                SourceFolder = @"PCSE00890 - 10 Second Ninja X",
+            };
+            var result = RoundTrip(info);
+
+            Assert.Equal(RomType.Vita, result.RomType);
+            Assert.Equal(info.MappingId, result.MappingId);
+            Assert.Equal(info.TitleId, result.TitleId);
+            Assert.Equal(info.SourceFolder, result.SourceFolder);
+        }
+
         // Golden GameId strings. Each encodes the exact bytes a current build produces for a fixed input.
         // If one of these changes, a serialization-affecting change was made and previously-saved
         // libraries may no longer deserialize. Update ONLY with a deliberate, migration-aware change.
@@ -229,6 +247,18 @@ namespace EmuLibrary.Tests.RomTypes
             Assert.Equal("!0igE5CixBcm1vcmVkIENvcmUgLSBMYXN0IFJhdmVuIFBvcnRhYmxlIChVU0EpLmNoZBIJVUxVUzEwNTM4ChIJERERERERERERERERERERERE=", info.AsGameId());
         }
 
+        [Fact]
+        public void Vita_GoldenGameId_IsStable()
+        {
+            var info = new VitaGameInfo
+            {
+                MappingId = FixedMappingId,
+                TitleId = "PCSE00890",
+                SourceFolder = @"PCSE00890 - 10 Second Ninja X",
+            };
+            Assert.Equal("!0kgEqCglQQ1NFMDA4OTASHVBDU0UwMDg5MCAtIDEwIFNlY29uZCBOaW5qYSBYChIJERERERERERERERERERERERE=", info.AsGameId());
+        }
+
         // Pins each GameInfo subtype to its exact proto field number (RomType value + 10). Catches both a
         // RomType enum renumber and a change to the offset, either of which breaks saved GameIds.
         [Theory]
@@ -240,6 +270,7 @@ namespace EmuLibrary.Tests.RomTypes
         [InlineData(typeof(ThreeDsGameInfo), 15)]    // RomType.ThreeDs    (5) + 10
         [InlineData(typeof(Xbox360GameInfo), 16)]    // RomType.Xbox360    (6) + 10
         [InlineData(typeof(PspGameInfo), 17)]        // RomType.Psp        (7) + 10
+        [InlineData(typeof(VitaGameInfo), 18)]       // RomType.Vita       (8) + 10
         public void ProtoSubType_HasExpectedFieldNumber(Type gameInfoType, int expectedFieldNumber)
         {
             var subType = RuntimeTypeModel.Default[typeof(ELGameInfo)]
