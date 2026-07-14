@@ -598,7 +598,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                                 {
                                     if (entry.Type == LibHac.Ncm.ContentType.Program)
                                     {
-                                        return ResolveRegisteredNcaRelativePath(entry.NcaId).Replace('/', '\\');
+                                        return GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
                                     }
                                 }
                             }
@@ -766,7 +766,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                                 if (entry.Type == LibHac.Ncm.ContentType.Program)
                                 {
                                     haveProgram = true;
-                                    info.LaunchSubPath = ResolveRegisteredNcaRelativePath(entry.NcaId).Replace('/', '\\');
+                                    info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
                                     continue;
                                 }
 
@@ -1365,6 +1365,15 @@ namespace EmuLibrary.RomTypes.Yuzu
             return ret;
         }
 
+        // Eden's own loader compares a directly-launched NCA path against its case-preserved
+        // registered-content index and refuses a mismatch with a permission error (confirmed: an
+        // uppercase-hex path opens the same file that a lowercase-hex path is denied for). Upstream
+        // yuzu/citron's own NAND installer actually writes lowercase by default, so there's no single
+        // "correct" convention to match here — what matters is that this class writes the exact same
+        // case it later launches with. On Windows/NTFS a case mismatch between the two would still
+        // open fine (case-insensitive), but on a case-sensitive filesystem (Linux ext4, relevant once
+        // Playnite supports it) a mismatch would fail outright with file-not-found before Eden's own
+        // check is ever reached. Uppercase was picked arbitrarily as the one both sides agree on.
         private static string GetRelativePathFromNcaId(string ncaFileName)
         {
             string ncaFileNameHex = ncaFileName.Substring(0, 32);
@@ -1372,38 +1381,18 @@ namespace EmuLibrary.RomTypes.Yuzu
             using (var hasher = SHA256.Create())
             {
                 var hash = hasher.ComputeHash(ncaId);
-                return string.Format(@"000000{0:X2}{1}{2}.nca", hash[0], Path.DirectorySeparatorChar, ncaFileNameHex.ToLower());
+                return string.Format(@"000000{0:X2}{1}{2}.nca", hash[0], Path.DirectorySeparatorChar, ncaFileNameHex.ToUpperInvariant());
             }
         }
 
         private static string GetRelativePathFromNcaId(byte[] ncaId)
         {
-            string ncaFileNameHex = string.Format("{0}", BitConverter.ToString(ncaId).Replace("-", "").ToLower());
+            string ncaFileNameHex = BitConverter.ToString(ncaId).Replace("-", "");
             using (var hasher = SHA256.Create())
             {
                 var hash = hasher.ComputeHash(ncaId);
-                return string.Format(@"000000{0:X2}{1}{2}.nca", hash[0], Path.DirectorySeparatorChar, ncaFileNameHex.ToLower());
+                return string.Format(@"000000{0:X2}{1}{2}.nca", hash[0], Path.DirectorySeparatorChar, ncaFileNameHex.ToUpperInvariant());
             }
-        }
-
-        // The hash-bucket directory is deterministic and always matches what's on disk, but the
-        // filename's case may not: this class always writes new NCAs lowercase (see InstallFileToNand),
-        // while content registered by the emulator itself (or an older EmuLibrary build) can be
-        // uppercase. NTFS opens either case fine, but some emulators (observed with Eden) compare the
-        // launch path against their own case-preserved registered-content index and refuse a
-        // case-mismatched path with a permission error, even though the same file opens fine from
-        // their own game list. Resolve to the real on-disk name so the launch path always matches.
-        private string ResolveRegisteredNcaRelativePath(byte[] ncaId)
-        {
-            var guess = GetRelativePathFromNcaId(ncaId);
-            var dir = Path.Combine(NandPath, "user", "Contents", "registered", Path.GetDirectoryName(guess));
-            var stem = Path.GetFileNameWithoutExtension(guess);
-
-            var actual = Directory.Exists(dir)
-                ? Directory.EnumerateFiles(dir, "*.nca").FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), stem, StringComparison.OrdinalIgnoreCase))
-                : null;
-
-            return actual == null ? guess : Path.Combine(Path.GetFileName(dir), Path.GetFileName(actual));
         }
     }
 }
