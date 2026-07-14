@@ -35,6 +35,8 @@ namespace EmuLibrary.RomTypes.Psp
         // PSP scans by its own format logic (image title-id read), not the emulator profile's image extensions.
         public override bool RequiresProfileImageExtensions => false;
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "sony_psp" };
+
         private static readonly HashSet<string> ImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "chd", "iso", "cso", "zso", "pbp",

@@ -35,6 +35,13 @@ namespace EmuLibrary.RomTypes
         // (package extraction / multi-content composite) - leave this false and always copy.
         public virtual bool SupportsInstallLinking => false;
 
+        // Playnite platform SpecificationIds this RomType can serve. null (the default) means "universal" -
+        // SingleFile/MultiFile copy the source verbatim and work with any platform. Specialized types
+        // (Ps3, Yuzu, ThreeDs, …) are each tied to one console and override this so the settings UI can hide
+        // them for mappings whose emulator profile targets an unrelated platform. This is a display filter
+        // only; it does not affect scanning/installing an already-configured mapping.
+        public virtual IReadOnlyCollection<string> SupportedPlatformSpecIds => null;
+
         public abstract bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo);
         public virtual LegacySettingsMigrationResult MigrateLegacyPluginSettings(Plugin plugin, out EmulatorMapping mapping)
         {

@@ -51,6 +51,7 @@ namespace EmuLibrary.Settings
                 nameof(EmulatorId), nameof(Emulator),
                 nameof(AvailableProfiles), nameof(EmulatorProfile),
                 nameof(AvailablePlatforms), nameof(Platform),
+                nameof(AvailableRomTypes),
                 nameof(DisplayName)
             });
         }
@@ -70,6 +71,7 @@ namespace EmuLibrary.Settings
             {
                 nameof(EmulatorProfileId), nameof(EmulatorProfile),
                 nameof(AvailablePlatforms), nameof(Platform),
+                nameof(AvailableRomTypes),
                 nameof(DisplayName)
             });
         }
@@ -106,7 +108,7 @@ namespace EmuLibrary.Settings
         public RomType RomType
         {
             get => _romType;
-            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(SupportsPreferInAppTitle), nameof(DisplayName) });
+            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(AvailableRomTypes), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(SupportsPreferInAppTitle), nameof(DisplayName) });
         }
 
         // Header text for the settings card/expander - a human-readable summary of the mapping.
@@ -193,6 +195,39 @@ namespace EmuLibrary.Settings
                 }
 
                 return Settings.Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatforms.Contains(p.Id));
+            }
+        }
+
+        // RomTypes to offer in the settings dropdown for this mapping. A RomType whose scanner declares
+        // SupportedPlatformSpecIds is hidden unless one of those platforms is served by the chosen emulator
+        // profile - so e.g. the PS3 type doesn't appear under a Switch emulator. Universal types (SingleFile/
+        // MultiFile, which declare none) always show, and until a profile is chosen we can't tell compatibility
+        // so everything shows. The currently selected RomType is always kept in the list so an existing or
+        // legacy mapping never renders a blank combo (VerifySettings still surfaces a genuine mismatch).
+        [JsonIgnore]
+        [XmlIgnore]
+        public IEnumerable<RomType> AvailableRomTypes
+        {
+            get
+            {
+                var all = ((RomType[])Enum.GetValues(typeof(RomType))).ToList();
+
+                var profilePlatformIds = new HashSet<string>(AvailablePlatforms?.Select(p => p.Id) ?? Enumerable.Empty<string>());
+                if (profilePlatformIds.Count == 0)
+                    return all;
+
+                var emuLibrary = Settings.Instance?.EmuLibrary;
+                return all.Where(rt =>
+                {
+                    if (rt == RomType)
+                        return true;
+
+                    var supported = emuLibrary?.GetScanner(rt)?.SupportedPlatformSpecIds;
+                    if (supported == null || supported.Count == 0)
+                        return true;
+
+                    return supported.Any(profilePlatformIds.Contains);
+                }).ToList();
             }
         }
 

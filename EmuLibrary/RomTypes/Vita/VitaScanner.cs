@@ -38,6 +38,8 @@ namespace EmuLibrary.RomTypes.Vita
         // No legacy standalone Vita extension to migrate from — a fresh, never-reused GUID.
         public override Guid LegacyPluginId => Guid.Parse("2C3F8B41-9D5E-4A72-BE13-7F0A6C2E8D94");
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "sony_vita" };
+
         // Vita scans by its own folder logic (title-id folder names), not the emulator profile's image extensions.
         public override bool RequiresProfileImageExtensions => false;
 

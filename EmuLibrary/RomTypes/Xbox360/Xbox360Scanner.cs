@@ -37,6 +37,8 @@ namespace EmuLibrary.RomTypes.Xbox360
         // Xbox 360 scans by its own format logic (XISO/XEX/STFS), not the emulator profile's image extensions.
         public override bool RequiresProfileImageExtensions => false;
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "xbox360" };
+
         // The disc base is copied to DestinationPath (updates/DLC go to the Xenia content tree separately).
         public override bool RequiresDestinationPath => true;
 

@@ -24,6 +24,8 @@ namespace EmuLibrary.RomTypes.Yuzu
         // Yuzu installs into the emulator's NAND and ignores DestinationPath, so it isn't required.
         public override bool RequiresDestinationPath => false;
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "nintendo_switch" };
+
         // While some games are sold under different title ids in different regions and/or with different language support, this is mostly
         // due to publishing agreements and does not match any technical implementation. All games/console units are all region-free.
         private readonly HashSet<MetadataProperty> _switchRegions = new HashSet<MetadataProperty>() { new MetadataNameProperty("World") };

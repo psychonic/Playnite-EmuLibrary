@@ -31,6 +31,8 @@ namespace EmuLibrary.RomTypes.ThreeDs
         // Either way a destination is configured.
         public override bool RequiresDestinationPath => true;
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "nintendo_3ds" };
+
         // Loose bootable shapes Azahar reads directly — copied verbatim. The loose Z3DS variants are
         // also copied as-is (Azahar sniffs Z3DS). .cia/.zcia and CDN folders are content-store.
         private static readonly HashSet<string> s_looseExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

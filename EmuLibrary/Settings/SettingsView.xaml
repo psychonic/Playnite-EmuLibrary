@@ -4,19 +4,13 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              x:Class="EmuLibrary.Settings.SettingsView"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib" 
-             xmlns:elrt="clr-namespace:EmuLibrary.RomTypes"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:elfc="clr-namespace:EmuLibrary.Util.FileCopier"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              Padding="2,0,2,4">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <ObjectDataProvider x:Key="RomTypeValues" ObjectType="{x:Type sys:Enum}" MethodName="GetValues">
-            <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="elrt:RomType" />
-            </ObjectDataProvider.MethodParameters>
-        </ObjectDataProvider>
         <ObjectDataProvider x:Key="InstallMethodValues" ObjectType="{x:Type sys:Enum}" MethodName="GetValues">
             <ObjectDataProvider.MethodParameters>
                 <x:Type TypeName="elfc:InstallMethod" />
@@ -112,7 +106,7 @@
                                         </StackPanel>
                                     </Label>
                                     <ComboBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
-                                              ItemsSource="{Binding Source={StaticResource RomTypeValues}}"
+                                              ItemsSource="{Binding AvailableRomTypes}"
                                               SelectedItem="{Binding RomType, Mode=TwoWay}" />
 
                                     <Label Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabel}"

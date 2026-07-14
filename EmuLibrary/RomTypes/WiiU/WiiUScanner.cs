@@ -25,6 +25,8 @@ namespace EmuLibrary.RomTypes.WiiU
         // Installs land in DestinationPath (a copied/converted .wua, .wux or loadiine folder).
         public override bool RequiresDestinationPath => true;
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "nintendo_wiiu" };
+
         public WiiUScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
             _emuLibrary = emuLibrary;

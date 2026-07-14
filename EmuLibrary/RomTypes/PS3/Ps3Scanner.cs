@@ -29,6 +29,8 @@ namespace EmuLibrary.RomTypes.Ps3
         // extensions. RPCS3's built-in Playnite profile declares none, so don't require them.
         public override bool RequiresProfileImageExtensions => false;
 
+        public override IReadOnlyCollection<string> SupportedPlatformSpecIds => new[] { "sony_playstation3" };
+
         // PS3 title id: 4 letters + 5 digits, e.g. BLES01234, NPUB30001.
         private static readonly Regex TitleIdRegex = new Regex(@"[A-Z]{4}\d{5}", RegexOptions.Compiled);
 
