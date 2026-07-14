@@ -598,7 +598,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                                 {
                                     if (entry.Type == LibHac.Ncm.ContentType.Program)
                                     {
-                                        return GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
+                                        return ResolveRegisteredNcaRelativePath(entry.NcaId).Replace('/', '\\');
                                     }
                                 }
                             }
@@ -766,7 +766,7 @@ namespace EmuLibrary.RomTypes.Yuzu
                                 if (entry.Type == LibHac.Ncm.ContentType.Program)
                                 {
                                     haveProgram = true;
-                                    info.LaunchSubPath = GetRelativePathFromNcaId(entry.NcaId).Replace('/', '\\');
+                                    info.LaunchSubPath = ResolveRegisteredNcaRelativePath(entry.NcaId).Replace('/', '\\');
                                     continue;
                                 }
 
@@ -1384,6 +1384,26 @@ namespace EmuLibrary.RomTypes.Yuzu
                 var hash = hasher.ComputeHash(ncaId);
                 return string.Format(@"000000{0:X2}{1}{2}.nca", hash[0], Path.DirectorySeparatorChar, ncaFileNameHex.ToLower());
             }
+        }
+
+        // The hash-bucket directory is deterministic and always matches what's on disk, but the
+        // filename's case may not: this class always writes new NCAs lowercase (see InstallFileToNand),
+        // while content registered by the emulator itself (or an older EmuLibrary build) can be
+        // uppercase. NTFS opens either case fine, but some emulators (observed with Eden) compare the
+        // launch path against their own case-preserved registered-content index and refuse a
+        // case-mismatched path with a permission error, even though the same file opens fine from
+        // their own game list. Resolve to the real on-disk name so the launch path always matches.
+        private string ResolveRegisteredNcaRelativePath(byte[] ncaId)
+        {
+            var guess = GetRelativePathFromNcaId(ncaId);
+            var dir = Path.Combine(NandPath, "user", "Contents", "registered", Path.GetDirectoryName(guess));
+            var stem = Path.GetFileNameWithoutExtension(guess);
+
+            var actual = Directory.Exists(dir)
+                ? Directory.EnumerateFiles(dir, "*.nca").FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), stem, StringComparison.OrdinalIgnoreCase))
+                : null;
+
+            return actual == null ? guess : Path.Combine(Path.GetFileName(dir), Path.GetFileName(actual));
         }
     }
 }
