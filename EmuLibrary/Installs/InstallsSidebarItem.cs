@@ -96,10 +96,26 @@ namespace EmuLibrary.Installs
 
         private void UpdateProgress()
         {
-            // Per the SDK, ProgressValue = 0 hides the bar — which is what we want when nothing measurable is
-            // in flight (no active installs, or all still in an indeterminate stage).
-            ProgressMaximum = _viewModel.AggregateProgressMaximum;
-            ProgressValue = _viewModel.AggregateProgressMaximum > 0 ? _viewModel.AggregateProgressValue : 0;
+            if (_viewModel.AggregateProgressMaximum > 0)
+            {
+                // Measurable progress in flight — show the real aggregate fill.
+                ProgressMaximum = _viewModel.AggregateProgressMaximum;
+                ProgressValue = _viewModel.AggregateProgressValue;
+            }
+            else if (_viewModel.HasActive)
+            {
+                // Active installs exist but none has a byte total yet ("Preparing…"). The SDK sidebar bar is
+                // determinate-only (no indeterminate mode), so instead of hiding it we park a minimal sliver as
+                // a "busy" indicator. It stays here until the first SetBytes/SetPercent gives us real numbers.
+                ProgressMaximum = 100;
+                ProgressValue = 1;
+            }
+            else
+            {
+                // Nothing in flight — per the SDK, ProgressValue = 0 hides the bar.
+                ProgressMaximum = 1;
+                ProgressValue = 0;
+            }
         }
     }
 }
