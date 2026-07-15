@@ -1,5 +1,18 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.9.0
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: '2026-07-15'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.9.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_9_0.pext
+    Changelog:
+      - Added PSP (PPSSPP) RomType, which supports installing update and DLC files alongside PSP games
+      - Added PSVita (Vita3K) RomType, with support for both NoNpDrm and PSN package installs, including updates and DLC
+      - Updated sidebar icon to better fit with current theming
+      - Updated sidebar icon to show sliver of progress if all active installations have indeterminate progress (Ex. "Preparing...")
+      - Updated settings page to warn about certain types of mapping setting changes and to add migration paths for others, to avoid orphaned games after changing settings
+      - Updated settings page to hide incompatible rom types from dropdown, depending on chosen platform
+      - Fixed Yuzu RomType with Edan not being able to launch installed games
+      - Fixed Yuzu RomType throwing error on install if the emulator had never been launched
   - Version: 3.8.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: '2026-07-09'
