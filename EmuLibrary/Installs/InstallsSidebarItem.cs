@@ -1,8 +1,10 @@
 using Playnite.SDK.Plugins;
 using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace EmuLibrary.Installs
 {
@@ -31,13 +33,7 @@ namespace EmuLibrary.Installs
 
             try
             {
-                Icon = new Image
-                {
-                    Source = new BitmapImage(new Uri(ResolveIconPath())),
-                    Width = 20,
-                    Height = 20,
-                    Stretch = Stretch.Uniform
-                };
+                Icon = BuildIcon();
             }
             catch
             {
@@ -52,10 +48,12 @@ namespace EmuLibrary.Installs
             };
         }
 
-        // Prefer the user's configured override icon (if it points at a file that exists); otherwise fall back
-        // to the bundled extension icon. Resolved once at construction — the item is cached for the session.
-        // The stored override may use the {PlayniteDir} placeholder (portable installs), so expand it first.
-        private static string ResolveIconPath()
+        // Builds the sidebar icon element. Prefers the user's configured override image (if it points at a file
+        // that exists — the stored path may use the {PlayniteDir} placeholder on portable installs, so expand it
+        // first). Otherwise returns the built-in emu glyph as a vector Path whose Fill is bound to the theme's
+        // TextBrush, so the single-color silhouette recolors to match whatever theme is active. Built once at
+        // construction — the item is cached for the session.
+        private static UIElement BuildIcon()
         {
             var settings = Settings.Settings.Instance;
             var overridePath = settings?.SidebarIconPath;
@@ -64,11 +62,47 @@ namespace EmuLibrary.Installs
                 var playnite = settings.PlayniteAPI;
                 var resolved = Util.PortablePathResolver.Resolve(overridePath, playnite.Paths.IsPortable, playnite.Paths.ApplicationPath);
                 if (System.IO.File.Exists(resolved))
-                    return resolved;
+                {
+                    return new Image
+                    {
+                        Source = new BitmapImage(new Uri(resolved)),
+                        Width = 20,
+                        Height = 20,
+                        Stretch = Stretch.Uniform
+                    };
+                }
             }
 
-            return EmuLibrary.Icon;
+            var emu = new Path
+            {
+                Data = Geometry.Parse(EmuGlyphData),
+                Stretch = Stretch.Uniform,
+                // Mirror horizontally about the element's center to match the flipped source art
+                // (Assets/emu-sidebar.svg). RenderTransform is post-layout, so the Viewbox still sizes it
+                // from the un-mirrored bounds and the glyph stays centered in its slot.
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = new ScaleTransform(-1, 1),
+            };
+            // TextBrush is a core Playnite theme brush present in every theme; a DynamicResource reference
+            // re-resolves it against the live visual tree once Playnite inserts this element into the sidebar,
+            // so the emu recolors with the active theme instead of being a fixed color.
+            emu.SetResourceReference(Shape.FillProperty, "TextBrush");
+
+            return new Viewbox
+            {
+                Width = 20,
+                Height = 20,
+                Child = emu
+            };
         }
+
+        // Emu silhouette (source art: Assets/emu-sidebar.svg), two black subpaths combined into one geometry.
+        // The near-white artifact specks from the source SVG are intentionally dropped so the shape is a single
+        // flat color that can be theme-tinted. "F1" selects the nonzero fill rule (the SVG default) so the eye
+        // stays a knocked-out hole. Path data is the original orientation; BuildIcon mirrors it at render time.
+        private const string EmuGlyphData =
+            "F1 M532.562 145.265L534.388 145.061L534.378 145.568L532.17 147.274C523.378 154.759 516.448 161.784 511.536 172.392C539.566 150.25 579.545 142.545 614.582 146.607C615.059 146.663 615.536 146.725 616.012 146.792C606.501 151.902 601.252 154.95 594.288 163.657C624.988 154.296 661.419 156.254 689.965 171.343C684.519 172.887 679.897 174.25 674.689 176.632C675.17 177.523 675.664 178.408 676.168 179.287C706.222 181.46 734.724 193.469 757.27 213.46C742.489 213.316 739.61 213.32 725.111 216.297C751.829 221.546 782.717 248.623 798.748 270.418C790.137 268.484 779.105 266.445 770.298 267.187C769.762 267.219 767.613 267.104 767.332 267.335C767.375 267.915 768.805 268.529 769.135 268.724C776.255 273.67 784.221 278.879 790.691 284.545C803.623 295.87 824.365 324.02 829.411 340.215C817.084 335.004 813.992 334.26 800.583 332.277C821.701 349.393 844.361 387.023 849.551 413.755C841.274 409.308 833.959 406.226 824.861 403.701C844.279 426.432 857.708 464.61 857.579 494.262C852.6 487.514 842.258 482.204 834.563 479.304C848.325 502.041 855.445 525.704 854.097 552.422C853.709 560.123 854.113 569.761 851.705 577.059C845.882 568.301 844.011 563.916 835.647 557.355L835.236 557.394C837.015 563.877 840.204 574.698 841.028 581.195C844.065 605.117 840.946 633.185 831.545 655.348L831.229 654.839C828.876 650.986 824.888 642.055 821.609 639.544C819.037 644.02 818.644 643.213 819.373 649.251C819.996 654.402 818.813 659.255 818.797 664.254C818.793 665.481 818.145 667.879 817.657 669.013C816.769 672.106 817.162 676.129 815.679 679.001C814.899 680.512 815.418 682.747 815.833 684.28C814.646 694.157 800.896 725.028 795.424 732.85C792.796 725.1 791.611 721.518 787.518 714.44C785.248 721.051 783.695 728.329 781.136 735.653C772.424 760.582 759.928 777.505 744.374 798.207C743.423 789.816 742.119 785.419 739.527 777.45C733.794 795.14 719.894 817.521 707.247 831.138C700.425 838.483 691.602 845.913 684.013 852.519C684.288 845.829 683.73 842.476 682.847 835.916C671.052 852.324 663.63 863.866 656.233 882.899C637.389 883.861 614.194 882.882 594.73 883.074C536.802 883.657 478.87 883.811 420.94 883.537C375.202 883.795 329.464 883.668 283.729 883.155C267.613 882.975 249.187 884.16 233.481 882.895C237.588 869.022 248.429 849.581 255.97 837.314C292.921 777.203 350.509 738.148 413.213 708.475C453.449 689.434 493.204 676.232 523.095 640.718C546.275 613.179 558.468 581.689 555.844 545.429C548.166 546.876 539.797 549.483 531.604 551.08C507.907 555.636 483.76 557.422 459.651 556.399C437.25 555.246 404.417 549.694 383.533 541.373C378.674 539.461 373.9 537.337 369.227 535.007C364.304 532.544 352.052 524.912 347.86 524.671C341.258 524.293 331.709 524.345 324.879 524.343C311.728 524.393 298.577 524.34 285.427 524.183C248.506 524.032 211.595 522.873 174.737 520.706C159.868 519.881 143.245 519.271 128.488 516.53C126.627 516.184 126.024 515.654 125.269 514.25C126.484 510.265 136.063 508.349 140.053 507.223C206.965 488.339 277.807 478.565 347.296 477.016C362.903 476.72 378.515 476.863 394.114 477.447C401.958 477.762 409.572 478.477 417.577 478.639C424.075 478.77 427.159 472.789 422.952 468.85C419.976 466.063 408.627 464.641 404.193 463.947C366.507 458.051 327.202 458.759 289.3 462.549C282.381 463.234 275.475 464.053 268.587 465.005C264.788 465.543 258.277 466.715 254.666 466.937L253.74 466.988C248.285 468.209 242.823 468.63 237.484 469.776C203.798 474.33 168.13 485.395 136.066 496.606C130.331 498.611 98.6089 514.069 96.8666 513.89C96.1462 513.325 95.6181 512.71 95.506 511.77C93.9619 498.825 102.495 479.418 108.972 469.275C141.975 417.595 219.701 384.68 276.749 371.273C277.748 368.195 278.573 364.49 279.35 361.338C291.414 312.377 321.594 267.39 364.647 240.511C371.938 235.959 380.546 230.47 387.458 225.313C388.015 223.899 388.582 222.488 389.158 221.081C401.485 191.272 426.304 174.828 454.839 162.914C447.104 175.937 444.501 176.53 440.395 192.943C461.134 166.435 499.63 149.652 532.562 145.265ZM464.882 398.829C472.522 403.966 477.786 407.348 486.769 410.275C543.432 428.736 600.886 382.917 591.486 323.123C590.972 319.857 590.107 316.419 586.591 315.595C582.414 316.329 563.425 324.041 558.229 325.945L476.187 356.387C469.236 359.023 447.396 366.853 442.225 370.184C441.767 374.74 447.739 381.729 450.613 385.225C454.803 390.319 459.594 394.887 464.882 398.829Z " +
+            "M815.833 684.28C815.418 682.747 814.899 680.512 815.679 679.001C817.162 676.129 816.769 672.106 817.657 669.013C818.145 667.879 818.793 665.481 818.797 664.254C818.813 659.255 819.996 654.402 819.373 649.251C818.644 643.213 819.037 644.02 821.609 639.544C821.075 646.18 821.149 651.946 820.485 658.25L819.496 666.999C819.03 671.232 817.122 680.39 815.833 684.28Z";
 
         // Called by the plugin when settings are committed. The final Visible state ANDs this with the
         // empty-state gate so a config change can't reveal an empty panel (and vice versa).
