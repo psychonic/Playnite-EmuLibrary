@@ -108,7 +108,7 @@ namespace EmuLibrary.Settings
         public RomType RomType
         {
             get => _romType;
-            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(AvailableRomTypes), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(SupportsPreferInAppTitle), nameof(DisplayName) });
+            set => SetValue(ref _romType, value, new[] { nameof(RomType), nameof(SupportsDestinationPath), nameof(SupportsInstallMethod), nameof(SupportsPreferInAppTitle), nameof(DisplayName) });
         }
 
         // Header text for the settings card/expander - a human-readable summary of the mapping.
