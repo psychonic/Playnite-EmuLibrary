@@ -1,5 +1,11 @@
 AddonId: ROMInstaller_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 3.9.1
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: '2026-08-07'
+    PackageUrl: https://github.com/psychonic/Playnite-EmuLibrary/releases/download/v3.9.1/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_3_9_1.pext
+    Changelog:
+      - Fixed hang when selecting rom type for a mapping
   - Version: 3.9.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: '2026-07-15'
